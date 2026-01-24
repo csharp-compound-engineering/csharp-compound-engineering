@@ -1,0 +1,101 @@
+{
+  "branches": [
+    "main",
+    "master",
+    {
+      "name": "develop",
+      "prerelease": "beta"
+    },
+    {
+      "name": "release/*",
+      "prerelease": "rc"
+    }
+  ],
+  "tagFormat": "v${version}",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "revert", "release": "patch" },
+          { "type": "docs", "scope": "README", "release": "patch" },
+          { "type": "refactor", "release": "patch" },
+          { "type": "style", "release": false },
+          { "type": "chore", "release": false },
+          { "type": "ci", "release": false },
+          { "type": "test", "release": false },
+          { "type": "build", "release": false },
+          { "breaking": true, "release": "major" }
+        ],
+        "parserOpts": {
+          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES", "BREAKING"]
+        }
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "Features", "hidden": false },
+            { "type": "fix", "section": "Bug Fixes", "hidden": false },
+            { "type": "perf", "section": "Performance Improvements", "hidden": false },
+            { "type": "revert", "section": "Reverts", "hidden": false },
+            { "type": "docs", "section": "Documentation", "hidden": false },
+            { "type": "refactor", "section": "Code Refactoring", "hidden": false },
+            { "type": "style", "section": "Styles", "hidden": true },
+            { "type": "chore", "section": "Miscellaneous Chores", "hidden": true },
+            { "type": "ci", "section": "Continuous Integration", "hidden": true },
+            { "type": "test", "section": "Tests", "hidden": true },
+            { "type": "build", "section": "Build System", "hidden": true }
+          ]
+        },
+        "writerOpts": {
+          "commitsSort": ["subject", "scope"]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)."
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyConditionsCmd": "dotnet --version && docker version --format '{{.Server.Version}}' && helm version --short",
+        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version}",
+        "publishCmd": "bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-helm.sh ${nextRelease.version}",
+        "successCmd": "echo 'Release ${nextRelease.version} published successfully'"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          { "path": "artifacts/*.nupkg", "label": "NuGet Packages" },
+          { "path": "compound-docs-*.tgz", "label": "Helm Chart" }
+        ],
+        "successComment": "This ${issue.pull_request ? 'PR is included' : 'issue has been resolved'} in version ${nextRelease.version}",
+        "failComment": false,
+        "labels": ["released"],
+        "releasedLabels": ["released"],
+        "addReleases": "bottom"
+      }
+    ]
+  ]
+}

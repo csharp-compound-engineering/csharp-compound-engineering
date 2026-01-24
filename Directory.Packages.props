@@ -1,0 +1,121 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <!-- Core .NET Extensions -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.0.0" />
+  </ItemGroup>
+
+  <!-- AI Abstractions -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.2.0" />
+  </ItemGroup>
+
+  <!-- Semantic Kernel -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.SemanticKernel" Version="1.70.0" />
+    <PackageVersion Include="Microsoft.Extensions.VectorData.Abstractions" Version="9.7.0" />
+  </ItemGroup>
+
+  <!-- MCP Protocol -->
+  <ItemGroup>
+    <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="0.6.0-preview.1" />
+  </ItemGroup>
+
+  <!-- Logging -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
+  </ItemGroup>
+
+  <!-- Parsing & Validation -->
+  <ItemGroup>
+    <PackageVersion Include="Markdig" Version="0.39.0" />
+    <PackageVersion Include="NJsonSchema" Version="11.1.0" />
+    <PackageVersion Include="YamlDotNet" Version="16.2.1" />
+  </ItemGroup>
+
+  <!-- Graph -->
+  <ItemGroup>
+    <PackageVersion Include="Gremlin.Net" Version="3.7.3" />
+  </ItemGroup>
+
+  <!-- AWS SDK -->
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.Neptunedata" Version="3.7.500" />
+    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="3.7.414.2" />
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
+    <PackageVersion Include="OpenSearch.Client" Version="1.8.0" />
+    <PackageVersion Include="OpenSearch.Net.Auth.AwsSigV4" Version="1.8.0" />
+  </ItemGroup>
+
+  <!-- Git -->
+  <ItemGroup>
+    <PackageVersion Include="LibGit2Sharp" Version="0.31.0" />
+  </ItemGroup>
+
+  <!-- Resilience -->
+  <ItemGroup>
+    <PackageVersion Include="Polly" Version="8.5.0" />
+  </ItemGroup>
+
+  <!-- JSON -->
+  <ItemGroup>
+    <PackageVersion Include="System.Text.Json" Version="10.0.2" />
+  </ItemGroup>
+
+  <!-- Testing -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.0" />
+<PackageVersion Include="Shouldly" Version="4.2.1" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="coverlet.msbuild" Version="6.0.4" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Xunit.SkippableFact" Version="1.5.23" />
+  </ItemGroup>
+
+  <!-- Aspire -->
+  <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting" Version="9.1.0" />
+    <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.1.0" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="9.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.10.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.10.0" />
+  </ItemGroup>
+
+  <!-- Graph drivers for testing -->
+  <ItemGroup>
+    <PackageVersion Include="Neo4j.Driver" Version="5.27.0" />
+  </ItemGroup>
+
+  <!-- Build Tools -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
+  </ItemGroup>
+</Project>

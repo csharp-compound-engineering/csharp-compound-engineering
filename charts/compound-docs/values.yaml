@@ -1,0 +1,192 @@
+# Default values for compound-docs Helm chart
+
+image:
+  repository: ghcr.io/compound-docs/csharp-compound-engineering/mcp-server
+  tag: ""  # Defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+# --- ArgoCD Sync Waves ---
+syncWaves:
+  provider: "0"
+  providerConfig: "1"
+  workspaces: "2"
+  externalSecrets: "3"
+  application: "4"
+
+# --- Crossplane / OpenTofu ---
+crossplane:
+  enabled: true
+  provider:
+    package: xpkg.upbound.io/upbound/provider-opentofu:v1.0.3
+
+# --- External Secrets Operator ---
+externalSecrets:
+  enabled: false
+  # Prefix for AWS Secrets Manager paths (e.g. "compound-docs" → "compound-docs/neptune")
+  secretsManagerPrefix: ""
+  # How often ESO polls Secrets Manager for changes
+  refreshInterval: 1h
+  # Explicit ESO reader IAM role ARN. If empty, a deterministic ARN is constructed
+  # from aws.accountId: arn:aws:iam::<accountId>:role/<fullname>-eso-reader
+  esoRoleArn: ""
+  # Name for the ESO ServiceAccount. Defaults to <fullname>-eso
+  esoServiceAccountName: ""
+
+aws:
+  region: us-east-1
+  # AWS account ID — required when externalSecrets.enabled=true and esoRoleArn is empty
+  accountId: ""
+  credentialsSecretName: aws-credentials
+  credentialsSecretKey: credentials
+
+# --- VPC (pre-existing) ---
+vpc:
+  vpcId: ""
+  privateSubnetIds: ""
+  neptuneSecurityGroupId: ""
+  opensearchSecurityGroupId: ""
+
+# --- Neptune ---
+# When crossplane.enabled: true, Neptune is provisioned via Crossplane workspace.
+# When crossplane.enabled: false, supply endpoint/port directly.
+neptune:
+  enabled: true
+  engineVersion: "1.2.0.1"
+  minCapacity: 2.5
+  maxCapacity: 128
+  connectionSecretName: compound-docs-neptune
+  # Direct connection (used when crossplane.enabled: false)
+  endpoint: ""
+  port: "8182"
+
+# --- OpenSearch Serverless ---
+# When crossplane.enabled: true, OpenSearch is provisioned via Crossplane workspace.
+# When crossplane.enabled: false, supply endpoint directly.
+opensearch:
+  enabled: true
+  collectionName: compound-docs-vectors
+  connectionSecretName: compound-docs-opensearch
+  # Direct connection (used when crossplane.enabled: false)
+  endpoint: ""
+
+# --- IAM / Pod Identity ---
+# When crossplane.enabled: true, IAM role is provisioned via Crossplane workspace.
+# When crossplane.enabled: false, supply roleArn directly.
+iam:
+  enabled: true
+  clusterName: ""
+  connectionSecretName: compound-docs-iam
+  # Direct connection (used when crossplane.enabled: false)
+  roleArn: ""
+
+# --- Bedrock ---
+bedrock:
+  embeddingModelId: "amazon.titan-embed-text-v2:0"
+  llmModelId: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+
+# --- Application ---
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: false
+  # Ingress class name (e.g. "nginx", "alb")
+  className: ""
+  # Hostname for the Ingress rule — external-dns creates a DNS record for this value
+  hostname: ""
+  path: /
+  pathType: Prefix
+  # DNS TTL in seconds for the external-dns managed record
+  ttl: ""
+  # Additional annotations (e.g. cert-manager, ALB-specific)
+  annotations: {}
+  # TLS configuration
+  # - secretName: compound-docs-tls
+  #   hosts:
+  #     - compound-docs.example.com
+  tls: []
+  # Additional host rules beyond the primary hostname
+  extraHosts: []
+
+resources:
+  limits:
+    cpu: "1"
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podAnnotations: {}
+podLabels: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+auth:
+  apiKeysSecretName: ""
+
+logging:
+  level: Information
+
+# =============================================================================
+# Configuration Mode Examples
+# =============================================================================
+#
+# Mode A: Crossplane + ESO (full infra provisioning with Secrets Manager)
+# -----------------------------------------------------------------------
+# crossplane:
+#   enabled: true
+# externalSecrets:
+#   enabled: true
+#   secretsManagerPrefix: compound-docs
+# aws:
+#   accountId: "123456789012"
+# vpc:
+#   vpcId: vpc-xxx
+#   privateSubnetIds: "subnet-a,subnet-b"
+#   neptuneSecurityGroupId: sg-xxx
+#   opensearchSecurityGroupId: sg-yyy
+# iam:
+#   clusterName: my-eks-cluster
+#
+# Mode B: ESO only (pre-existing infra, user populates Secrets Manager)
+# -----------------------------------------------------------------------
+# crossplane:
+#   enabled: false
+# externalSecrets:
+#   enabled: true
+#   secretsManagerPrefix: compound-docs
+#   esoRoleArn: arn:aws:iam::123456789012:role/my-eso-reader
+#
+# Mode C: Static fallback (no ESO, no Crossplane, direct values)
+# -----------------------------------------------------------------------
+# crossplane:
+#   enabled: false
+# externalSecrets:
+#   enabled: false
+# neptune:
+#   endpoint: neptune.example.com
+# opensearch:
+#   endpoint: https://opensearch.example.com
+# iam:
+#   roleArn: arn:aws:iam::123456789012:role/my-app-role

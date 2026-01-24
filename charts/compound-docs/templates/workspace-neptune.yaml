@@ -1,0 +1,43 @@
+{{- if and .Values.crossplane.enabled .Values.neptune.enabled }}
+apiVersion: opentofu.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-neptune
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.workspaces | quote }}
+spec:
+  providerConfigRef:
+    name: {{ include "compound-docs.fullname" . }}
+  forProvider:
+    source: Inline
+    module: |
+      {{ .Files.Get "files/neptune.tf" | nindent 6 }}
+    vars:
+      - key: name_prefix
+        value: {{ include "compound-docs.fullname" . | quote }}
+      - key: engine_version
+        value: {{ .Values.neptune.engineVersion | quote }}
+      - key: min_capacity
+        value: {{ .Values.neptune.minCapacity | quote }}
+      - key: max_capacity
+        value: {{ .Values.neptune.maxCapacity | quote }}
+      - key: vpc_id
+        value: {{ .Values.vpc.vpcId | quote }}
+      - key: private_subnet_ids
+        value: {{ .Values.vpc.privateSubnetIds | quote }}
+      - key: security_group_id
+        value: {{ .Values.vpc.neptuneSecurityGroupId | quote }}
+      {{- if .Values.externalSecrets.enabled }}
+      - key: write_to_secrets_manager
+        value: "true"
+      - key: secrets_manager_prefix
+        value: {{ .Values.externalSecrets.secretsManagerPrefix | quote }}
+      {{- end }}
+  {{- if not .Values.externalSecrets.enabled }}
+  writeConnectionSecretToRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Values.neptune.connectionSecretName }}
+  {{- end }}
+{{- end }}

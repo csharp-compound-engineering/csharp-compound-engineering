@@ -1,0 +1,40 @@
+# Version control
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Infrastructure
+opentofu/
+charts/
+
+# Tests
+tests/
+
+# Scripts
+scripts/
+
+# Node.js
+node_modules/
+
+# Build artifacts
+**/bin/
+**/obj/
+artifacts/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db

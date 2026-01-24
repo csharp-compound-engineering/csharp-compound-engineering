@@ -1,0 +1,45 @@
+CompoundDocs MCP Server has been deployed.
+
+{{- if .Values.crossplane.enabled }}
+Infrastructure provisioning (Crossplane/OpenTofu):
+  - Neptune:    {{ if .Values.neptune.enabled }}enabled{{ else }}disabled{{ end }}
+  - OpenSearch: {{ if .Values.opensearch.enabled }}enabled{{ else }}disabled{{ end }}
+  - IAM/Pod Identity: {{ if .Values.iam.enabled }}enabled{{ else }}disabled{{ end }}
+
+  Infrastructure resources are provisioned via ArgoCD sync waves.
+  Monitor progress with: kubectl get workspaces -n {{ .Release.Namespace }}
+{{- else }}
+Infrastructure: Using pre-existing resources (Crossplane disabled).
+  Connection details are stored in Secrets:
+  - {{ .Values.neptune.connectionSecretName }} (Neptune)
+  - {{ .Values.opensearch.connectionSecretName }} (OpenSearch)
+  - {{ .Values.iam.connectionSecretName }} (IAM)
+{{- end }}
+
+{{- if .Values.externalSecrets.enabled }}
+
+External Secrets Operator:
+  SecretStore:       {{ include "compound-docs.fullname" . }}
+  ESO ServiceAccount: {{ include "compound-docs.esoServiceAccountName" . }}
+  SM Prefix:         {{ .Values.externalSecrets.secretsManagerPrefix }}
+  Refresh Interval:  {{ .Values.externalSecrets.refreshInterval }}
+
+  ExternalSecret mappings:
+  {{- if .Values.neptune.enabled }}
+  - {{ .Values.externalSecrets.secretsManagerPrefix }}/neptune -> {{ .Values.neptune.connectionSecretName }}
+  {{- end }}
+  {{- if .Values.opensearch.enabled }}
+  - {{ .Values.externalSecrets.secretsManagerPrefix }}/opensearch -> {{ .Values.opensearch.connectionSecretName }}
+  {{- end }}
+  {{- if .Values.iam.enabled }}
+  - {{ .Values.externalSecrets.secretsManagerPrefix }}/iam -> {{ .Values.iam.connectionSecretName }}
+  {{- end }}
+
+  Check sync status: kubectl get externalsecrets -n {{ .Release.Namespace }}
+{{- end }}
+
+Application:
+  Service: {{ include "compound-docs.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+  To port-forward locally:
+    kubectl port-forward svc/{{ include "compound-docs.fullname" . }} 3000:{{ .Values.service.port }} -n {{ .Release.Namespace }}

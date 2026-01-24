@@ -1,0 +1,15 @@
+apiVersion: v2
+name: compound-docs
+description: GraphRAG MCP server for C#/.NET documentation — Neptune + OpenSearch Serverless + Bedrock
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - mcp
+  - graphrag
+  - neptune
+  - opensearch
+  - bedrock
+  - dotnet
+maintainers:
+  - name: compound-docs
