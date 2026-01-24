@@ -1,0 +1,37 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/model/anthropic\\.claude-.*/converse"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "output": {
+            "message": {
+              "role": "assistant",
+              "content": [
+                {
+                  "text": "Based on the provided context, here is the synthesized answer to your query."
+                }
+              ]
+            }
+          },
+          "stopReason": "end_turn",
+          "usage": {
+            "inputTokens": 150,
+            "outputTokens": 50,
+            "totalTokens": 200
+          },
+          "metrics": {
+            "latencyMs": 1200
+          }
+        }
+      }
+    }
+  ]
+}

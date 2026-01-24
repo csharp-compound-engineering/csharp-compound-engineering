@@ -1,0 +1,23 @@
+{
+  "mappings": [
+    {
+      "request": {
+        "method": "POST",
+        "urlPathPattern": "/model/amazon\\.titan-embed-text-v2:0/invoke"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "jsonBody": {
+          "embedding": [0.0123, -0.0456, 0.0789, 0.0012, -0.0034, 0.0056, -0.0078, 0.0090,
+            0.0111, -0.0222, 0.0333, -0.0444, 0.0555, -0.0666, 0.0777, -0.0888,
+            0.0101, -0.0202, 0.0303, -0.0404, 0.0505, -0.0606, 0.0707, -0.0808,
+            0.0909, -0.1010, 0.1111, -0.1212, 0.1313, -0.1414, 0.1515, -0.1616],
+          "inputTextTokenCount": 25
+        }
+      }
+    }
+  ]
+}

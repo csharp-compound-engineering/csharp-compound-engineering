@@ -133,8 +133,9 @@ ipch/
 *.vspx
 *.sap
 
-# Visual Studio Trace Files
+# Visual Studio Trace Files (not the E2E test directory)
 *.e2e
+!tests/CompoundDocs.Tests.E2E/
 
 # TFS 2012 Local Workspace
 $tf/
@@ -416,3 +417,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Nextra docs site
+docs/node_modules/
+docs/.next/
+docs/out/
+
+generated

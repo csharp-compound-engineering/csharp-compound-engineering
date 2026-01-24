@@ -1,0 +1,4 @@
+# Phase 3 uses the shared terraform.tfvars from the opentofu/ root.
+# Run with: tofu plan -var-file=../../terraform.tfvars
+#
+# See ../../terraform.tfvars.example for all available variables.

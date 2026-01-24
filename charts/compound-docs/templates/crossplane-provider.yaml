@@ -1,0 +1,12 @@
+{{- if .Values.crossplane.enabled }}
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-opentofu
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.provider | quote }}
+spec:
+  package: {{ .Values.crossplane.provider.package }}
+{{- end }}

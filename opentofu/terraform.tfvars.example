@@ -1,0 +1,52 @@
+# Copy this file to terraform.tfvars and fill in your values.
+
+region       = "us-east-1"
+cluster_name = "compound-docs"
+environment  = "dev"
+
+# Network
+vpc_cidr           = "10.0.0.0/16"
+single_nat_gateway = true # Set to false for production (one NAT GW per AZ)
+
+# EKS
+cluster_version                 = "1.31"
+cluster_endpoint_public_access  = true
+cluster_endpoint_private_access = true
+
+# Node groups
+node_instance_types = ["t3.medium"]
+node_min_size       = 2
+node_max_size       = 6
+node_desired_size   = 2
+
+# DNS
+internal_dns_zone = "internal.compound-docs.com"
+
+# VPN
+vpn_enabled     = true
+vpn_client_cidr = "172.16.0.0/16"
+
+# External Secrets
+external_secrets_enabled = true
+
+# ExternalDNS
+external_dns_enabled = true
+
+# ArgoCD
+argocd_enabled       = true
+argocd_chart_version = "7.8.0"
+argocd_dns_name      = "argocd"
+
+# Crossplane
+crossplane_enabled       = true
+crossplane_chart_version = "2.1.0"
+crossplane_replicas      = 1 # Set to 3 for production HA
+
+# cert-manager
+cert_manager_enabled = true
+
+# ArgoCD admin credentials (for ESO-managed secrets)
+# Generate bcrypt hash: htpasswd -nbBC 10 '' 'your-password' | tr -d ':\n'
+# Generate server key: openssl rand -hex 32
+# argocd_admin_password_bcrypt = "$2a$10$..."
+# argocd_server_secret_key     = "..."

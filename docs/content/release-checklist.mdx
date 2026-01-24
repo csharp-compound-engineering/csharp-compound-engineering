@@ -1,0 +1,307 @@
+---
+title: Release Checklist
+---
+
+# Release Checklist
+
+This document outlines the complete checklist for preparing, executing, and verifying releases of the CSharp Compound Docs MCP server.
+
+## Pre-Release Checklist
+
+Complete all items before creating a release.
+
+### Code Quality
+
+- [ ] All unit tests pass
+  ```bash
+  dotnet test tests/CompoundDocs.Tests --configuration Release
+  ```
+
+- [ ] All integration tests pass
+  ```bash
+  dotnet test tests/CompoundDocs.Tests.Integration --configuration Release
+  ```
+
+- [ ] All E2E tests pass
+  ```bash
+  dotnet test tests/CompoundDocs.Tests.E2E --configuration Release
+  ```
+
+### Security
+
+- [ ] No known security vulnerabilities
+  ```bash
+  dotnet list package --vulnerable
+  ```
+
+- [ ] No outdated packages with security patches
+  ```bash
+  dotnet list package --outdated
+  ```
+
+- [ ] Secrets scanning passed (no hardcoded credentials or AWS keys)
+
+- [ ] AWS IAM permissions follow least privilege
+
+### Documentation
+
+- [ ] CHANGELOG.md updated with version notes
+  - Added new features documented
+  - Changed behaviors documented
+  - Deprecated items noted
+  - Fixed bugs listed
+  - Security fixes highlighted
+
+- [ ] README.md reflects current functionality
+
+- [ ] API documentation is accurate
+  - `rag_query` tool documented with current parameters and response format
+  - Error codes match `ToolErrors.cs`
+
+- [ ] Migration guide prepared (if breaking changes)
+
+### Version Updates
+
+- [ ] Version number updated in `marketplace/manifest.json`
+
+- [ ] Version number updated in all `.csproj` files
+  ```xml
+  <Version>x.y.z</Version>
+  <AssemblyVersion>x.y.z</AssemblyVersion>
+  <FileVersion>x.y.z</FileVersion>
+  ```
+
+### Build Verification
+
+- [ ] Solution builds without warnings
+  ```bash
+  dotnet build --configuration Release --warnaserror
+  ```
+
+- [ ] Published binaries work on all target platforms
+  - Windows x64
+  - macOS x64
+  - macOS arm64
+  - Linux x64
+
+### AWS Service Verification
+
+- [ ] Neptune graph schema is compatible with the release
+- [ ] OpenSearch index mapping is compatible
+- [ ] Bedrock model IDs are valid in target regions
+- [ ] Polly resilience policies tested against transient failures
+
+## Release Process
+
+### Step 1: Create Release Branch
+
+```bash
+git checkout master
+git pull origin master
+git checkout -b release/v{version}
+```
+
+### Step 2: Final Version Bump
+
+Update all version references:
+
+```bash
+# Update version in manifest
+sed -i 's/"version": ".*"/"version": "{version}"/' marketplace/manifest.json
+
+# Update .csproj files
+find src -name "*.csproj" -exec sed -i 's/<Version>.*<\/Version>/<Version>{version}<\/Version>/' {} \;
+```
+
+### Step 3: Generate Changelog Entry
+
+Ensure CHANGELOG.md has an entry for this version:
+
+```markdown
+## [x.y.z] - YYYY-MM-DD
+
+### Added
+- Feature descriptions
+
+### Changed
+- Modification descriptions
+
+### Fixed
+- Bug fix descriptions
+
+### Security
+- Security-related changes
+```
+
+### Step 4: Create Pull Request
+
+```bash
+git add -A
+git commit -m "chore: prepare release v{version}"
+git push -u origin release/v{version}
+gh pr create --title "Release v{version}" --body "Release preparation for version {version}"
+```
+
+### Step 5: Merge and Tag
+
+After PR approval:
+
+```bash
+gh pr merge --squash
+git checkout master
+git pull origin master
+git tag -a v{version} -m "Release v{version}"
+git push origin v{version}
+```
+
+### Step 6: Create GitHub Release
+
+```bash
+gh release create v{version} \
+  --title "v{version}" \
+  --notes-file CHANGELOG.md \
+  --latest
+```
+
+### Step 7: Update Marketplace
+
+- [ ] Update marketplace listing
+- [ ] Update feature descriptions
+
+## Post-Release Verification
+
+### Immediate Verification (within 1 hour)
+
+- [ ] GitHub release page accessible
+- [ ] Release assets downloadable
+
+- [ ] Fresh installation works
+  1. Clone repository
+  2. Configure AWS endpoints
+  3. Configure Claude Code MCP
+  4. Verify `rag_query` tool is accessible
+
+### Extended Verification (within 24 hours)
+
+- [ ] `rag_query` tool responds correctly with source attribution
+- [ ] GraphRAG pipeline executes end-to-end (embed -> search -> traverse -> synthesize)
+- [ ] Worker service ingests documents from configured repositories
+- [ ] No error logs in first 24 hours of operation
+
+### Community Verification
+
+- [ ] Update documentation site
+- [ ] Announce in release channels
+- [ ] Monitor issue tracker for reports
+
+## Rollback Procedures
+
+### Scenario 1: Critical Bug in MCP Server
+
+**Symptoms**: MCP server crashes, `rag_query` returns errors, Claude Code integration broken
+
+**Immediate Actions**:
+
+1. Communicate issue status
+   ```bash
+   gh issue create --title "CRITICAL: v{version} rollback in progress" --body "..."
+   ```
+
+2. Revert to previous release
+   ```bash
+   # Users should checkout the previous tag
+   git checkout v{previous-version}
+   dotnet build
+   ```
+
+3. Mark release as pre-release
+   ```bash
+   gh release edit v{version} --prerelease
+   ```
+
+### Scenario 2: AWS Service Compatibility Issue
+
+**Symptoms**: Neptune query failures, OpenSearch index incompatibility, Bedrock model changes
+
+**Immediate Actions**:
+
+1. Check if the issue is configuration-related (model IDs, endpoints)
+2. If schema change, prepare a migration script
+3. Apply hotfix or rollback
+
+### Scenario 3: Performance Regression
+
+**Symptoms**: Slow queries, high Bedrock costs, timeouts
+
+**Immediate Actions**:
+
+1. Identify regression source via Serilog debug logging
+2. Check GraphRAG pipeline parameters
+3. Apply hotfix or rollback
+
+### Scenario 4: Security Vulnerability
+
+**Symptoms**: CVE reported, vulnerability scan failure
+
+**Immediate Actions**:
+
+1. Assess severity and impact
+
+2. For CRITICAL/HIGH:
+   - Immediately yank release
+     ```bash
+     gh release delete v{version} --yes
+     git push --delete origin v{version}
+     ```
+   - Notify users via security advisory
+
+3. For MEDIUM/LOW:
+   - Prepare patch release
+   - Document in SECURITY.md
+
+## Version Numbering
+
+This project follows [Semantic Versioning 2.0.0](https://semver.org/).
+
+### Version Format
+
+```
+MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+```
+
+### Version Components
+
+| Component | When to Increment |
+|-----------|-------------------|
+| MAJOR | Breaking changes to MCP tool API, configuration format, or GraphRAG pipeline interface |
+| MINOR | New features, new MCP tools, backward-compatible enhancements |
+| PATCH | Bug fixes, performance improvements, documentation updates |
+
+### Pre-Release Tags
+
+| Tag | Purpose |
+|-----|---------|
+| `-alpha.N` | Early development, unstable API |
+| `-beta.N` | Feature complete, API stabilizing |
+| `-rc.N` | Release candidate, final testing |
+| `-preview` | Preview release for marketplace |
+
+### Examples
+
+```
+0.1.0-preview    # Initial marketplace preview
+0.1.1            # Bug fix release
+0.2.0            # New features added
+1.0.0            # First stable release
+1.0.1            # Patch for stable release
+2.0.0            # Breaking changes
+```
+
+## Release Schedule
+
+| Release Type | Frequency | Notes |
+|--------------|-----------|-------|
+| Major | As needed | Significant changes, well-announced |
+| Minor | Monthly | Feature releases |
+| Patch | As needed | Bug fixes, can be immediate for critical issues |
+| Security | Immediate | Security patches released ASAP |

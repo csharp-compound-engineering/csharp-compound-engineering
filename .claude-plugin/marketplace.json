@@ -1,0 +1,36 @@
+{
+  "name": "cd-marketplace",
+  "owner": {
+    "name": "Michael McCord"
+  },
+  "metadata": {
+    "description": "Marketplace for the CompoundDocs GraphRAG knowledge base plugin",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "cd",
+      "description": "GraphRAG-powered knowledge base for project documentation. Provides intelligent document retrieval via a single rag_query MCP tool backed by Neptune, OpenSearch, and Bedrock.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Michael McCord"
+      },
+      "source": ".",
+      "homepage": "https://github.com/michaelmccord/csharp-compound-engineering",
+      "repository": "https://github.com/michaelmccord/csharp-compound-engineering",
+      "license": "MIT",
+      "category": "knowledge-management",
+      "keywords": [
+        "graphrag",
+        "knowledge-base",
+        "documentation",
+        "rag",
+        "neptune",
+        "opensearch",
+        "bedrock",
+        "csharp",
+        "dotnet"
+      ]
+    }
+  ]
+}

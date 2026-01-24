@@ -1,0 +1,113 @@
+# Dependabot configuration for csharp-compounding-docs
+# Automated dependency updates for NuGet packages and GitHub Actions
+
+version: 2
+
+registries:
+  nuget-org:
+    type: nuget-feed
+    url: https://api.nuget.org/v3/index.json
+
+updates:
+  # NuGet packages
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    registries:
+      - nuget-org
+    labels:
+      - "dependencies"
+      - "nuget"
+    commit-message:
+      prefix: "build(deps)"
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "System.*"
+        update-types:
+          - "minor"
+          - "patch"
+      semantic-kernel:
+        patterns:
+          - "Microsoft.SemanticKernel*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "xunit*"
+          - "Moq*"
+          - "FluentAssertions*"
+          - "coverlet.*"
+        update-types:
+          - "minor"
+          - "patch"
+      logging:
+        patterns:
+          - "Serilog*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Ignore major version updates automatically - review manually
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/docker/postgres"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(deps)"
+
+  # Docker Compose
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "build(deps)"

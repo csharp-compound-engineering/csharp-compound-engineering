@@ -1,0 +1,139 @@
+---
+title: API Reference
+---
+
+# API Reference
+
+This document provides documentation for the MCP tools provided by the CSharp Compound Docs server.
+
+## Overview
+
+The CSharp Compound Docs MCP server provides a single tool for querying documentation using a GraphRAG pipeline:
+
+| Tool | Category | Purpose |
+|------|----------|---------|
+| `rag_query` | Query | Answer questions using GraphRAG with source attribution |
+
+The GraphRAG pipeline combines:
+- **Vector search** via AWS OpenSearch Serverless (KNN)
+- **Graph traversal** via Amazon Neptune (multi-hop concept linking)
+- **LLM synthesis** via Amazon Bedrock (Claude)
+
+## Error Handling
+
+### Response Format
+
+All tool responses use a consistent envelope:
+
+**Success response:**
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+**Error response:**
+```json
+{
+  "success": false,
+  "error": "Human-readable error description",
+  "error_code": "ERROR_CODE"
+}
+```
+
+### Error Codes
+
+| Code | Description |
+|------|-------------|
+| `EMPTY_QUERY` | Query string is empty or whitespace |
+| `EMBEDDING_FAILED` | Failed to generate embedding via Bedrock Titan |
+| `SEARCH_FAILED` | OpenSearch or Neptune query failed |
+| `RAG_SYNTHESIS_FAILED` | Bedrock LLM synthesis failed |
+| `OPERATION_CANCELLED` | The operation was cancelled (e.g., timeout) |
+| `UNEXPECTED_ERROR` | An unhandled exception occurred |
+
+## Tools Reference
+
+### 1. rag_query
+
+Perform RAG-based question answering with source attribution.
+
+#### Description
+
+Executes a GraphRAG pipeline that:
+1. Generates an embedding for the query using Amazon Bedrock (Titan Embed v2, 1024 dimensions)
+2. Performs KNN vector search in OpenSearch Serverless to find relevant chunks
+3. Traverses the Neptune knowledge graph for related concepts and linked documents
+4. Synthesizes an answer using Amazon Bedrock (Claude) with source attribution
+
+#### Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `query` | string | Yes | - | The question or query to answer |
+| `maxResults` | integer | No | 5 | Maximum number of source documents to use (1-20) |
+
+#### Success Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "query": "How do we handle connection pool exhaustion?",
+    "answer": "The connection pool exhaustion was caused by...",
+    "sources": [
+      {
+        "document_id": "doc-abc123",
+        "chunk_id": "chunk-def456",
+        "file_path": "src/Services/ConnectionManager.cs",
+        "relevance_score": 0.92
+      }
+    ],
+    "related_concepts": [
+      "connection pooling",
+      "resource disposal",
+      "async patterns"
+    ],
+    "confidence_score": 0.87
+  }
+}
+```
+
+#### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `query` | string | The original query |
+| `answer` | string | Synthesized answer from the LLM |
+| `sources` | array | Source chunks used for the answer |
+| `sources[].document_id` | string | Document identifier |
+| `sources[].chunk_id` | string | Chunk identifier within the document |
+| `sources[].file_path` | string | File path of the source document |
+| `sources[].relevance_score` | float | Similarity score (0.0-1.0) |
+| `related_concepts` | array[string] | Concepts discovered via graph traversal |
+| `confidence_score` | float | Overall confidence in the answer (0.0-1.0) |
+
+#### Example Usage
+
+```json
+{
+  "tool": "rag_query",
+  "arguments": {
+    "query": "How does authentication work in our system?",
+    "maxResults": 10
+  }
+}
+```
+
+#### Error Codes
+
+- `EMPTY_QUERY` - Query is empty or whitespace
+- `RAG_SYNTHESIS_FAILED` - Pipeline execution failed
+- `OPERATION_CANCELLED` - Request was cancelled
+
+#### Notes
+
+- The `maxResults` parameter is clamped to the range 1-20
+- Values &lt;= 0 default to 5; values &gt; 20 are capped at 20
+- The GraphRAG pipeline configuration (traversal depth, min relevance, cross-repo linking) is controlled by the server's `CompoundDocsCloudConfig.GraphRag` settings

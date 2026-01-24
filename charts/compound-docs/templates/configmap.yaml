@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "compound-docs.fullname" . }}
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.application | quote }}
+data:
+  aws-region: {{ .Values.aws.region | quote }}
+  bedrock-embedding-model-id: {{ .Values.bedrock.embeddingModelId | quote }}
+  bedrock-llm-model-id: {{ .Values.bedrock.llmModelId | quote }}
+  log-level: {{ .Values.logging.level | quote }}

@@ -1,0 +1,50 @@
+{{- if and .Values.crossplane.enabled .Values.iam.enabled }}
+apiVersion: opentofu.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-iam
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.workspaces | quote }}
+spec:
+  providerConfigRef:
+    name: {{ include "compound-docs.fullname" . }}
+  forProvider:
+    source: Inline
+    module: |
+      {{ .Files.Get "files/iam.tf" | nindent 6 }}
+    vars:
+      - key: name_prefix
+        value: {{ include "compound-docs.fullname" . | quote }}
+      - key: cluster_name
+        value: {{ .Values.iam.clusterName | quote }}
+      - key: namespace
+        value: {{ .Release.Namespace | quote }}
+      - key: service_account_name
+        value: {{ include "compound-docs.serviceAccountName" . | quote }}
+      {{- if .Values.externalSecrets.enabled }}
+      - key: opensearch_collection_id
+        value: "*"
+      - key: collection_name
+        value: {{ .Values.opensearch.collectionName | quote }}
+      - key: write_to_secrets_manager
+        value: "true"
+      - key: secrets_manager_prefix
+        value: {{ .Values.externalSecrets.secretsManagerPrefix | quote }}
+      - key: eso_service_account_name
+        value: {{ include "compound-docs.esoServiceAccountName" . | quote }}
+      {{- else }}
+      - key: opensearch_collection_id
+        valueFrom:
+          secretKeyRef:
+            namespace: {{ .Release.Namespace }}
+            name: {{ .Values.opensearch.connectionSecretName }}
+            key: collection_id
+      {{- end }}
+  {{- if not .Values.externalSecrets.enabled }}
+  writeConnectionSecretToRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Values.iam.connectionSecretName }}
+  {{- end }}
+{{- end }}
