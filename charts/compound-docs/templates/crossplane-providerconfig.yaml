@@ -1,0 +1,28 @@
+{{- if .Values.crossplane.enabled }}
+apiVersion: opentofu.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: {{ include "compound-docs.fullname" . }}
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.providerConfig | quote }}
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: {{ .Release.Namespace }}
+      name: {{ .Values.aws.credentialsSecretName }}
+      key: {{ .Values.aws.credentialsSecretKey }}
+  configuration: |
+    terraform {
+      backend "kubernetes" {
+        in_cluster_config = true
+        namespace         = "{{ .Release.Namespace }}"
+      }
+    }
+
+    provider "aws" {
+      region = "{{ .Values.aws.region }}"
+    }
+{{- end }}

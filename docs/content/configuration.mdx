@@ -1,0 +1,332 @@
+---
+title: Configuration
+---
+
+# CSharp Compounding Docs Configuration Guide
+
+This document provides configuration documentation for the CSharp Compounding Docs plugin, including all available settings and examples.
+
+## Configuration Overview
+
+CSharp Compounding Docs uses two configuration structures:
+
+1. **Cloud Configuration** (`CompoundDocsCloudConfig`): AWS service endpoints and credentials for Neptune, OpenSearch Serverless, and Bedrock. Controls repository monitoring and GraphRAG pipeline settings.
+
+2. **Project Configuration** (`ProjectConfig`): Project-specific RAG settings stored in `<project-root>/.csharp-compounding-docs/config.json`. Controls chunking, similarity thresholds, and link resolution.
+
+## Cloud Configuration
+
+The cloud configuration defines all AWS service connections and operational parameters.
+
+### AWS Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `Aws.Region` | string | `us-east-1` | AWS region for all services |
+
+### Neptune Settings
+
+Configure the Amazon Neptune graph database connection.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `Neptune.Endpoint` | string | *(required)* | Neptune cluster endpoint |
+| `Neptune.Port` | integer | `8182` | Neptune port |
+
+### OpenSearch Serverless Settings
+
+Configure the AWS OpenSearch Serverless vector store.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `OpenSearch.CollectionEndpoint` | string | *(required)* | OpenSearch Serverless collection endpoint URL |
+| `OpenSearch.IndexName` | string | `compound-docs` | Index name for document vectors |
+
+### Bedrock Settings
+
+Configure Amazon Bedrock models for embeddings and LLM synthesis.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `Bedrock.EmbeddingModelId` | string | `amazon.titan-embed-text-v2:0` | Embedding model (1024 dimensions) |
+| `Bedrock.SonnetModelId` | string | `anthropic.claude-sonnet-4-5-v1:0` | Claude Sonnet model for RAG synthesis |
+| `Bedrock.HaikuModelId` | string | `anthropic.claude-haiku-4-5-v1:0` | Claude Haiku model for entity extraction |
+| `Bedrock.OpusModelId` | string | `anthropic.claude-opus-4-5-v1:0` | Claude Opus model for complex reasoning |
+
+### Repository Settings
+
+Configure which git repositories to monitor for documentation changes.
+
+```json
+{
+  "Repositories": [
+    {
+      "Url": "https://github.com/org/my-repo.git",
+      "Name": "my-repo",
+      "Branch": "main",
+      "MonitoredPaths": ["docs/", "src/"],
+      "PollIntervalMinutes": 5
+    }
+  ]
+}
+```
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `Repositories[].Url` | string | *(required)* | Git repository URL |
+| `Repositories[].Name` | string | *(required)* | Display name for the repository |
+| `Repositories[].Branch` | string | `main` | Branch to monitor |
+| `Repositories[].MonitoredPaths` | string[] | `[]` | Paths within the repo to watch (empty = all) |
+| `Repositories[].PollIntervalMinutes` | integer | `5` | How often to check for changes |
+
+### Authentication Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `Auth.ApiKeys` | Dictionary | `{}` | API key mappings for access control |
+
+### GraphRAG Pipeline Settings
+
+| Setting | Type | Default | Range | Description |
+|---------|------|---------|-------|-------------|
+| `GraphRag.MaxTraversalSteps` | integer | `5` | 1-20 | Maximum graph traversal depth |
+| `GraphRag.MaxChunksPerQuery` | integer | `10` | 1-50 | Maximum chunks to retrieve per query |
+| `GraphRag.MinRelevanceScore` | double | `0.7` | 0.0-1.0 | Minimum vector similarity threshold |
+| `GraphRag.UseCrossRepoLinks` | boolean | `true` | - | Enable cross-repository concept linking |
+
+### Example Cloud Configuration
+
+```json
+{
+  "Aws": {
+    "Region": "us-east-1"
+  },
+  "Neptune": {
+    "Endpoint": "my-neptune-cluster.cluster-xxxx.us-east-1.neptune.amazonaws.com",
+    "Port": 8182
+  },
+  "OpenSearch": {
+    "CollectionEndpoint": "https://xxxx.us-east-1.aoss.amazonaws.com",
+    "IndexName": "compound-docs"
+  },
+  "Bedrock": {
+    "EmbeddingModelId": "amazon.titan-embed-text-v2:0",
+    "SonnetModelId": "anthropic.claude-sonnet-4-5-v1:0",
+    "HaikuModelId": "anthropic.claude-haiku-4-5-v1:0",
+    "OpusModelId": "anthropic.claude-opus-4-5-v1:0"
+  },
+  "Repositories": [
+    {
+      "Url": "https://github.com/org/my-project.git",
+      "Name": "my-project",
+      "Branch": "main",
+      "MonitoredPaths": ["docs/", "src/"],
+      "PollIntervalMinutes": 5
+    }
+  ],
+  "Auth": {
+    "ApiKeys": {}
+  },
+  "GraphRag": {
+    "MaxTraversalSteps": 5,
+    "MaxChunksPerQuery": 10,
+    "MinRelevanceScore": 0.7,
+    "UseCrossRepoLinks": true
+  }
+}
+```
+
+## Project Configuration
+
+Project configuration is stored at `<project-root>/.csharp-compounding-docs/config.json`.
+
+### RAG Settings
+
+| Setting | Type | Default | Range | Description |
+|---------|------|---------|-------|-------------|
+| `Rag.ChunkSize` | integer | `1000` | - | Size of text chunks for embedding (characters) |
+| `Rag.ChunkOverlap` | integer | `200` | - | Overlap between chunks (characters) |
+| `Rag.MaxResults` | integer | `10` | 1-100 | Maximum number of results to return |
+| `Rag.SimilarityThreshold` | float | `0.7` | 0.0-1.0 | Minimum similarity score for retrieval |
+| `Rag.LinkDepth` | integer | `2` | 0-10 | Maximum depth for following document links |
+
+### Link Resolution Settings
+
+| Setting | Type | Default | Range | Description |
+|---------|------|---------|-------|-------------|
+| `LinkResolution.MaxDepth` | integer | `2` | 0-10 | Maximum depth for following document links |
+| `LinkResolution.MaxLinkedDocs` | integer | `5` | 0-50 | Maximum linked documents to include |
+
+### Example Project Configuration
+
+```json
+{
+  "ProjectName": "my-project",
+  "Rag": {
+    "ChunkSize": 1000,
+    "ChunkOverlap": 200,
+    "MaxResults": 10,
+    "SimilarityThreshold": 0.7,
+    "LinkDepth": 2
+  },
+  "LinkResolution": {
+    "MaxDepth": 2,
+    "MaxLinkedDocs": 5
+  }
+}
+```
+
+## MCP Server Configuration
+
+### MCP Server Options
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `McpServer.ServerName` | string | `csharp-compounding-docs` | Server name reported to MCP clients |
+| `McpServer.ServerDescription` | string | `CSharp Compound Docs MCP Server - Knowledge oracle with GraphRAG` | Server description |
+
+### Claude Code Integration
+
+Add the MCP server to your Claude Code configuration:
+
+```json
+{
+  "mcpServers": {
+    "csharp-compounding-docs": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "/path/to/csharp-compound-engineering/src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj"
+      ]
+    }
+  }
+}
+```
+
+### Using Pre-built Binary
+
+```json
+{
+  "mcpServers": {
+    "csharp-compounding-docs": {
+      "command": "/path/to/CompoundDocs.McpServer"
+    }
+  }
+}
+```
+
+### AWS Credentials
+
+The MCP server uses the standard AWS credential chain. Ensure credentials are available via one of:
+
+1. **Environment variables**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`
+2. **AWS credentials file**: `~/.aws/credentials`
+3. **IAM role** (when running on AWS infrastructure)
+4. **AWS SSO**: Configure via `aws sso login`
+
+## Common Scenarios
+
+### Scenario 1: Minimal Setup
+
+Configure only the required AWS endpoints:
+
+```json
+{
+  "Aws": { "Region": "us-east-1" },
+  "Neptune": { "Endpoint": "my-cluster.xxxx.us-east-1.neptune.amazonaws.com" },
+  "OpenSearch": { "CollectionEndpoint": "https://xxxx.us-east-1.aoss.amazonaws.com" }
+}
+```
+
+All other settings use sensible defaults (Bedrock model IDs, GraphRAG parameters).
+
+### Scenario 2: Multi-Repository Monitoring
+
+```json
+{
+  "Repositories": [
+    {
+      "Url": "https://github.com/org/backend.git",
+      "Name": "backend",
+      "Branch": "main",
+      "MonitoredPaths": ["src/", "docs/"],
+      "PollIntervalMinutes": 5
+    },
+    {
+      "Url": "https://github.com/org/frontend.git",
+      "Name": "frontend",
+      "Branch": "develop",
+      "MonitoredPaths": ["src/components/"],
+      "PollIntervalMinutes": 10
+    }
+  ],
+  "GraphRag": {
+    "UseCrossRepoLinks": true
+  }
+}
+```
+
+### Scenario 3: Strict Relevance Filtering
+
+For projects where precision matters more than recall:
+
+```json
+{
+  "GraphRag": {
+    "MinRelevanceScore": 0.85,
+    "MaxChunksPerQuery": 5,
+    "MaxTraversalSteps": 3
+  }
+}
+```
+
+### Scenario 4: Broad Exploration
+
+For exploratory queries needing more context:
+
+```json
+{
+  "GraphRag": {
+    "MinRelevanceScore": 0.5,
+    "MaxChunksPerQuery": 20,
+    "MaxTraversalSteps": 8,
+    "UseCrossRepoLinks": true
+  }
+}
+```
+
+## Troubleshooting
+
+### AWS Credentials Not Found
+
+1. Verify credentials are configured:
+   ```bash
+   aws sts get-caller-identity
+   ```
+2. Ensure the correct region is set
+3. Check IAM permissions for Neptune, OpenSearch Serverless, and Bedrock
+
+### Neptune Connection Failed
+
+1. Verify the endpoint is correct and reachable
+2. Check VPC/security group configuration allows access on port 8182
+3. Ensure IAM credentials have `neptune-db:*` permissions
+
+### OpenSearch Serverless Connection Failed
+
+1. Verify the collection endpoint URL
+2. Check the data access policy allows your IAM principal
+3. Ensure the collection is in ACTIVE state
+
+### Bedrock Model Access Denied
+
+1. Enable model access in the AWS Bedrock console for your region
+2. Verify IAM permissions include `bedrock:InvokeModel`
+3. Check the model IDs match available models in your region
+
+### Configuration Not Loading
+
+1. Check JSON syntax is valid
+2. Verify file permissions
+3. Check Serilog stderr output for configuration errors at startup

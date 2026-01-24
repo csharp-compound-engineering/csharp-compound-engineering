@@ -1,0 +1,166 @@
+# CI workflow for csharp-compounding-docs
+# Builds and tests on push and pull requests
+
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feature/**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            coverage: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore csharp-compounding-docs.sln
+
+      - name: Build solution
+        run: dotnet build csharp-compounding-docs.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test csharp-compounding-docs.sln --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage" --results-directory ./TestResults
+        if: ${{ matrix.coverage }}
+
+      - name: Run tests (without coverage)
+        run: dotnet test csharp-compounding-docs.sln --configuration Release --no-build --verbosity normal
+        if: ${{ !matrix.coverage }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults/
+          retention-days: 7
+        if: ${{ matrix.coverage && always() }}
+
+      - name: Generate coverage report
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        with:
+          reports: '**/coverage.cobertura.xml'
+          targetdir: 'CoverageReport'
+          reporttypes: 'HtmlInline;Cobertura;Badges'
+        if: ${{ matrix.coverage }}
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: CoverageReport/
+          retention-days: 30
+        if: ${{ matrix.coverage }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: '**/coverage.cobertura.xml'
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ matrix.coverage }}
+
+      - name: Check code coverage threshold
+        shell: bash
+        run: |
+          COVERAGE=$(grep -oP 'line-rate="\K[^"]+' TestResults/**/coverage.cobertura.xml | head -1)
+          COVERAGE_PCT=$(echo "$COVERAGE * 100" | bc)
+          echo "Code coverage: $COVERAGE_PCT%"
+          if (( $(echo "$COVERAGE_PCT < 100" | bc -l) )); then
+            echo "::error::Code coverage ($COVERAGE_PCT%) is below 100% threshold"
+            exit 1
+          fi
+        if: ${{ matrix.coverage }}
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore csharp-compounding-docs.sln
+
+      - name: Run format check
+        run: dotnet format csharp-compounding-docs.sln --verify-no-changes --verbosity diagnostic
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore csharp-compounding-docs.sln
+
+      - name: Run security audit
+        run: dotnet list package --vulnerable --include-transitive 2>&1 | tee security-audit.txt
+
+      - name: Check for vulnerabilities
+        run: |
+          if grep -q "has the following vulnerable packages" security-audit.txt; then
+            echo "::error::Vulnerable packages detected!"
+            exit 1
+          fi
+
+      - name: Upload security audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit
+          path: security-audit.txt
+          retention-days: 30

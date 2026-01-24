@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CompoundDocs.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Vector\CompoundDocs.Vector.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Bedrock\CompoundDocs.Bedrock.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Common\CompoundDocs.Common.csproj" />
+  </ItemGroup>
+
+</Project>

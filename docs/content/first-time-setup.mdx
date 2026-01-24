@@ -1,0 +1,148 @@
+---
+title: First Time Setup
+---
+
+# First-Time Setup Guide
+
+Welcome to CSharp Compound Docs! This guide walks you through the initial setup after installation.
+
+## Prerequisites
+
+Before starting, ensure you have:
+- Completed the [Installation Guide](/installation)
+- AWS services provisioned (Neptune, OpenSearch Serverless, Bedrock)
+- AWS credentials configured locally
+- MCP server configured in Claude Code
+
+## Step 1: Configure AWS Endpoints
+
+Create or update the cloud configuration with your AWS service endpoints. See the [Configuration Guide](/configuration) for details.
+
+At minimum, you need:
+
+```json
+{
+  "Aws": { "Region": "us-east-1" },
+  "Neptune": { "Endpoint": "your-cluster.xxxx.us-east-1.neptune.amazonaws.com" },
+  "OpenSearch": { "CollectionEndpoint": "https://xxxx.us-east-1.aoss.amazonaws.com" }
+}
+```
+
+## Step 2: Configure Repository Monitoring
+
+Tell the system which git repositories to monitor for documentation:
+
+```json
+{
+  "Repositories": [
+    {
+      "Url": "https://github.com/org/my-project.git",
+      "Name": "my-project",
+      "Branch": "main",
+      "MonitoredPaths": ["docs/", "src/"],
+      "PollIntervalMinutes": 5
+    }
+  ]
+}
+```
+
+The Worker service uses LibGit2Sharp to clone and monitor these repositories, detecting changes via git diff on each polling interval.
+
+## Step 3: Verify the MCP Server
+
+Start the MCP server to verify connectivity:
+
+```bash
+dotnet run --project src/CompoundDocs.McpServer
+```
+
+Check stderr output for successful startup:
+```
+[INF] Starting CSharp Compound Docs MCP Server
+```
+
+If there are AWS connectivity errors, review the [Troubleshooting Guide](/troubleshooting).
+
+## Step 4: Query Your Knowledge Base
+
+Once documents are ingested by the Worker service, you can query them using the `rag_query` tool in Claude Code:
+
+```json
+{
+  "tool": "rag_query",
+  "arguments": {
+    "query": "How does authentication work in our system?",
+    "maxResults": 5
+  }
+}
+```
+
+The GraphRAG pipeline will:
+1. Embed your query using Amazon Titan
+2. Search OpenSearch Serverless for relevant chunks
+3. Traverse the Neptune knowledge graph for related concepts
+4. Synthesize an answer using Claude via Bedrock
+
+## Step 5: Tune GraphRAG Settings
+
+Adjust the GraphRAG pipeline parameters based on your results:
+
+| Setting | Effect of Increasing | Effect of Decreasing |
+|---------|---------------------|---------------------|
+| `MaxTraversalSteps` | More related concepts discovered | Faster, more focused results |
+| `MaxChunksPerQuery` | More source material for synthesis | Lower latency, more precise |
+| `MinRelevanceScore` | Higher precision, fewer results | More recall, potentially noisier |
+| `UseCrossRepoLinks` | Broader knowledge connections | Isolated per-repo results |
+
+Example configuration for strict precision:
+
+```json
+{
+  "GraphRag": {
+    "MinRelevanceScore": 0.85,
+    "MaxChunksPerQuery": 5,
+    "MaxTraversalSteps": 3
+  }
+}
+```
+
+## Understanding the Knowledge Graph
+
+Documents are decomposed into a graph structure in Neptune:
+
+| Node Type | Description |
+|-----------|-------------|
+| **Document** | A source file with metadata (title, type, promotion level) |
+| **Section** | A heading-delimited section within a document |
+| **Chunk** | A text chunk suitable for embedding and retrieval |
+| **Concept** | A named concept extracted by the entity extractor |
+
+| Relationship | Description |
+|-------------|-------------|
+| `HAS_SECTION` | Document contains a section |
+| `HAS_CHUNK` | Section contains a chunk |
+| `MENTIONS` | Chunk mentions a concept |
+| `RELATES_TO` | Concept is related to another concept |
+| `LINKS_TO` | Document links to another document |
+
+This structure enables multi-hop reasoning: a query about "connection pooling" can traverse from matching chunks to related concepts like "resource disposal" and "async patterns", discovering relevant documents that wouldn't surface through simple vector search.
+
+## Recommended Workflow
+
+### During Development
+
+1. **Configure repositories** - Point the system at your project repos
+2. **Let ingestion run** - The Worker polls for changes automatically
+3. **Query as needed** - Use `rag_query` to find answers from your codebase documentation
+
+### Maintenance
+
+1. **Monitor ingestion** - Check Worker logs for processing errors
+2. **Tune relevance** - Adjust `MinRelevanceScore` if results are too broad or too narrow
+3. **Add repositories** - Expand coverage by monitoring additional repos
+
+## Next Steps
+
+- Review the [API Reference](/api-reference) for the `rag_query` tool
+- Read the [Architecture Documentation](/architecture) for system design details
+- See the [Configuration Guide](/configuration) for all settings

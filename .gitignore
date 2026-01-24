@@ -416,3 +416,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Nextra docs site
+docs/node_modules/
+docs/.next/
+docs/out/
+
+generated

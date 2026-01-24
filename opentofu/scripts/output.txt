@@ -1,0 +1,788 @@
+[INFO] [network] Initializing...
+[INFO] [network] Running: tofu init
+
+[0m[1mInitializing the backend...[0m
+[0m[1mInitializing modules...[0m
+
+[0m[1mInitializing provider plugins...[0m
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Reusing previous version of hashicorp/tls from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/aws v6.31.0
+- Using previously-installed hashicorp/tls v4.2.1
+- Using previously-installed hashicorp/local v2.6.2
+
+[0m[1m[32mOpenTofu has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[OK] [network] Initialized.
+[INFO] [network] Applying...
+[INFO] [network] Running: tofu apply -auto-approve -var-file=/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars
+[0m[1mtls_private_key.ca[0]: Refreshing state... [id=4a0b64511d5bed294f56de23182add63de240797][0m
+[0m[1mtls_private_key.client[0]: Refreshing state... [id=9f1c3a249c481b45f12874d05ce9138cb0101eca][0m
+[0m[1mtls_private_key.server[0]: Refreshing state... [id=6d1b441605c2ca339df3b5e0642bdca50df516d3][0m
+[0m[1mtls_cert_request.server[0]: Refreshing state... [id=bd278e2b990859cdc245400ed9a1b5701abffc45][0m
+[0m[1mtls_cert_request.client[0]: Refreshing state... [id=f3d73adda56e59440d490a0fd392a7c1f56c6702][0m
+[0m[1mtls_self_signed_cert.ca[0]: Refreshing state... [id=106155912421695060316682936725434364594][0m
+[0m[1mtls_locally_signed_cert.server[0]: Refreshing state... [id=123711893154709832617916166609426124832][0m
+[0m[1mtls_locally_signed_cert.client[0]: Refreshing state... [id=236093497871830798069496181311140257423][0m
+[0m[1mdata.aws_availability_zones.available: Reading...[0m[0m
+[0m[1maws_cloudwatch_log_group.vpn[0]: Refreshing state... [id=/aws/vpn/test-cluster][0m
+[0m[1maws_acm_certificate.vpn_server[0]: Refreshing state... [id=arn:aws:acm:us-east-2:501778836849:certificate/1e21701c-cce5-4d4c-9cb7-9ee70e77146f][0m
+[0m[1mmodule.vpc.aws_vpc.this[0]: Refreshing state... [id=vpc-065362d70a379c4d2][0m
+[0m[1maws_acm_certificate.vpn_client[0]: Refreshing state... [id=arn:aws:acm:us-east-2:501778836849:certificate/549f0e99-9a67-4234-90b2-d3da52de9a4f][0m
+[0m[1mdata.aws_availability_zones.available: Read complete after 0s [id=us-east-2][0m
+[0m[1maws_cloudwatch_log_stream.vpn[0]: Refreshing state... [id=connections][0m
+[0m[1mmodule.vpc.aws_default_route_table.default[0]: Refreshing state... [id=rtb-0a6f940f953e0061a][0m
+[0m[1mmodule.vpc.aws_default_security_group.this[0]: Refreshing state... [id=sg-04317a9e992d16876][0m
+[0m[1maws_security_group.vpn[0]: Refreshing state... [id=sg-06c5baacf53497794][0m
+[0m[1mmodule.vpc.aws_default_network_acl.this[0]: Refreshing state... [id=acl-0b1f4507627431210][0m
+[0m[1mmodule.vpc.aws_internet_gateway.this[0]: Refreshing state... [id=igw-049e3ca5106aeea71][0m
+[0m[1mmodule.vpc.aws_route_table.private[0]: Refreshing state... [id=rtb-077b0a8eb46b6aa88][0m
+[0m[1mmodule.vpc.aws_subnet.public[1]: Refreshing state... [id=subnet-0829d96a037222a61][0m
+[0m[1mmodule.vpc.aws_subnet.public[2]: Refreshing state... [id=subnet-0adc6ff2537e9db06][0m
+[0m[1mmodule.vpc.aws_subnet.public[0]: Refreshing state... [id=subnet-0479ae7a18e3dd3ae][0m
+[0m[1maws_route53_zone.internal: Refreshing state... [id=Z0921913564RJMWX3OZX][0m
+[0m[1mmodule.vpc.aws_subnet.private[1]: Refreshing state... [id=subnet-094121b6d8cba2d38][0m
+[0m[1mmodule.vpc.aws_subnet.private[2]: Refreshing state... [id=subnet-0a51cd47033bae25c][0m
+[0m[1mmodule.vpc.aws_subnet.private[0]: Refreshing state... [id=subnet-0d07aa2f6438213a8][0m
+[0m[1mmodule.vpc.aws_route_table.public[0]: Refreshing state... [id=rtb-0e407c77cb0cf0c73][0m
+[0m[1maws_ec2_client_vpn_endpoint.this[0]: Refreshing state... [id=cvpn-endpoint-0b98399f0ecb6e451][0m
+[0m[1mmodule.vpc.aws_eip.nat[0]: Refreshing state... [id=eipalloc-0d744438917510643][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-0e4c9a4ac639e3a46][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-062db39520457a512][0m
+[0m[1mmodule.vpc.aws_route_table_association.public[2]: Refreshing state... [id=rtbassoc-010566bc2dff387a5][0m
+[0m[1mmodule.vpc.aws_route.public_internet_gateway[0]: Refreshing state... [id=r-rtb-0e407c77cb0cf0c731080289494][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-0540af3ce28a4df05][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-00fe0ef38b15a98d1][0m
+[0m[1mmodule.vpc.aws_route_table_association.private[2]: Refreshing state... [id=rtbassoc-01845e480a48fcbd8][0m
+[0m[1maws_ec2_client_vpn_network_association.this[0]: Refreshing state... [id=cvpn-assoc-0ea63d34e9febfc46][0m
+[0m[1mlocal_file.vpn_client_config[0]: Refreshing state... [id=4cd024ef213213a6634607b2bb6219acb46154a5][0m
+[0m[1maws_ec2_client_vpn_authorization_rule.vpc[0]: Refreshing state... [id=cvpn-endpoint-0b98399f0ecb6e451,10.0.0.0/16][0m
+[0m[1mmodule.vpc.aws_nat_gateway.this[0]: Refreshing state... [id=nat-007e10160fa13313a][0m
+[0m[1mmodule.vpc.aws_route.private_nat_gateway[0]: Refreshing state... [id=r-rtb-077b0a8eb46b6aa881080289494][0m
+
+[0m[1m[32mNo changes.[0m[1m Your infrastructure matches the configuration.[0m
+
+[0mOpenTofu has compared your real infrastructure against your configuration and
+found no differences, so no changes are needed.
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "node_max_size" but a
+[33m│[0m [0mvalue was found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "external_dns_enabled"
+[33m│[0m [0mbut a value was found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValues for undeclared variables[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mIn addition to the other similar warnings shown, 11 other variable(s)
+[33m│[0m [0mdefined without being declared.
+[33m╵[0m[0m
+[0m[1m[32m
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[0m[0m[1m[32m
+Outputs:
+
+[0minternal_dns_zone_arn = "arn:aws:route53:::hostedzone/Z0921913564RJMWX3OZX"
+internal_dns_zone_id = "Z0921913564RJMWX3OZX"
+internal_dns_zone_name = "internal.compound-docs.com"
+private_subnets = [
+  "subnet-0d07aa2f6438213a8",
+  "subnet-094121b6d8cba2d38",
+  "subnet-0a51cd47033bae25c",
+]
+public_subnets = [
+  "subnet-0479ae7a18e3dd3ae",
+  "subnet-0829d96a037222a61",
+  "subnet-0adc6ff2537e9db06",
+]
+vpc_id = "vpc-065362d70a379c4d2"
+vpn_client_config_file = "./generated/client.ovpn"
+vpn_dns_name = "*.cvpn-endpoint-0b98399f0ecb6e451.prod.clientvpn.us-east-2.amazonaws.com"
+vpn_endpoint_id = "cvpn-endpoint-0b98399f0ecb6e451"
+[OK] [network] Applied.
+[INFO] [cluster] Initializing...
+[INFO] [cluster] Running: tofu init
+
+[0m[1mInitializing the backend...[0m
+[0m[1mInitializing modules...[0m
+
+[0m[1mInitializing provider plugins...[0m
+- terraform.io/builtin/terraform is built in to OpenTofu
+- Reusing previous version of hashicorp/time from the dependency lock file
+- Reusing previous version of hashicorp/cloudinit from the dependency lock file
+- Reusing previous version of hashicorp/null from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Reusing previous version of hashicorp/tls from the dependency lock file
+- Using previously-installed hashicorp/tls v4.2.1
+- Using previously-installed hashicorp/time v0.13.1
+- Using previously-installed hashicorp/cloudinit v2.3.7
+- Using previously-installed hashicorp/null v3.2.4
+- Using previously-installed hashicorp/aws v6.31.0
+
+[0m[1m[32mOpenTofu has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[OK] [cluster] Initialized.
+[INFO] [cluster] Applying...
+[INFO] [cluster] Running: tofu apply -auto-approve -var-file=/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars
+[0m[1mdata.terraform_remote_state.network: Reading...[0m[0m
+[0m[1mdata.terraform_remote_state.network: Read complete after 0s[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_partition.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.kms.data.aws_partition.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_iam_policy_document.assume_role_policy[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.kms.data.aws_caller_identity.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_caller_identity.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.aws_cloudwatch_log_group.this[0]: Refreshing state... [id=/aws/eks/test-cluster/cluster][0m
+[0m[1mmodule.eks.aws_security_group.cluster[0]: Refreshing state... [id=sg-02d0f48ab6ed3b64e][0m
+[0m[1mmodule.eks.module.kms.data.aws_partition.current[0]: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.data.aws_partition.current[0]: Read complete after 0s [id=aws][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2560088296][0m
+[0m[1mmodule.eks.data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2830595799][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2560088296][0m
+[0m[1mmodule.eks.aws_iam_role.this[0]: Refreshing state... [id=test-cluster-cluster-20260207233546212700000002][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role.this[0]: Refreshing state... [id=system-eks-node-group-20260207233546212700000001][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_iam_role.this[0]: Refreshing state... [id=application-eks-node-group-20260207233546212700000003][0m
+[0m[1mmodule.eks.aws_security_group.node[0]: Refreshing state... [id=sg-03b041890eab5a94b][0m
+[0m[1mmodule.eks.data.aws_caller_identity.current[0]: Read complete after 0s [id=501778836849][0m
+[0m[1mmodule.eks.data.aws_iam_session_context.current[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_iam_session_context.current[0]: Read complete after 0s [id=arn:aws:iam::501778836849:user/Michael][0m
+[0m[1mmodule.eks.module.kms.data.aws_caller_identity.current[0]: Read complete after 1s [id=501778836849][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_10251_webhook"]: Refreshing state... [id=sgrule-4211457204][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"]: Refreshing state... [id=sgrule-464637087][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"]: Refreshing state... [id=sgrule-4256902360][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"]: Refreshing state... [id=sgrule-143259919][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_443"]: Refreshing state... [id=sgrule-2182128067][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_kubelet"]: Refreshing state... [id=sgrule-3477925071][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"]: Refreshing state... [id=sgrule-3057029491][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["egress_all"]: Refreshing state... [id=sgrule-741915697][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"]: Refreshing state... [id=sgrule-1814612676][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"]: Refreshing state... [id=sgrule-2138371813][0m
+[0m[1mmodule.eks.aws_security_group_rule.node["ingress_self_coredns_udp"]: Refreshing state... [id=sgrule-3220074352][0m
+[0m[1mmodule.eks.aws_security_group_rule.cluster["ingress_nodes_443"]: Refreshing state... [id=sgrule-2438214675][0m
+[0m[1mmodule.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Refreshing state... [id=test-cluster-cluster-20260207233546212700000002/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Refreshing state... [id=application-eks-node-group-20260207233546212700000003/arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Refreshing state... [id=system-eks-node-group-20260207233546212700000001/arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Refreshing state... [id=system-eks-node-group-20260207233546212700000001/arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Refreshing state... [id=system-eks-node-group-20260207233546212700000001/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Refreshing state... [id=application-eks-node-group-20260207233546212700000003/arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Refreshing state... [id=application-eks-node-group-20260207233546212700000003/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy][0m
+[0m[1mmodule.eks.module.kms.data.aws_iam_policy_document.this[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.kms.data.aws_iam_policy_document.this[0]: Read complete after 0s [id=1943361427][0m
+[0m[1mmodule.eks.module.kms.aws_kms_key.this[0]: Refreshing state... [id=374c55a2-5324-4c0e-87ac-edc7b8bb452f][0m
+[0m[1mmodule.eks.module.kms.aws_kms_alias.this["cluster"]: Refreshing state... [id=alias/eks/test-cluster][0m
+[0m[1mmodule.eks.aws_iam_policy.cluster_encryption[0]: Refreshing state... [id=arn:aws:iam::501778836849:policy/test-cluster-cluster-ClusterEncryption20260207233608112800000006][0m
+[0m[1mmodule.eks.aws_eks_cluster.this[0]: Refreshing state... [id=test-cluster][0m
+[0m[1mmodule.eks.aws_iam_role_policy_attachment.cluster_encryption[0]: Refreshing state... [id=test-cluster-cluster-20260207233546212700000002/arn:aws:iam::501778836849:policy/test-cluster-cluster-ClusterEncryption20260207233608112800000006][0m
+[0m[1mmodule.eks.aws_eks_access_entry.this["cluster_creator"]: Refreshing state... [id=test-cluster:arn:aws:iam::501778836849:user/Michael][0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"]: Refreshing state... [id=sg-06974251aeaaeb7f1,Cluster][0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["OpenTofu"]: Refreshing state... [id=sg-06974251aeaaeb7f1,OpenTofu][0m
+[0m[1mmodule.eks.aws_ec2_tag.cluster_primary_security_group["Environment"]: Refreshing state... [id=sg-06974251aeaaeb7f1,Environment][0m
+[0m[1mmodule.eks.time_sleep.this[0]: Refreshing state... [id=2026-02-07T23:47:25Z][0m
+[0m[1mmodule.eks.data.tls_certificate.this[0]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["coredns"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["vpc-cni"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["kube-proxy"]: Reading...[0m[0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["eks-pod-identity-agent"]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].module.user_data.null_resource.validate_cluster_service_cidr: Refreshing state... [id=2226533400493577079][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].module.user_data.null_resource.validate_cluster_service_cidr: Refreshing state... [id=1733353351653228182][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_ssm_parameter.ami[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].data.aws_ssm_parameter.ami[0]: Reading...[0m[0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_launch_template.this[0]: Refreshing state... [id=lt-08fc72ab873435161][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_launch_template.this[0]: Refreshing state... [id=lt-0746aba4554ebadfe][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["vpc-cni"]: Read complete after 0s [id=vpc-cni][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["kube-proxy"]: Read complete after 0s [id=kube-proxy][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["coredns"]: Read complete after 0s [id=coredns][0m
+[0m[1mmodule.eks.data.tls_certificate.this[0]: Read complete after 0s [id=033a163afb2babc26f7883e642621ac361c93d61][0m
+[0m[1mmodule.eks.aws_iam_openid_connect_provider.oidc_provider[0]: Refreshing state... [id=arn:aws:iam::501778836849:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].data.aws_ssm_parameter.ami[0]: Read complete after 0s [id=/aws/service/eks/optimized-ami/1.31/amazon-linux-2023/x86_64/standard/recommended/release_version][0m
+[0m[1mmodule.eks.data.aws_eks_addon_version.this["eks-pod-identity-agent"]: Read complete after 0s [id=eks-pod-identity-agent][0m
+[0m[1mmodule.eks.aws_eks_addon.before_compute["eks-pod-identity-agent"]: Refreshing state... [id=test-cluster:eks-pod-identity-agent][0m
+[0m[1mmodule.eks.aws_eks_addon.before_compute["vpc-cni"]: Refreshing state... [id=test-cluster:vpc-cni][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].data.aws_ssm_parameter.ami[0]: Read complete after 0s [id=/aws/service/eks/optimized-ami/1.31/amazon-linux-2023/x86_64/standard/recommended/release_version][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["application"].aws_eks_node_group.this[0]: Refreshing state... [id=test-cluster:application-2026020723473164350000000f][0m
+[0m[1mmodule.eks.module.eks_managed_node_group["system"].aws_eks_node_group.this[0]: Refreshing state... [id=test-cluster:system-2026020723473164300000000d][0m
+[0m[1mmodule.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]: Refreshing state... [id=test-cluster#arn:aws:iam::501778836849:user/Michael#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy][0m
+[0m[1mmodule.eks.aws_eks_addon.this["coredns"]: Refreshing state... [id=test-cluster:coredns][0m
+[0m[1mmodule.eks.aws_eks_addon.this["kube-proxy"]: Refreshing state... [id=test-cluster:kube-proxy][0m
+
+[0m[1m[32mNo changes.[0m[1m Your infrastructure matches the configuration.[0m
+
+[0mOpenTofu has compared your real infrastructure against your configuration and
+found no differences, so no changes are needed.
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "argocd_enabled" but a
+[33m│[0m [0mvalue was found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "single_nat_gateway" but
+[33m│[0m [0ma value was found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValues for undeclared variables[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mIn addition to the other similar warnings shown, 9 other variable(s)
+[33m│[0m [0mdefined without being declared.
+[33m╵[0m[0m
+[0m[1m[32m
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[0m[0m[1m[32m
+Outputs:
+
+[0mcluster_certificate_authority_data = <sensitive>
+cluster_endpoint = "https://BB872D73F3EC76F2591A2FEC32A2F651.gr7.us-east-2.eks.amazonaws.com"
+cluster_name = "test-cluster"
+cluster_oidc_provider = "oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651"
+cluster_oidc_provider_arn = "arn:aws:iam::501778836849:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651"
+configure_kubectl = "aws eks update-kubeconfig --region us-east-2 --name test-cluster"
+[OK] [cluster] Applied.
+[INFO] Running EKS health check for cluster 'test-cluster' in 'us-east-2'...
+Waiting for EKS cluster 'test-cluster' in 'us-east-2' to become ACTIVE...
+Timeout: 600s, polling every 15s
+Cluster status: ACTIVE
+Verifying API server health...
+API server is reachable (HTTP 200). Cluster is ready.
+[INFO] [platform] Initializing...
+[INFO] [platform] Running: tofu init
+
+[0m[1mInitializing the backend...[0m
+
+[0m[1mInitializing provider plugins...[0m
+- terraform.io/builtin/terraform is built in to OpenTofu
+- Reusing previous version of hashicorp/kubernetes from the dependency lock file
+- Reusing previous version of hashicorp/helm from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/kubernetes v2.38.0
+- Using previously-installed hashicorp/helm v2.17.0
+- Using previously-installed hashicorp/aws v6.31.0
+
+[0m[1m[32mOpenTofu has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[OK] [platform] Initialized.
+[INFO] [platform] Applying...
+[INFO] [platform] Running: tofu apply -auto-approve -var-file=/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars
+[0m[1mdata.terraform_remote_state.network: Reading...[0m[0m
+[0m[1mdata.terraform_remote_state.cluster: Reading...[0m[0m
+[0m[1mdata.terraform_remote_state.network: Read complete after 0s[0m
+[0m[1mdata.terraform_remote_state.cluster: Read complete after 0s[0m
+[0m[1mdata.aws_caller_identity.current: Reading...[0m[0m
+[0m[1mdata.aws_caller_identity.current: Read complete after 0s [id=501778836849][0m
+
+OpenTofu used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+
+OpenTofu planned the following actions, but then encountered a problem:
+
+[1m  # aws_iam_policy.external_dns[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "external_dns" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Allow ExternalDNS to manage Route 53 records in the private hosted zone"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = "test-cluster-external-dns"
+      [32m+[0m[0m name_prefix      = (known after apply)
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "route53:ChangeResourceRecordSets",
+                          [32m+[0m[0m "route53:ListResourceRecordSets",
+                          [32m+[0m[0m "route53:ListTagsForResources",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "arn:aws:route53:::hostedzone/Z0921913564RJMWX3OZX"
+                    },
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = "route53:ListHostedZones"
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "*"
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+    }
+
+[1m  # aws_iam_policy.external_secrets[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_policy" "external_secrets" {
+      [32m+[0m[0m arn              = (known after apply)
+      [32m+[0m[0m attachment_count = (known after apply)
+      [32m+[0m[0m description      = "Allow ESO to read secrets from AWS Secrets Manager"
+      [32m+[0m[0m id               = (known after apply)
+      [32m+[0m[0m name             = "test-cluster-external-secrets"
+      [32m+[0m[0m name_prefix      = (known after apply)
+      [32m+[0m[0m path             = "/"
+      [32m+[0m[0m policy           = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action   = [
+                          [32m+[0m[0m "secretsmanager:GetSecretValue",
+                          [32m+[0m[0m "secretsmanager:ListSecrets",
+                          [32m+[0m[0m "secretsmanager:DescribeSecret",
+                        ]
+                      [32m+[0m[0m Effect   = "Allow"
+                      [32m+[0m[0m Resource = "arn:aws:secretsmanager:us-east-2:501778836849:secret:test-cluster/*"
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m policy_id        = (known after apply)
+      [32m+[0m[0m tags             = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m tags_all         = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+    }
+
+[1m  # aws_iam_role.external_dns[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "external_dns" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "sts:AssumeRoleWithWebIdentity"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651:aud" = "sts.amazonaws.com"
+                              [32m+[0m[0m "oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651:sub" = "system:serviceaccount:external-dns:external-dns"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Principal = {
+                          [32m+[0m[0m Federated = "arn:aws:iam::501778836849:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651"
+                        }
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = false
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "test-cluster-external-dns"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # aws_iam_role.external_secrets[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role" "external_secrets" {
+      [32m+[0m[0m arn                   = (known after apply)
+      [32m+[0m[0m assume_role_policy    = jsonencode(
+            {
+              [32m+[0m[0m Statement = [
+                  [32m+[0m[0m {
+                      [32m+[0m[0m Action    = "sts:AssumeRoleWithWebIdentity"
+                      [32m+[0m[0m Condition = {
+                          [32m+[0m[0m StringEquals = {
+                              [32m+[0m[0m "oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651:aud" = "sts.amazonaws.com"
+                              [32m+[0m[0m "oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651:sub" = "system:serviceaccount:external-secrets:external-secrets"
+                            }
+                        }
+                      [32m+[0m[0m Effect    = "Allow"
+                      [32m+[0m[0m Principal = {
+                          [32m+[0m[0m Federated = "arn:aws:iam::501778836849:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/BB872D73F3EC76F2591A2FEC32A2F651"
+                        }
+                    },
+                ]
+              [32m+[0m[0m Version   = "2012-10-17"
+            }
+        )
+      [32m+[0m[0m create_date           = (known after apply)
+      [32m+[0m[0m force_detach_policies = false
+      [32m+[0m[0m id                    = (known after apply)
+      [32m+[0m[0m managed_policy_arns   = (known after apply)
+      [32m+[0m[0m max_session_duration  = 3600
+      [32m+[0m[0m name                  = "test-cluster-external-secrets"
+      [32m+[0m[0m name_prefix           = (known after apply)
+      [32m+[0m[0m path                  = "/"
+      [32m+[0m[0m tags                  = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m tags_all              = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m unique_id             = (known after apply)
+
+      [32m+[0m[0m inline_policy (known after apply)
+    }
+
+[1m  # aws_iam_role_policy_attachment.external_dns[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "external_dns" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = "test-cluster-external-dns"
+    }
+
+[1m  # aws_iam_role_policy_attachment.external_secrets[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_iam_role_policy_attachment" "external_secrets" {
+      [32m+[0m[0m id         = (known after apply)
+      [32m+[0m[0m policy_arn = (known after apply)
+      [32m+[0m[0m role       = "test-cluster-external-secrets"
+    }
+
+[1m  # aws_secretsmanager_secret.argocd_main[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_secretsmanager_secret" "argocd_main" {
+      [32m+[0m[0m arn                            = (known after apply)
+      [32m+[0m[0m description                    = "ArgoCD server credentials (admin password + session key)"
+      [32m+[0m[0m force_overwrite_replica_secret = false
+      [32m+[0m[0m id                             = (known after apply)
+      [32m+[0m[0m name                           = "test-cluster/argocd/argocd-secret"
+      [32m+[0m[0m name_prefix                    = (known after apply)
+      [32m+[0m[0m policy                         = (known after apply)
+      [32m+[0m[0m recovery_window_in_days        = 30
+      [32m+[0m[0m region                         = "us-east-2"
+      [32m+[0m[0m tags                           = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+      [32m+[0m[0m tags_all                       = {
+          [32m+[0m[0m "Cluster"     = "test-cluster"
+          [32m+[0m[0m "Environment" = "dev"
+          [32m+[0m[0m "OpenTofu"    = "true"
+        }
+
+      [32m+[0m[0m replica (known after apply)
+    }
+
+[1m  # aws_secretsmanager_secret_version.argocd_main[0][0m will be created
+[0m  [32m+[0m[0m resource "aws_secretsmanager_secret_version" "argocd_main" {
+      [32m+[0m[0m arn                  = (known after apply)
+      [32m+[0m[0m has_secret_string_wo = (known after apply)
+      [32m+[0m[0m id                   = (known after apply)
+      [32m+[0m[0m region               = "us-east-2"
+      [32m+[0m[0m secret_id            = (known after apply)
+      [32m+[0m[0m secret_string        = (sensitive value)
+      [32m+[0m[0m secret_string_wo     = (write-only attribute)
+      [32m+[0m[0m version_id           = (known after apply)
+      [32m+[0m[0m version_stages       = (known after apply)
+    }
+
+[1m  # helm_release.cert_manager[0][0m will be created
+[0m  [32m+[0m[0m resource "helm_release" "cert_manager" {
+      [32m+[0m[0m atomic                     = true
+      [32m+[0m[0m chart                      = "cert-manager"
+      [32m+[0m[0m cleanup_on_fail            = false
+      [32m+[0m[0m create_namespace           = true
+      [32m+[0m[0m dependency_update          = false
+      [32m+[0m[0m disable_crd_hooks          = false
+      [32m+[0m[0m disable_openapi_validation = false
+      [32m+[0m[0m disable_webhooks           = false
+      [32m+[0m[0m force_update               = false
+      [32m+[0m[0m id                         = (known after apply)
+      [32m+[0m[0m lint                       = false
+      [32m+[0m[0m manifest                   = (known after apply)
+      [32m+[0m[0m max_history                = 0
+      [32m+[0m[0m metadata                   = (known after apply)
+      [32m+[0m[0m name                       = "cert-manager"
+      [32m+[0m[0m namespace                  = "cert-manager"
+      [32m+[0m[0m pass_credentials           = false
+      [32m+[0m[0m recreate_pods              = false
+      [32m+[0m[0m render_subchart_notes      = true
+      [32m+[0m[0m replace                    = false
+      [32m+[0m[0m repository                 = "https://charts.jetstack.io"
+      [32m+[0m[0m reset_values               = false
+      [32m+[0m[0m reuse_values               = false
+      [32m+[0m[0m skip_crds                  = false
+      [32m+[0m[0m status                     = "deployed"
+      [32m+[0m[0m timeout                    = 300
+      [32m+[0m[0m verify                     = false
+      [32m+[0m[0m version                    = "v1.17.2"
+      [32m+[0m[0m wait                       = true
+      [32m+[0m[0m wait_for_jobs              = false
+
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "crds.enabled"
+          [32m+[0m[0m value = "true"
+        }
+    }
+
+[1m  # helm_release.external_dns[0][0m will be created
+[0m  [32m+[0m[0m resource "helm_release" "external_dns" {
+      [32m+[0m[0m atomic                     = true
+      [32m+[0m[0m chart                      = "external-dns"
+      [32m+[0m[0m cleanup_on_fail            = false
+      [32m+[0m[0m create_namespace           = true
+      [32m+[0m[0m dependency_update          = false
+      [32m+[0m[0m disable_crd_hooks          = false
+      [32m+[0m[0m disable_openapi_validation = false
+      [32m+[0m[0m disable_webhooks           = false
+      [32m+[0m[0m force_update               = false
+      [32m+[0m[0m id                         = (known after apply)
+      [32m+[0m[0m lint                       = false
+      [32m+[0m[0m manifest                   = (known after apply)
+      [32m+[0m[0m max_history                = 0
+      [32m+[0m[0m metadata                   = (known after apply)
+      [32m+[0m[0m name                       = "external-dns"
+      [32m+[0m[0m namespace                  = "external-dns"
+      [32m+[0m[0m pass_credentials           = false
+      [32m+[0m[0m recreate_pods              = false
+      [32m+[0m[0m render_subchart_notes      = true
+      [32m+[0m[0m replace                    = false
+      [32m+[0m[0m repository                 = "https://kubernetes-sigs.github.io/external-dns/"
+      [32m+[0m[0m reset_values               = false
+      [32m+[0m[0m reuse_values               = false
+      [32m+[0m[0m skip_crds                  = false
+      [32m+[0m[0m status                     = "deployed"
+      [32m+[0m[0m timeout                    = 300
+      [32m+[0m[0m verify                     = false
+      [32m+[0m[0m version                    = "1.15.1"
+      [32m+[0m[0m wait                       = true
+      [32m+[0m[0m wait_for_jobs              = false
+
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "domainFilters[0]"
+          [32m+[0m[0m value = "internal.compound-docs.com"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "extraArgs[0]"
+          [32m+[0m[0m value = "--aws-zone-type=private"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "policy"
+          [32m+[0m[0m value = "upsert-only"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "provider.name"
+          [32m+[0m[0m value = "aws"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+          [32m+[0m[0m value = (known after apply)
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "sources[0]"
+          [32m+[0m[0m value = "service"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "sources[1]"
+          [32m+[0m[0m value = "ingress"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "txtOwnerId"
+          [32m+[0m[0m value = "test-cluster"
+        }
+    }
+
+[1m  # helm_release.external_secrets[0][0m will be created
+[0m  [32m+[0m[0m resource "helm_release" "external_secrets" {
+      [32m+[0m[0m atomic                     = true
+      [32m+[0m[0m chart                      = "external-secrets"
+      [32m+[0m[0m cleanup_on_fail            = false
+      [32m+[0m[0m create_namespace           = true
+      [32m+[0m[0m dependency_update          = false
+      [32m+[0m[0m disable_crd_hooks          = false
+      [32m+[0m[0m disable_openapi_validation = false
+      [32m+[0m[0m disable_webhooks           = false
+      [32m+[0m[0m force_update               = false
+      [32m+[0m[0m id                         = (known after apply)
+      [32m+[0m[0m lint                       = false
+      [32m+[0m[0m manifest                   = (known after apply)
+      [32m+[0m[0m max_history                = 0
+      [32m+[0m[0m metadata                   = (known after apply)
+      [32m+[0m[0m name                       = "external-secrets"
+      [32m+[0m[0m namespace                  = "external-secrets"
+      [32m+[0m[0m pass_credentials           = false
+      [32m+[0m[0m recreate_pods              = false
+      [32m+[0m[0m render_subchart_notes      = true
+      [32m+[0m[0m replace                    = false
+      [32m+[0m[0m repository                 = "https://charts.external-secrets.io"
+      [32m+[0m[0m reset_values               = false
+      [32m+[0m[0m reuse_values               = false
+      [32m+[0m[0m skip_crds                  = false
+      [32m+[0m[0m status                     = "deployed"
+      [32m+[0m[0m timeout                    = 300
+      [32m+[0m[0m verify                     = false
+      [32m+[0m[0m version                    = "0.12.1"
+      [32m+[0m[0m wait                       = true
+      [32m+[0m[0m wait_for_jobs              = false
+
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "installCRDs"
+          [32m+[0m[0m value = "true"
+        }
+      [32m+[0m[0m set {
+          [32m+[0m[0m name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+          [32m+[0m[0m value = (known after apply)
+        }
+    }
+
+[1m  # kubernetes_namespace.argocd[0][0m will be created
+[0m  [32m+[0m[0m resource "kubernetes_namespace" "argocd" {
+      [32m+[0m[0m id                               = (known after apply)
+      [32m+[0m[0m wait_for_default_service_account = false
+
+      [32m+[0m[0m metadata {
+          [32m+[0m[0m generation       = (known after apply)
+          [32m+[0m[0m labels           = {
+              [32m+[0m[0m "app.kubernetes.io/managed-by" = "opentofu"
+            }
+          [32m+[0m[0m name             = "argocd"
+          [32m+[0m[0m resource_version = (known after apply)
+          [32m+[0m[0m uid              = (known after apply)
+        }
+    }
+
+[1mPlan:[0m 12 to add, 0 to change, 0 to destroy.
+[0m
+Changes to Outputs:
+  [32m+[0m[0m argocd_admin_password_cmd       = "kubectl -n argocd get secret argocd-secret -o jsonpath=\"{.data.admin\\.password}\" | base64 -d; echo"
+  [32m+[0m[0m argocd_namespace                = "argocd"
+  [32m+[0m[0m argocd_url                      = "https://argocd.internal.compound-docs.com"
+  [32m+[0m[0m cert_manager_ca_cert_cmd        = "kubectl -n cert-manager get secret internal-ca-key-pair -o jsonpath=\"{.data.tls\\.crt}\" | base64 -d > internal-ca.crt"
+  [32m+[0m[0m cert_manager_ca_trust_macos_cmd = "sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain internal-ca.crt"
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "node_instance_types" but
+[33m│[0m [0ma value was found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValue for undeclared variable[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mThe root module does not declare a variable named "vpc_cidr" but a value
+[33m│[0m [0mwas found in file
+[33m│[0m [0m"/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/terraform.tfvars".
+[33m│[0m [0mIf you meant to use this value, add a "variable" block to the
+[33m│[0m [0mconfiguration.
+[33m│[0m [0m
+[33m│[0m [0mTo silence these warnings, use TF_VAR_... environment variables to provide
+[33m│[0m [0mcertain "global" settings to all configurations in your organization. To
+[33m│[0m [0mreduce the verbosity of these warnings, use the -compact-warnings option.
+[33m╵[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mValues for undeclared variables[0m
+[33m│[0m [0m
+[33m│[0m [0m[0mIn addition to the other similar warnings shown, 9 other variable(s)
+[33m│[0m [0mdefined without being declared.
+[33m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mAPI did not recognize GroupVersionKind from manifest (CRD may not be installed)[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with kubernetes_manifest.selfsigned_bootstrap_issuer[0],
+[31m│[0m [0m  on main.tf line 283, in resource "kubernetes_manifest" "selfsigned_bootstrap_issuer":
+[31m│[0m [0m 283: resource "kubernetes_manifest" "selfsigned_bootstrap_issuer" [4m{[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mno matches for kind "ClusterIssuer" in group "cert-manager.io"
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mAPI did not recognize GroupVersionKind from manifest (CRD may not be installed)[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with kubernetes_manifest.cluster_secret_store[0],
+[31m│[0m [0m  on main.tf line 498, in resource "kubernetes_manifest" "cluster_secret_store":
+[31m│[0m [0m 498: resource "kubernetes_manifest" "cluster_secret_store" [4m{[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mno matches for kind "ClusterSecretStore" in group "external-secrets.io"
+[31m╵[0m[0m
+[31;1mException: [0m/Users/michaelmccord/Projects/csharp-compound-engineering/opentofu/scripts/deploy.ps1:77[0m
+[31;1m[0m[36;1mLine |[0m
+[31;1m[0m[36;1m[36;1m  77 | [0m … ($LASTEXITCODE -ne 0) { [36;1mthrow "tofu exited with code $LASTEXITCODE"[0m }[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mtofu exited with code 1[0m

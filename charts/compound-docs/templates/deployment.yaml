@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "compound-docs.fullname" . }}
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.application | quote }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "compound-docs.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "compound-docs.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "compound-docs.serviceAccountName" . }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            {{- if .Values.auth.apiKeysSecretName }}
+            - name: COMPOUNDDOCS_API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.apiKeysSecretName }}
+                  key: api-keys
+            {{- end }}
+            - name: COMPOUNDDOCS_LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "compound-docs.fullname" . }}
+                  key: log-level
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "compound-docs.fullname" . }}
+                  key: aws-region
+            - name: BEDROCK_EMBEDDING_MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "compound-docs.fullname" . }}
+                  key: bedrock-embedding-model-id
+            - name: BEDROCK_LLM_MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "compound-docs.fullname" . }}
+                  key: bedrock-llm-model-id
+            - name: NEPTUNE_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.neptune.connectionSecretName }}
+                  key: endpoint
+            - name: NEPTUNE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.neptune.connectionSecretName }}
+                  key: port
+            - name: OPENSEARCH_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.opensearch.connectionSecretName }}
+                  key: endpoint
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

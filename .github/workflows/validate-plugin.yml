@@ -1,0 +1,188 @@
+# Validates Claude Code plugin structure on push and PR
+# Ensures marketplace.json, plugin.json, skills, and agents are well-formed
+
+name: Validate Plugin
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '.claude-plugin/**'
+      - 'skills/**'
+      - 'agents/**'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - '.claude-plugin/**'
+      - 'skills/**'
+      - 'agents/**'
+
+jobs:
+  validate:
+    name: Validate Plugin Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate plugin.json syntax
+        run: |
+          echo "Validating .claude-plugin/plugin.json..."
+          jq empty .claude-plugin/plugin.json
+          echo "✓ plugin.json is valid JSON"
+
+      - name: Validate marketplace.json syntax
+        run: |
+          echo "Validating .claude-plugin/marketplace.json..."
+          jq empty .claude-plugin/marketplace.json
+          echo "✓ marketplace.json is valid JSON"
+
+      - name: Validate plugin.json required fields
+        run: |
+          NAME=$(jq -r '.name' .claude-plugin/plugin.json)
+          if [ -z "$NAME" ] || [ "$NAME" = "null" ]; then
+            echo "::error::plugin.json missing required 'name' field"
+            exit 1
+          fi
+          echo "✓ Plugin name: $NAME"
+
+      - name: Validate marketplace.json required fields
+        run: |
+          NAME=$(jq -r '.name' .claude-plugin/marketplace.json)
+          OWNER=$(jq -r '.owner.name' .claude-plugin/marketplace.json)
+          PLUGIN_COUNT=$(jq '.plugins | length' .claude-plugin/marketplace.json)
+
+          if [ -z "$NAME" ] || [ "$NAME" = "null" ]; then
+            echo "::error::marketplace.json missing required 'name' field"
+            exit 1
+          fi
+          if [ -z "$OWNER" ] || [ "$OWNER" = "null" ]; then
+            echo "::error::marketplace.json missing required 'owner.name' field"
+            exit 1
+          fi
+          if [ "$PLUGIN_COUNT" -eq 0 ]; then
+            echo "::error::marketplace.json has no plugins"
+            exit 1
+          fi
+
+          echo "✓ Marketplace: $NAME (owner: $OWNER, plugins: $PLUGIN_COUNT)"
+
+      - name: Validate plugin source directories exist
+        run: |
+          jq -r '.plugins[].source | select(type == "string")' .claude-plugin/marketplace.json | while read src; do
+            if [ ! -d "$src" ] && [ "$src" != "." ]; then
+              echo "::error::Plugin source directory not found: $src"
+              exit 1
+            fi
+            echo "✓ Source exists: $src"
+          done
+
+      - name: Validate skill SKILL.md files exist
+        run: |
+          ERRORS=0
+          for dir in skills/*/; do
+            if [ -d "$dir" ]; then
+              SKILL_NAME=$(basename "$dir")
+              if [ ! -f "${dir}SKILL.md" ]; then
+                echo "::error::Missing SKILL.md in $dir"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ Skill: $SKILL_NAME"
+              fi
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Validate skill YAML frontmatter
+        run: |
+          ERRORS=0
+          for skill_file in skills/*/SKILL.md; do
+            if [ -f "$skill_file" ]; then
+              # Check file starts with ---
+              FIRST_LINE=$(head -1 "$skill_file")
+              if [ "$FIRST_LINE" != "---" ]; then
+                echo "::error::$skill_file missing YAML frontmatter (must start with ---)"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ Frontmatter present: $skill_file"
+              fi
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Validate agent .md files have frontmatter
+        run: |
+          ERRORS=0
+          for agent_file in agents/*.md; do
+            if [ -f "$agent_file" ]; then
+              AGENT_NAME=$(basename "$agent_file" .md)
+              FIRST_LINE=$(head -1 "$agent_file")
+              if [ "$FIRST_LINE" != "---" ]; then
+                echo "::error::$agent_file missing YAML frontmatter (must start with ---)"
+                ERRORS=$((ERRORS + 1))
+              else
+                echo "✓ Agent: $AGENT_NAME"
+              fi
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Validate naming conventions
+        run: |
+          ERRORS=0
+          # Plugin name should be kebab-case
+          PLUGIN_NAME=$(jq -r '.name' .claude-plugin/plugin.json)
+          if ! echo "$PLUGIN_NAME" | grep -qE '^[a-z][a-z0-9-]*$'; then
+            echo "::error::Plugin name '$PLUGIN_NAME' must be lowercase letters, numbers, and hyphens"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Skill directory names should be kebab-case
+          for dir in skills/*/; do
+            if [ -d "$dir" ]; then
+              NAME=$(basename "$dir")
+              if ! echo "$NAME" | grep -qE '^[a-z][a-z0-9-]*$'; then
+                echo "::error::Skill directory name '$NAME' must be lowercase letters, numbers, and hyphens"
+                ERRORS=$((ERRORS + 1))
+              fi
+            fi
+          done
+
+          # Agent file names should be kebab-case.md
+          for agent_file in agents/*.md; do
+            if [ -f "$agent_file" ]; then
+              NAME=$(basename "$agent_file" .md)
+              if ! echo "$NAME" | grep -qE '^[a-z][a-z0-9-]*$'; then
+                echo "::error::Agent file name '$NAME.md' must be lowercase letters, numbers, and hyphens"
+                ERRORS=$((ERRORS + 1))
+              fi
+            fi
+          done
+
+          if [ "$ERRORS" -gt 0 ]; then
+            exit 1
+          fi
+          echo "✓ All naming conventions pass"
+
+      - name: Summary
+        run: |
+          echo "## Plugin Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          SKILL_COUNT=$(find skills -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
+          AGENT_COUNT=$(find agents -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+          PLUGIN_COUNT=$(jq '.plugins | length' .claude-plugin/marketplace.json)
+          echo "| Plugins | $PLUGIN_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skills | $SKILL_COUNT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agents | $AGENT_COUNT |" >> $GITHUB_STEP_SUMMARY
