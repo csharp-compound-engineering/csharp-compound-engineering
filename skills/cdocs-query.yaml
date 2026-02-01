@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:query
+description: Perform RAG-based question answering against project documentation with source attribution
+version: "1.0.0"
+
+triggers:
+  - query
+  - ask question
+  - cdocs query
+  - ask about
+  - question about
+  - what is
+  - how do I
+
+parameters:
+  - name: query
+    type: string
+    description: The question or query to answer from the documentation
+    required: true
+    validation:
+      min_length: 3
+
+  - name: limit
+    type: integer
+    description: Maximum number of source documents to retrieve (1-20)
+    required: false
+    default: 5
+    validation:
+      min: 1
+      max: 20
+
+  - name: doc_types
+    type: string
+    description: Comma-separated list of document types to filter by (spec, adr, research, doc, guide, api, changelog)
+    required: false
+
+  - name: promotion_level
+    type: string
+    description: Minimum promotion level filter (standard, important, critical)
+    required: false
+    validation:
+      enum:
+        - standard
+        - important
+        - critical
+
+  - name: include_chunks
+    type: boolean
+    description: Whether to include individual content chunks in the response
+    required: false
+    default: false
+
+tool_calls:
+  - tool: rag_query
+    arguments:
+      query: "{{query}}"
+      maxResults: "{{limit}}"
+      includeChunks: "{{include_chunks}}"
+    result_variable: query_result
+
+output:
+  format: markdown
+  template: |
+    # Query Results
+
+    **Query**: {{query}}
+
+    ## Answer
+
+    {{query_result.answer}}
+
+    ## Sources
+
+    {{#if query_result.sources}}
+    {{#each query_result.sources}}
+    - [{{title}}]({{file_path}}) ({{doc_type}}, relevance: {{relevance_score}})
+    {{/each}}
+    {{else}}
+    _No matching sources found_
+    {{/if}}
+
+    {{#if include_chunks}}
+    ## Content Chunks
+
+    {{#each query_result.chunks}}
+    ### Chunk {{@index}}
+    {{content}}
+    {{/each}}
+    {{/if}}
+
+    ---
+    **Confidence**: {{query_result.confidence_score}}
+  include_tool_results: true
+
+metadata:
+  author: compound-docs
+  category: query
+  tags:
+    - query
+    - rag
+    - question-answering
+    - search

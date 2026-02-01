@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "csharp-compounding-docs": {
+      "command": "pwsh",
+      "args": [
+        "-File",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/launch-mcp-server.ps1"
+      ],
+      "env": {
+        "DOTNET_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}

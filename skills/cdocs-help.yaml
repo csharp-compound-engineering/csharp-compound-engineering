@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:help
+description: Lists all available CompoundDocs skills with descriptions and usage information
+version: "1.0.0"
+
+triggers:
+  - help
+  - cdocs help
+  - list skills
+  - list commands
+  - show commands
+  - what can you do
+  - available skills
+  - available commands
+
+parameters:
+  - name: category
+    type: string
+    description: Filter skills by category (capture, query, meta, utility)
+    required: false
+    validation:
+      enum:
+        - capture
+        - query
+        - meta
+        - utility
+        - all
+
+  - name: skill_name
+    type: string
+    description: Get detailed help for a specific skill
+    required: false
+
+tool_calls: []
+
+output:
+  format: markdown
+  template: |
+    # CompoundDocs Help
+
+    {{#if skill_name}}
+    ## Skill: {{skill_details.name}}
+
+    **Description**: {{skill_details.description}}
+
+    **Version**: {{skill_details.version}}
+
+    ### Triggers
+    {{#each skill_details.triggers}}
+    - `{{this}}`
+    {{/each}}
+
+    ### Parameters
+    {{#each skill_details.parameters}}
+    - **{{name}}** ({{type}}{{#if required}}, required{{/if}})
+      {{description}}
+      {{#if default}}Default: `{{default}}`{{/if}}
+    {{/each}}
+
+    ### Example
+    ```
+    /cdocs:{{skill_details.short_name}} {{skill_details.example_args}}
+    ```
+    {{else}}
+    ## Available Skills
+
+    CompoundDocs provides the following skills organized by category:
+
+    ### Capture Skills
+    Create and index project documentation.
+
+    | Skill | Description |
+    |-------|-------------|
+    | `/cdocs:capture-problem` | Capture problem statements and issues |
+    | `/cdocs:capture-insight` | Capture insights and learnings |
+    | `/cdocs:capture-codebase` | Document codebase areas |
+    | `/cdocs:capture-tool` | Document tools and utilities |
+    | `/cdocs:capture-style` | Document coding styles and standards |
+
+    ### Query Skills
+    Search and retrieve documentation.
+
+    | Skill | Description |
+    |-------|-------------|
+    | `/cdocs:query` | RAG-based question answering with sources |
+    | `/cdocs:search` | Semantic search across documents |
+    | `/cdocs:recall` | Contextual recall with conversation memory |
+    | `/cdocs:related` | Find related documents via links and similarity |
+
+    ### Meta Skills
+    Manage projects and system state.
+
+    | Skill | Description |
+    |-------|-------------|
+    | `/cdocs:status` | Show current system status and statistics |
+    | `/cdocs:activate` | Activate a project for the session |
+    | `/cdocs:deactivate` | Deactivate the current project |
+    | `/cdocs:help` | Show this help information |
+
+    ### Utility Skills
+    Document management utilities.
+
+    | Skill | Description |
+    |-------|-------------|
+    | `/cdocs:promote` | Increase document visibility in RAG results |
+    | `/cdocs:demote` | Decrease document visibility in RAG results |
+    | `/cdocs:delete` | Remove documents from the index |
+    | `/cdocs:reindex` | Force reindex of documents |
+
+    ---
+
+    ### Getting Started
+
+    1. **Activate a project**:
+       ```
+       /cdocs:activate /path/to/your/project
+       ```
+
+    2. **Capture documentation**:
+       ```
+       /cdocs:capture-insight title="My Discovery" insight="..."
+       ```
+
+    3. **Query your docs**:
+       ```
+       /cdocs:query "How do I configure authentication?"
+       ```
+
+    ### Getting Help for a Specific Skill
+
+    For detailed help on any skill:
+    ```
+    /cdocs:help skill_name="<skill-name>"
+    ```
+
+    Example:
+    ```
+    /cdocs:help skill_name="query"
+    ```
+    {{/if}}
+
+metadata:
+  author: compound-docs
+  category: meta
+  tags:
+    - help
+    - documentation
+    - reference
+    - guide

@@ -1,0 +1,82 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:promote
+description: Promotes a document's visibility in RAG results by increasing its promotion level
+version: "1.0.0"
+
+triggers:
+  - promote document
+  - promote
+  - boost document
+  - pin document
+  - increase priority
+  - make important
+
+parameters:
+  - name: file_path
+    type: string
+    description: The relative path to the document from the project root
+    required: true
+    validation:
+      min_length: 1
+
+  - name: level
+    type: string
+    description: The target promotion level (promoted/important or pinned/critical)
+    required: false
+    default: promoted
+    validation:
+      enum:
+        - promoted
+        - important
+        - pinned
+        - critical
+
+tool_calls:
+  - tool: update_promotion_level
+    arguments:
+      filePath: "{{file_path}}"
+      promotionLevel: "{{level}}"
+    result_variable: promotion_result
+
+output:
+  format: markdown
+  template: |
+    # Document Promoted
+
+    {{#if success}}
+    Successfully updated document promotion level:
+
+    - **Document**: [{{promotion_result.title}}]({{promotion_result.file_path}})
+    - **Previous Level**: {{promotion_result.previous_level}}
+    - **New Level**: {{promotion_result.new_level}}
+    - **Boost Factor**: {{promotion_result.boost_factor}}x
+
+    The document will now receive a {{promotion_result.boost_factor}}x boost in RAG search results.
+
+    ### Promotion Levels
+    | Level | Boost | Description |
+    |-------|-------|-------------|
+    | standard | 1.0x | Normal relevance scoring |
+    | promoted | 1.5x | Boosted in search results |
+    | pinned | 2.0x | Maximum visibility |
+    {{else}}
+    **Failed to promote document.**
+
+    Error: {{error_message}}
+
+    Please verify:
+    - A project is currently active
+    - The document exists and is indexed
+    - The file path is correct
+    {{/if}}
+  include_tool_results: true
+
+metadata:
+  author: compound-docs
+  category: utility
+  tags:
+    - promotion
+    - visibility
+    - priority
+    - boost

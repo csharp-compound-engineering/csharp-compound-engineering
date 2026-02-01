@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:status
+description: Shows current system status including active project, indexed documents, and statistics
+version: "1.0.0"
+
+triggers:
+  - status
+  - show status
+  - system status
+  - cdocs status
+  - what's active
+  - current project
+
+parameters:
+  - name: include_details
+    type: boolean
+    description: Whether to include detailed statistics about document types and promotion levels
+    required: false
+    default: false
+
+  - name: include_recent
+    type: boolean
+    description: Whether to include recently indexed documents
+    required: false
+    default: false
+
+  - name: recent_limit
+    type: integer
+    description: Number of recent documents to show when include_recent is true
+    required: false
+    default: 5
+    validation:
+      min: 1
+      max: 20
+
+tool_calls: []
+
+output:
+  format: markdown
+  template: |
+    # CompoundDocs System Status
+
+    ## Project Context
+    {{#if is_project_active}}
+    - **Project**: {{project_name}}
+    - **Branch**: {{branch_name}}
+    - **Tenant Key**: `{{tenant_key}}`
+    - **Project Path**: {{project_path}}
+    {{else}}
+    **No project is currently active.**
+
+    Use `/cdocs:activate <project_path>` to activate a project.
+    {{/if}}
+
+    {{#if include_details}}
+    ## Document Statistics
+    - **Total Documents**: {{total_documents}}
+    - **Total Chunks**: {{total_chunks}}
+
+    ### By Document Type
+    {{#each doc_type_counts}}
+    - {{type}}: {{count}}
+    {{/each}}
+
+    ### By Promotion Level
+    {{#each promotion_level_counts}}
+    - {{level}}: {{count}}
+    {{/each}}
+    {{/if}}
+
+    {{#if include_recent}}
+    ## Recently Indexed Documents
+    {{#each recent_documents}}
+    - [{{title}}]({{file_path}}) ({{doc_type}}, {{last_modified}})
+    {{/each}}
+    {{/if}}
+
+    ## System Information
+    - **Skills Loaded**: {{skills_count}}
+    - **Server Version**: {{server_version}}
+
+metadata:
+  author: compound-docs
+  category: meta
+  tags:
+    - status
+    - info
+    - system

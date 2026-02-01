@@ -1,0 +1,128 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:capture-problem
+description: Captures a problem document describing an issue, challenge, or bug encountered during development
+version: "1.0.0"
+
+triggers:
+  - capture problem
+  - document problem
+  - log problem
+  - record issue
+  - capture bug
+
+parameters:
+  - name: title
+    type: string
+    description: Title of the problem
+    required: true
+    validation:
+      min_length: 5
+      max_length: 200
+
+  - name: description
+    type: string
+    description: Detailed description of the problem
+    required: true
+    validation:
+      min_length: 20
+
+  - name: context
+    type: string
+    description: Context in which the problem occurred
+    required: false
+
+  - name: symptoms
+    type: array
+    description: Observable symptoms or error messages
+    required: false
+
+  - name: attempted_solutions
+    type: array
+    description: Solutions that have been attempted
+    required: false
+
+  - name: severity
+    type: string
+    description: Severity level of the problem
+    required: false
+    default: medium
+    validation:
+      enum:
+        - low
+        - medium
+        - high
+        - critical
+
+  - name: tags
+    type: array
+    description: Tags for categorization
+    required: false
+
+tool_calls:
+  - tool: index_document
+    arguments:
+      file_path: "{{generated_file_path}}"
+    result_variable: index_result
+
+output:
+  format: markdown
+  template: |
+    ---
+    doc_type: problem
+    title: "{{title}}"
+    created: "{{timestamp}}"
+    severity: {{severity}}
+    status: open
+    {{#if tags}}
+    tags:
+    {{#each tags}}
+      - {{this}}
+    {{/each}}
+    {{/if}}
+    ---
+
+    # {{title}}
+
+    ## Problem Description
+
+    {{description}}
+
+    {{#if context}}
+    ## Context
+
+    {{context}}
+    {{/if}}
+
+    {{#if symptoms}}
+    ## Symptoms
+
+    {{#each symptoms}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    {{#if attempted_solutions}}
+    ## Attempted Solutions
+
+    {{#each attempted_solutions}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    ## Resolution
+
+    _To be filled in when resolved_
+
+    ## Lessons Learned
+
+    _To be filled in after resolution_
+
+metadata:
+  author: compound-docs
+  category: capture
+  tags:
+    - problem
+    - issue
+    - debugging
+    - troubleshooting

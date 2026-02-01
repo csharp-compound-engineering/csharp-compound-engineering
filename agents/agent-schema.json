@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://compounddocs.dev/schemas/agent-schema.json",
+  "title": "CDocsAgent",
+  "description": "Schema for CDocs research agent definition files",
+  "type": "object",
+  "required": ["name", "description", "purpose", "mcp_tools", "skills"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique agent identifier",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what the agent does",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the agent definition",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Detailed purpose and use cases for the agent",
+      "minLength": 20,
+      "maxLength": 2000
+    },
+    "mcp_tools": {
+      "type": "array",
+      "description": "MCP tools the agent can use",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/mcpTool"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Skills and capabilities of the agent",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/skill"
+      }
+    },
+    "prompts": {
+      "type": "object",
+      "description": "System and task prompts for the agent",
+      "properties": {
+        "system": {
+          "type": "string",
+          "description": "System prompt defining the agent's role and behavior"
+        },
+        "task_templates": {
+          "type": "object",
+          "description": "Templates for common task types",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Agent-specific configuration options",
+      "properties": {
+        "max_iterations": {
+          "type": "integer",
+          "description": "Maximum number of tool call iterations",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 10
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "description": "Timeout for agent operations in seconds",
+          "minimum": 10,
+          "maximum": 600,
+          "default": 120
+        },
+        "cache_results": {
+          "type": "boolean",
+          "description": "Whether to cache research results",
+          "default": true
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata for the agent",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string",
+          "enum": ["research", "analysis", "documentation", "integration"]
+        }
+      }
+    }
+  },
+  "definitions": {
+    "mcpTool": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the MCP tool"
+        },
+        "description": {
+          "type": "string",
+          "description": "How the agent uses this tool"
+        },
+        "provider": {
+          "type": "string",
+          "description": "MCP server or provider name (e.g., 'context7', 'cdocs', 'git')",
+          "default": "cdocs"
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this tool is required for the agent to function",
+          "default": true
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Default or suggested parameter values",
+          "additionalProperties": true
+        }
+      }
+    },
+    "skill": {
+      "type": "object",
+      "required": ["name", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill name"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this skill enables the agent to do"
+        },
+        "examples": {
+          "type": "array",
+          "description": "Example use cases for this skill",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

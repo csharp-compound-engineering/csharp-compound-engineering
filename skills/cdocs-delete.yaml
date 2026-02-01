@@ -1,0 +1,98 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:delete
+description: Deletes documents from the index. Supports dry-run mode to preview deletions
+version: "1.0.0"
+
+triggers:
+  - delete document
+  - delete
+  - remove document
+  - remove from index
+  - unindex document
+  - delete docs
+
+parameters:
+  - name: file_paths
+    type: string
+    description: Comma-separated list of file paths to delete from the index
+    required: true
+    validation:
+      min_length: 1
+
+  - name: dry_run
+    type: boolean
+    description: If true, only preview what would be deleted without actually deleting
+    required: false
+    default: false
+
+tool_calls:
+  - tool: delete_documents
+    arguments:
+      filePaths: "{{file_paths}}"
+      dryRun: "{{dry_run}}"
+    result_variable: delete_result
+
+output:
+  format: markdown
+  template: |
+    # Document Deletion {{#if delete_result.is_dry_run}}(Dry Run){{/if}}
+
+    {{#if success}}
+    {{#if delete_result.is_dry_run}}
+    ## Preview: Documents That Would Be Deleted
+
+    **Note**: This is a dry run. No documents were actually deleted.
+
+    {{else}}
+    ## Deletion Complete
+    {{/if}}
+
+    ### Summary
+    - **Requested**: {{delete_result.total_requested}}
+    - **{{#if delete_result.is_dry_run}}Would be deleted{{else}}Deleted{{/if}}**: {{delete_result.deleted_count}}
+    - **Not Found**: {{delete_result.not_found_count}}
+    - **Errors**: {{delete_result.error_count}}
+
+    {{#if delete_result.documents}}
+    ### Documents
+    {{#each delete_result.documents}}
+    - {{#if was_deleted}}[DELETED]{{else}}[SKIPPED]{{/if}} {{file_path}}
+      {{#if title}}- Title: {{title}}{{/if}}
+      {{#if reason}}- Reason: {{reason}}{{/if}}
+    {{/each}}
+    {{/if}}
+
+    {{#if delete_result.errors}}
+    ### Errors
+    {{#each delete_result.errors}}
+    - **{{file_path}}**: {{error}}
+    {{/each}}
+    {{/if}}
+
+    {{#if delete_result.is_dry_run}}
+    ---
+    To actually delete these documents, run:
+    ```
+    /cdocs:delete file_paths="{{file_paths}}" dry_run=false
+    ```
+    {{/if}}
+    {{else}}
+    **Failed to delete documents.**
+
+    Error: {{error_message}}
+
+    Please verify:
+    - A project is currently active
+    - The file paths are correct
+    {{/if}}
+  include_tool_results: true
+
+metadata:
+  author: compound-docs
+  category: utility
+  tags:
+    - delete
+    - remove
+    - cleanup
+    - maintenance

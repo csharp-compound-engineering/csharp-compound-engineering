@@ -1,0 +1,163 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:capture-codebase
+description: Captures a codebase document describing project structure, architecture, or significant code patterns
+version: "1.0.0"
+
+triggers:
+  - capture codebase
+  - document codebase
+  - document architecture
+  - capture structure
+  - document project structure
+  - capture code pattern
+
+parameters:
+  - name: title
+    type: string
+    description: Title of the codebase documentation
+    required: true
+    validation:
+      min_length: 5
+      max_length: 200
+
+  - name: scope
+    type: string
+    description: What part of the codebase this document covers
+    required: true
+    validation:
+      enum:
+        - full
+        - module
+        - component
+        - feature
+        - pattern
+
+  - name: description
+    type: string
+    description: Overview description of the codebase or component
+    required: true
+    validation:
+      min_length: 20
+
+  - name: key_directories
+    type: array
+    description: Important directories and their purposes
+    required: false
+
+  - name: entry_points
+    type: array
+    description: Main entry points into the code
+    required: false
+
+  - name: dependencies
+    type: array
+    description: Key dependencies and their roles
+    required: false
+
+  - name: patterns
+    type: array
+    description: Design patterns or architectural patterns used
+    required: false
+
+  - name: conventions
+    type: array
+    description: Coding conventions or standards followed
+    required: false
+
+  - name: related_docs
+    type: array
+    description: Related documentation files
+    required: false
+
+  - name: tags
+    type: array
+    description: Tags for categorization
+    required: false
+
+tool_calls:
+  - tool: index_document
+    arguments:
+      file_path: "{{generated_file_path}}"
+    result_variable: index_result
+
+output:
+  format: markdown
+  template: |
+    ---
+    doc_type: codebase
+    title: "{{title}}"
+    created: "{{timestamp}}"
+    scope: {{scope}}
+    {{#if tags}}
+    tags:
+    {{#each tags}}
+      - {{this}}
+    {{/each}}
+    {{/if}}
+    {{#if related_docs}}
+    related:
+    {{#each related_docs}}
+      - {{this}}
+    {{/each}}
+    {{/if}}
+    ---
+
+    # {{title}}
+
+    ## Overview
+
+    {{description}}
+
+    {{#if key_directories}}
+    ## Directory Structure
+
+    {{#each key_directories}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    {{#if entry_points}}
+    ## Entry Points
+
+    {{#each entry_points}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    {{#if dependencies}}
+    ## Dependencies
+
+    {{#each dependencies}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    {{#if patterns}}
+    ## Patterns
+
+    {{#each patterns}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    {{#if conventions}}
+    ## Conventions
+
+    {{#each conventions}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    ## Notes
+
+    _Additional notes about the codebase_
+
+metadata:
+  author: compound-docs
+  category: capture
+  tags:
+    - codebase
+    - architecture
+    - structure
+    - documentation

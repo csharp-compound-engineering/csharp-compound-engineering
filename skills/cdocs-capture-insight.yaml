@@ -1,0 +1,134 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:capture-insight
+description: Captures an insight document recording discoveries, learnings, or useful observations
+version: "1.0.0"
+
+triggers:
+  - capture insight
+  - document insight
+  - log insight
+  - record learning
+  - capture discovery
+  - TIL
+  - today I learned
+
+parameters:
+  - name: title
+    type: string
+    description: Title of the insight
+    required: true
+    validation:
+      min_length: 5
+      max_length: 200
+
+  - name: insight
+    type: string
+    description: The core insight or learning
+    required: true
+    validation:
+      min_length: 20
+
+  - name: source
+    type: string
+    description: How this insight was discovered
+    required: false
+
+  - name: evidence
+    type: string
+    description: Evidence or examples supporting the insight
+    required: false
+
+  - name: implications
+    type: array
+    description: Implications or applications of this insight
+    required: false
+
+  - name: related_topics
+    type: array
+    description: Related topics or concepts
+    required: false
+
+  - name: confidence
+    type: string
+    description: Confidence level in the insight
+    required: false
+    default: medium
+    validation:
+      enum:
+        - low
+        - medium
+        - high
+        - verified
+
+  - name: tags
+    type: array
+    description: Tags for categorization
+    required: false
+
+tool_calls:
+  - tool: index_document
+    arguments:
+      file_path: "{{generated_file_path}}"
+    result_variable: index_result
+
+output:
+  format: markdown
+  template: |
+    ---
+    doc_type: insight
+    title: "{{title}}"
+    created: "{{timestamp}}"
+    confidence: {{confidence}}
+    {{#if tags}}
+    tags:
+    {{#each tags}}
+      - {{this}}
+    {{/each}}
+    {{/if}}
+    {{#if related_topics}}
+    related:
+    {{#each related_topics}}
+      - {{this}}
+    {{/each}}
+    {{/if}}
+    ---
+
+    # {{title}}
+
+    ## Insight
+
+    {{insight}}
+
+    {{#if source}}
+    ## Source
+
+    {{source}}
+    {{/if}}
+
+    {{#if evidence}}
+    ## Evidence
+
+    {{evidence}}
+    {{/if}}
+
+    {{#if implications}}
+    ## Implications
+
+    {{#each implications}}
+    - {{this}}
+    {{/each}}
+    {{/if}}
+
+    ## Application Notes
+
+    _How this insight has been or could be applied_
+
+metadata:
+  author: compound-docs
+  category: capture
+  tags:
+    - insight
+    - learning
+    - discovery
+    - knowledge

@@ -1,0 +1,75 @@
+$schema: http://json-schema.org/draft-07/schema#
+$id: https://compound-docs.io/schemas/insight.schema.json
+title: Insight Document Schema
+description: JSON Schema for insight doc-type frontmatter. Insight documents capture lessons learned, discoveries, and valuable observations.
+
+type: object
+required:
+  - doc_type
+  - title
+  - tags
+
+properties:
+  doc_type:
+    type: string
+    const: insight
+    description: The document type identifier.
+
+  title:
+    type: string
+    minLength: 1
+    maxLength: 200
+    description: The title of the insight document.
+
+  tags:
+    type: array
+    items:
+      type: string
+      minLength: 1
+      maxLength: 50
+    minItems: 1
+    uniqueItems: true
+    description: Tags for categorizing and searching the insight.
+
+  discovery_context:
+    type: string
+    maxLength: 2000
+    description: The context in which this insight was discovered.
+
+  applications:
+    type: array
+    items:
+      type: string
+      maxLength: 500
+    description: Potential applications or use cases for this insight.
+
+  promotion_level:
+    type: string
+    enum:
+      - standard
+      - promoted
+      - pinned
+    default: standard
+    description: The promotion level for RAG ranking.
+
+  links:
+    type: array
+    items:
+      type: string
+      format: uri
+    description: Related links and references.
+
+  date:
+    type: string
+    format: date
+    description: The date the insight was captured.
+
+  category:
+    type: string
+    maxLength: 100
+    description: The category of the insight.
+
+additionalProperties: true
+
+# Output directory for this doc-type
+output_dir: ./csharp-compounding-docs/insights/

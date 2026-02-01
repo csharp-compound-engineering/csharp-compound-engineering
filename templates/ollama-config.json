@@ -1,0 +1,7 @@
+{
+  "generation_model": "mistral",
+  "gpu": {
+    "enabled": false,
+    "type": null
+  }
+}

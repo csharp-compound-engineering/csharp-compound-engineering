@@ -1,0 +1,68 @@
+# yaml-language-server: $schema=./skill-schema.json
+---
+name: /cdocs:activate
+description: Activates a project for the current session, establishing the tenant context for all subsequent operations
+version: "1.0.0"
+
+triggers:
+  - activate project
+  - activate
+  - switch project
+  - open project
+  - use project
+  - set project
+
+parameters:
+  - name: project_path
+    type: string
+    description: The absolute path to the project root directory
+    required: true
+    validation:
+      min_length: 1
+
+  - name: branch
+    type: string
+    description: Optional branch name override. If not provided, the current git branch is detected automatically
+    required: false
+
+tool_calls:
+  - tool: activate_project
+    arguments:
+      projectPath: "{{project_path}}"
+      branchOverride: "{{branch}}"
+    result_variable: activation_result
+
+output:
+  format: markdown
+  template: |
+    # Project Activated
+
+    {{#if success}}
+    Successfully activated project:
+
+    - **Project**: {{activation_result.project_name}}
+    - **Branch**: {{activation_result.branch_name}}
+    - **Tenant Key**: `{{activation_result.tenant_key}}`
+
+    You can now use other CompoundDocs skills to:
+    - Capture documents with `/cdocs:capture-*`
+    - Query documentation with `/cdocs:query`
+    - Search documents with `/cdocs:search`
+    {{else}}
+    **Failed to activate project.**
+
+    Error: {{error_message}}
+
+    Please verify:
+    - The path exists and is accessible
+    - The path is an absolute path to a project directory
+    {{/if}}
+  include_tool_results: true
+
+metadata:
+  author: compound-docs
+  category: meta
+  tags:
+    - project
+    - activation
+    - setup
