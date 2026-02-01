@@ -39,8 +39,8 @@
 
   <!-- Database -->
   <ItemGroup>
-    <PackageVersion Include="Npgsql" Version="9.0.2" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2" />
+    <PackageVersion Include="Npgsql" Version="9.0.3" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
   </ItemGroup>
 
   <!-- Logging -->
