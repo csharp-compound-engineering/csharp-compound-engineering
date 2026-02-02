@@ -1,0 +1,295 @@
+---
+title: Diagnostics
+---
+
+# Diagnostics and Troubleshooting Guide
+
+This guide provides troubleshooting steps for the CompoundDocs system, including error scenarios, logging configuration, and AWS service health checks.
+
+## Enabling Debug Logging
+
+### Configuration
+
+Debug logging can be enabled in two ways:
+
+#### 1. Via Environment Variable
+
+```bash
+# Enable debug logging for the entire application
+export SERILOG_LOGGING_LEVEL=Debug
+
+# Run the MCP server with debug logging
+dotnet run --project src/CompoundDocs.McpServer
+```
+
+#### 2. Via appsettings.json
+
+Update the `appsettings.json` configuration:
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Args": {
+          "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Log Levels
+
+- **Verbose**: Most detailed logging (rarely used)
+- **Debug**: Development-level details about execution flow
+- **Information**: Important operational events (default)
+- **Warning**: Non-critical issues that should be investigated
+- **Error**: Critical failures that prevent operation
+- **Fatal**: System-stopping errors
+
+## Common Error Scenarios
+
+### Scenario 1: Embedding Generation Failure
+
+#### Symptom
+```
+[ERR] Failed to generate embedding for query
+EMBEDDING_FAILED: Failed to generate embedding: AccessDeniedException
+```
+
+#### Root Causes
+1. Amazon Bedrock model access not enabled
+2. IAM permissions missing for `bedrock:InvokeModel`
+3. Wrong AWS region configured
+4. Bedrock service throttling
+
+#### Solution Steps
+1. Enable model access in the Bedrock console:
+   - Navigate to Amazon Bedrock > Model access
+   - Enable `amazon.titan-embed-text-v2:0`
+2. Verify IAM permissions include `bedrock:InvokeModel`
+3. Check that `Aws.Region` matches the region where Bedrock is available
+4. If throttled, Polly retry policies should handle transient failures
+
+#### Verification
+```bash
+# Test Bedrock access
+aws bedrock-runtime invoke-model \
+  --model-id amazon.titan-embed-text-v2:0 \
+  --body '{"inputText":"test"}' \
+  --content-type application/json \
+  output.json
+```
+
+### Scenario 2: Vector Search Failure
+
+#### Symptom
+```
+[ERR] Search operation failed
+SEARCH_FAILED: Search operation failed: index_not_found_exception
+```
+
+#### Root Causes
+1. OpenSearch Serverless collection not accessible
+2. Index not yet created (no documents ingested)
+3. Data access policy doesn't include your IAM principal
+4. Network policy blocks access
+
+#### Solution Steps
+1. Verify the collection endpoint URL in configuration
+2. Check collection status:
+   ```bash
+   aws opensearchserverless batch-get-collection --names compound-docs
+   ```
+3. Verify the data access policy includes your IAM principal
+4. Ensure the Worker has run at least once to create the index and ingest documents
+
+### Scenario 3: Graph Traversal Failure
+
+#### Symptom
+```
+[ERR] Neptune graph query failed
+NeptuneException: Unable to connect to endpoint
+```
+
+#### Root Causes
+1. Neptune endpoint unreachable (VPC networking)
+2. Security group doesn't allow port 8182
+3. IAM authentication issue
+4. Neptune cluster is stopped or in maintenance
+
+#### Solution Steps
+1. Verify Neptune endpoint connectivity:
+   ```bash
+   curl -s https://<neptune-endpoint>:8182/status
+   ```
+2. Check VPC security groups allow inbound TCP on port 8182
+3. Verify your machine can reach the Neptune VPC (VPN, peering, etc.)
+4. Check Neptune cluster status in the AWS Console
+
+### Scenario 4: RAG Synthesis Failure
+
+#### Symptom
+```
+[ERR] Unexpected error during RAG query
+RAG_SYNTHESIS_FAILED: RAG synthesis failed: ThrottlingException
+```
+
+#### Root Causes
+1. Bedrock LLM model throttling
+2. Token limit exceeded (too much context)
+3. Claude model not available in region
+
+#### Solution Steps
+1. Check Bedrock service quotas for your account
+2. Reduce `GraphRag.MaxChunksPerQuery` to lower context size
+3. Verify the Claude model ID is available in your region
+4. Enable debug logging to see the full request/response
+
+### Scenario 5: Git Sync Worker Not Processing
+
+#### Symptom
+```
+Worker started but no documents are being ingested
+```
+
+#### Root Causes
+1. No repositories configured
+2. Repository URL is inaccessible
+3. Git credentials not available
+4. `MonitoredPaths` filter excludes all files
+
+#### Solution Steps
+1. Verify `Repositories` configuration has at least one entry
+2. Check the repository URL is accessible:
+   ```bash
+   git ls-remote <repository-url>
+   ```
+3. Ensure git credentials are configured for private repos
+4. If `MonitoredPaths` is set, verify it includes the paths with your documents
+
+## AWS Service Health Checks
+
+### Neptune
+
+```bash
+# Check cluster status
+curl -s https://<neptune-endpoint>:8182/status
+
+# Expected response includes:
+# "status": "healthy"
+```
+
+### OpenSearch Serverless
+
+```bash
+# Check collection status
+aws opensearchserverless batch-get-collection \
+  --names compound-docs \
+  --query "collectionDetails[0].{Name:name,Status:status,Endpoint:collectionEndpoint}"
+```
+
+### Bedrock
+
+```bash
+# Check embedding model availability
+aws bedrock get-foundation-model \
+  --model-identifier amazon.titan-embed-text-v2:0 \
+  --query "{ModelId:modelId,Status:modelLifecycle.status}"
+
+# Check Claude model availability
+aws bedrock get-foundation-model \
+  --model-identifier anthropic.claude-sonnet-4-5-v1:0 \
+  --query "{ModelId:modelId,Status:modelLifecycle.status}"
+```
+
+### Comprehensive Health Check Script
+
+```bash
+#!/bin/bash
+echo "=== AWS Credentials ==="
+aws sts get-caller-identity
+
+echo -e "\n=== Neptune Status ==="
+curl -s https://<neptune-endpoint>:8182/status | jq .status
+
+echo -e "\n=== OpenSearch Collection ==="
+aws opensearchserverless batch-get-collection --names compound-docs \
+  --query "collectionDetails[0].status" --output text
+
+echo -e "\n=== Bedrock Embedding Model ==="
+aws bedrock get-foundation-model --model-identifier amazon.titan-embed-text-v2:0 \
+  --query "modelDetails.modelLifecycle.status" --output text 2>/dev/null || echo "Not accessible"
+
+echo -e "\n=== .NET Version ==="
+dotnet --version
+```
+
+## Log Interpretation Guide
+
+### Structured Logging Properties
+
+CompoundDocs uses Serilog structured logging with these common properties:
+
+| Property | Purpose | Example |
+|----------|---------|---------|
+| `{Timestamp}` | When the event occurred | `15:30:42.123` |
+| `{Level}` | Severity level | `INF`, `DBG`, `WRN`, `ERR` |
+| `{Message}` | Human-readable message | `RAG query: 'authentication', maxResults=5` |
+| `{SourceContext}` | The class that produced the log | `CompoundDocs.McpServer.Tools.RagQueryTool` |
+
+### Example Log Analysis
+
+**Successful RAG query:**
+```
+[15:30:42 INF] RAG query: 'How does auth work?', maxResults=5
+[15:30:42 DBG] Generating embedding via Bedrock Titan (1024 dimensions)
+[15:30:43 DBG] OpenSearch KNN search returned 5 chunks
+[15:30:43 DBG] Neptune traversal found 3 related concepts
+[15:30:44 DBG] Bedrock Claude synthesis completed
+[15:30:44 INF] RAG query completed: 5 sources, confidence=0.87
+```
+
+**Failed RAG query:**
+```
+[15:30:42 INF] RAG query: 'How does auth work?', maxResults=5
+[15:30:45 ERR] Unexpected error during RAG query
+System.OperationCanceledException: The operation was canceled.
+```
+
+**Service startup:**
+```
+[15:30:40 INF] Starting CSharp Compound Docs MCP Server
+[15:30:41 INF] MCP server configured: csharp-compounding-docs v1.0.0
+```
+
+### Common Log Patterns
+
+| Pattern | Meaning |
+|---------|---------|
+| `RAG query:` | A new query has been received |
+| `RAG query completed:` | Query finished successfully with source count and confidence |
+| `Unexpected error during RAG query` | Pipeline failure - check exception details |
+| `RAG query cancelled` | Client cancelled the request |
+| `Starting CSharp Compound Docs MCP Server` | Server process starting |
+| `MCP Server shutting down gracefully` | Normal shutdown |
+
+## Getting Help
+
+When reporting issues, include:
+
+1. Full error message from stderr
+2. Log excerpt showing the error (with context before and after)
+3. Configuration (redact AWS credentials)
+4. Environment information (OS, .NET version, AWS region)
+5. Steps to reproduce the issue

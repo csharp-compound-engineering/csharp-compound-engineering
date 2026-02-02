@@ -1,0 +1,221 @@
+---
+title: Installation
+---
+
+# Installation Guide
+
+This guide covers installing CSharp Compound Docs for use with Claude Code.
+
+## Prerequisites
+
+### Required
+- **.NET 9.0 SDK** or later - [Download](https://dotnet.microsoft.com/download)
+- **AWS Account** with access to:
+  - Amazon Neptune (graph database)
+  - AWS OpenSearch Serverless (vector store)
+  - Amazon Bedrock (embeddings and LLM)
+- **AWS CLI** configured with credentials - [Install](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+
+### Optional
+- **.NET Aspire workload** - For orchestration during development
+- **Docker** - For containerized deployment
+
+## Installation Methods
+
+### Method 1: Git Clone
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/csharp-compound-engineering.git
+cd csharp-compound-engineering
+
+# Restore dependencies
+dotnet restore
+
+# Build the solution
+dotnet build
+```
+
+### Method 2: Published Binary
+
+Build a self-contained binary for your platform:
+
+```bash
+dotnet publish src/CompoundDocs.McpServer -c Release -o ./publish
+```
+
+## AWS Setup
+
+### 1. Amazon Neptune
+
+Create a Neptune cluster for the knowledge graph:
+
+1. In the AWS Console, navigate to Amazon Neptune
+2. Create a new Neptune cluster in your preferred region
+3. Note the cluster endpoint (e.g., `my-cluster.cluster-xxxx.us-east-1.neptune.amazonaws.com`)
+4. Ensure your VPC/security groups allow access on port 8182
+
+### 2. AWS OpenSearch Serverless
+
+Create a serverless collection for vector storage:
+
+1. In the AWS Console, navigate to OpenSearch Serverless
+2. Create a new collection with type "Vector search"
+3. Configure a data access policy for your IAM principal
+4. Note the collection endpoint (e.g., `https://xxxx.us-east-1.aoss.amazonaws.com`)
+
+### 3. Amazon Bedrock
+
+Enable model access for the required models:
+
+1. In the AWS Console, navigate to Amazon Bedrock
+2. Under "Model access", enable:
+   - **Amazon Titan Embed Text v2** (for embeddings)
+   - **Anthropic Claude Haiku** (for entity extraction)
+   - **Anthropic Claude Sonnet** (for RAG synthesis)
+   - **Anthropic Claude Opus** (optional, for complex reasoning)
+
+### 4. AWS Credentials
+
+Ensure your local environment has AWS credentials configured:
+
+```bash
+# Option A: AWS SSO (recommended)
+aws sso login
+
+# Option B: Configure credentials directly
+aws configure
+
+# Verify access
+aws sts get-caller-identity
+```
+
+## Configuration
+
+### MCP Server Registration
+
+Add the MCP server to your Claude Code configuration. Create or edit the MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "csharp-compounding-docs": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "/path/to/csharp-compound-engineering/src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj"
+      ]
+    }
+  }
+}
+```
+
+### appsettings.json
+
+Configure the AWS service endpoints in `appsettings.json` or `appsettings.Development.json`:
+
+```json
+{
+  "Aws": {
+    "Region": "us-east-1"
+  },
+  "Neptune": {
+    "Endpoint": "my-cluster.cluster-xxxx.us-east-1.neptune.amazonaws.com",
+    "Port": 8182
+  },
+  "OpenSearch": {
+    "CollectionEndpoint": "https://xxxx.us-east-1.aoss.amazonaws.com",
+    "IndexName": "compound-docs"
+  },
+  "Bedrock": {
+    "EmbeddingModelId": "amazon.titan-embed-text-v2:0",
+    "SonnetModelId": "anthropic.claude-sonnet-4-5-v1:0",
+    "HaikuModelId": "anthropic.claude-haiku-4-5-v1:0"
+  },
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information"
+    }
+  }
+}
+```
+
+See the [Configuration Guide](/configuration) for all available settings.
+
+## Verification
+
+After installation, verify everything is working:
+
+### 1. Check AWS Connectivity
+
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Test Neptune connectivity (if reachable from your network)
+curl https://my-cluster.cluster-xxxx.us-east-1.neptune.amazonaws.com:8182/status
+
+# Test Bedrock access
+aws bedrock list-foundation-models --query "modelSummaries[?modelId=='amazon.titan-embed-text-v2:0']"
+```
+
+### 2. Check MCP Server
+
+```bash
+# Start the server manually to test
+dotnet run --project src/CompoundDocs.McpServer
+
+# You should see on stderr:
+# [INF] Starting CSharp Compound Docs MCP Server
+```
+
+### 3. Test in Claude Code
+
+Open Claude Code and verify the `rag_query` tool is available.
+
+## Troubleshooting
+
+### Common Issues
+
+#### "AWS credentials not found"
+- Ensure `aws configure` or `aws sso login` has been run
+- Check that `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` are set if using environment variables
+- Verify the correct region is configured
+
+#### "Neptune connection refused"
+- Verify the Neptune endpoint is correct
+- Check VPC/security group allows access on port 8182
+- Ensure your machine can reach the Neptune cluster (VPN or VPC peering may be needed)
+
+#### "OpenSearch Serverless access denied"
+- Verify the data access policy includes your IAM principal
+- Check the collection is in ACTIVE state
+- Ensure the collection endpoint URL is correct
+
+#### "Bedrock model not available"
+- Enable model access in the Bedrock console
+- Verify the model is available in your AWS region
+- Check IAM permissions include `bedrock:InvokeModel`
+
+#### "MCP server not responding"
+- Check the server is running: `dotnet run --project src/CompoundDocs.McpServer`
+- Verify the path in your MCP configuration is correct
+- Check stderr output for startup errors
+
+### Getting Help
+
+- [GitHub Issues](https://github.com/your-org/csharp-compound-engineering/issues)
+- [Troubleshooting Guide](/troubleshooting)
+- [Architecture Documentation](/architecture)
+
+## Next Steps
+
+After installation:
+
+1. **Review the Configuration Guide** - Customize AWS endpoints and GraphRAG settings
+2. **Configure Repositories** - Set up git repositories for monitoring
+3. **Test the rag_query Tool** - Query your indexed documentation
+4. **Read the Architecture Docs** - Understand the GraphRAG pipeline
+
+See the [First-Time Setup Guide](/first-time-setup) for detailed onboarding steps.

@@ -20,11 +20,7 @@
     </PackageReference>
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Moq" />
-    <PackageReference Include="Aspire.Hosting.Testing" />
-    <PackageReference Include="ModelContextProtocol" />
-    <PackageReference Include="Xunit.SkippableFact" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
-    <PackageReference Include="coverlet.msbuild">
+<PackageReference Include="coverlet.msbuild">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -37,7 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\CompoundDocs.Common\CompoundDocs.Common.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.McpServer\CompoundDocs.McpServer.csproj" />
-    <ProjectReference Include="..\..\src\CompoundDocs.AppHost\CompoundDocs.AppHost.csproj" />
   </ItemGroup>
 
   <!-- xUnit runner configuration -->

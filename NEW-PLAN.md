@@ -14,6 +14,10 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 - Keep and adapt existing skills/agents/hooks
 - Amazon Titan V2 for embeddings, Claude Sonnet 4.5 (primary), Haiku 4.5 (entity extraction), Opus 4.5 (complex queries)
 
+> **⛔ SAFETY NOTICE — CODE ONLY ⛔**
+>
+> **This plan produces code artifacts only.** No infrastructure will be created, no `tofu apply`, no `helm install`, no AWS API calls. Agents executing this plan must **never** provision AWS resources (Neptune, OpenSearch, Bedrock, EKS, IAM roles, VPCs, etc.) or run any deployment commands. All infrastructure and deployment definitions are **reference files** for a human operator to review and apply manually.
+
 ---
 
 ## 1. New AWS Infrastructure
@@ -24,17 +28,23 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 | **OpenSearch Serverless** | Vector search (k-NN) | 1024-dim index, Titan V2 compatible |
 | **Bedrock** | LLM + Embeddings | Claude Sonnet/Haiku/Opus 4.5, Titan Embed V2 |
 | **EKS** | Kubernetes hosting | 2+ AZ, IRSA for AWS auth |
-| **ECR** | Container registry | MCP server + Worker images |
+| **GHCR** | Container registry (GitHub Container Registry) | MCP server + Worker images |
+
+> **⛔ INFRASTRUCTURE SAFETY — DO NOT PROVISION ⛔**
+>
+> **Agents executing this plan must NOT create, modify, or provision any AWS resources.** This includes but is not limited to: Neptune clusters, OpenSearch collections, Bedrock model access, EKS clusters, IAM roles/policies, VPCs, subnets, security groups, or any other AWS infrastructure.
+>
+> **Assume all infrastructure already exists.** Write only the application code that interacts with these services. Do not run `aws` CLI commands, CloudFormation, Terraform/OpenTofu apply, `eksctl`, or any other infrastructure provisioning tool. Infrastructure-as-code files in this repo (OpenTofu, Crossplane) are **reference artifacts only** — a human operator will decide when and whether to apply them.
 
 ---
 
 ## 2. Project Restructuring
 
 ### Remove
-- `CompoundDocs.AppHost` (Aspire orchestrator replaced by K8s)
-- `CompoundDocs.Cleanup` (reimplemented as graph maintenance job)
+- `CompoundDocs.Cleanup` (not needed)
 
 ### Keep & Modify
+- `CompoundDocs.AppHost` (Aspire orchestration used locally for development purposes)
 - `CompoundDocs.McpServer` - Major rewrite: HTTP transport, new tools, new DI
 - `CompoundDocs.Common` - Keep parsing, add graph models, replace config
 - `CompoundDocs.ServiceDefaults` - Update health checks
@@ -45,9 +55,10 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 | `CompoundDocs.Graph` | Neptune openCypher client, graph repository, query builders |
 | `CompoundDocs.Vector` | OpenSearch Serverless client, vector CRUD + search |
 | `CompoundDocs.Bedrock` | Bedrock wrappers for Claude (Converse API) + Titan embeddings |
-| `CompoundDocs.GitSync` | LibGit2Sharp git clone/pull/diff, polling BackgroundService |
+| `CompoundDocs.GitSync` | LibGit2Sharp git clone/pull/diff |
 | `CompoundDocs.GraphRag` | Agentic pipeline, entity extraction, cross-repo resolution |
-| `CompoundDocs.Worker` | Background host for git polling + graph maintenance |
+| `CompoundDocs.Worker` | CronJob console app: runs git sync → ingestion pipeline, then exits |
+
 
 ### Package Changes (`Directory.Packages.props`)
 
@@ -63,7 +74,6 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 - `Microsoft.SemanticKernel.Connectors.PgVector`
 - `Npgsql`, `Npgsql.EntityFrameworkCore.PostgreSQL`
 - `QuikGraph`
-- `Aspire.*`, `CommunityToolkit.Aspire.Hosting.Ollama`
 - `Microsoft.EntityFrameworkCore.InMemory` (test)
 
 **Keep:**
@@ -72,6 +82,7 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 - `Polly` (resilience)
 - `Serilog` (logging)
 - `Microsoft.SemanticKernel` (may keep core for AI abstractions, drop connectors)
+- `Aspire.*`, `CommunityToolkit.Aspire.Hosting.Ollama` (orchestration for local development)
 - All testing packages
 
 ---
@@ -80,30 +91,24 @@ Migrate CompoundDocs MCP server from a local-first (PostgreSQL+pgvector+Ollama, 
 
 ```
 Nodes:
-  :Repository   {id, url, name, monitored_paths[], poll_interval_min}
-  :Branch       {id, repo_id, name, last_commit_hash, last_polled_at}
   :Document     {id, title, path, repo, branch, hash, doc_type, promotion_level, last_modified}
   :Section      {id, title, level, order, content_preview}
   :Chunk        {id, text, embedding_id, token_count}
   :Concept      {id, name, type, description}
-  :API          {id, name, namespace, signature, return_type}
   :CodeExample  {id, language, snippet}
 
 Relationships:
-  (:Repository)-[:TRACKS_BRANCH]->(:Branch)
-  (:Branch)-[:CONTAINS_DOC]->(:Document)
   (:Document)-[:HAS_SECTION]->(:Section)
   (:Section)-[:HAS_SUBSECTION]->(:Section)
   (:Section)-[:HAS_CHUNK]->(:Chunk)
   (:Chunk)-[:MENTIONS]->(:Concept)
-  (:Chunk)-[:REFERENCES_API]->(:API)
   (:Chunk)-[:CONTAINS_EXAMPLE]->(:CodeExample)
   (:Document)-[:DEPENDS_ON]->(:Document)
   (:Document)-[:SUPERSEDES]->(:Document)
   (:Concept)-[:RELATED_TO {weight}]->(:Concept)
-  (:API)-[:BELONGS_TO]->(:Concept)
-  (:API)-[:IMPLEMENTS]->(:Concept)
 ```
+
+The graph stores **document content and its relationships only**. Repository and branch metadata is tracked by the git sync service (config + runtime state), not in the graph. The graph makes no assumptions about what documents contain — node types like `:Concept` and `:CodeExample` are discovered dynamically by the LLM (Haiku via Bedrock) during entity extraction, not prescribed by a fixed schema.
 
 ---
 
@@ -114,9 +119,8 @@ Low-level openCypher query execution via `AWSSDK.Neptunedata`.
 
 ### `IGraphRepository` (CompoundDocs.Graph)
 - Document/Section/Chunk CRUD with cascade
-- Concept/API entity upsert with cross-repo dedup
+- Concept entity upsert with cross-repo dedup
 - Traversal queries: get related concepts (N hops), get linked documents, get chunks by concept
-- Repository/Branch management
 
 ### `IVectorStore` (CompoundDocs.Vector)
 - Index/delete embeddings by chunk ID
@@ -175,7 +179,7 @@ Each routing decision uses Haiku with a structured JSON prompt/response for spee
 ## 6. Incremental Graph Update Pipeline
 
 ```
-GitPollerBackgroundService (runs in Worker process)
+CompoundDocs.Worker (runs as K8s CronJob on configurable schedule, e.g. every 10min)
   For each repo on each poll interval:
 
   1. git fetch origin <branch>
@@ -196,7 +200,7 @@ GitPollerBackgroundService (runs in Worker process)
     12. Cascade delete: Document -> Sections -> Chunks + orphaned Concepts
     13. Delete vectors from OpenSearch by document ID
 
-  14. Update Branch.last_commit_hash in graph
+  14. Update last-known commit hash in git sync service state
 ```
 
 Document hooks (`IDocumentHook`) fire during steps 4-11, preserving BeforeIndex/AfterIndex lifecycle. Events (`IDocumentEventPublisher`) publish Created/Updated/Deleted as before.
@@ -276,11 +280,46 @@ Loaded from `appsettings.json` + environment variables (`CompoundDocs__Neptune__
 
 ---
 
-## 9. Deployment (Helm on EKS)
+## 9. Infrastructure as Code — OpenTofu (Reference Only)
 
-### Two Deployments
-1. **MCP Server** (2+ replicas, HPA on CPU) - Handles developer MCP requests via HTTP
-2. **Worker** (1 replica) - Runs git polling + graph maintenance
+> **⛔ These files are reference artifacts. Do NOT run `tofu apply` or any provisioning commands. ⛔**
+
+OpenTofu definitions live in `infra/tofu/` and declaratively describe all AWS resources needed by the system. They exist in the repo so a human operator can review, customize, and apply them manually when ready.
+
+### Resources Defined
+
+| Resource | OpenTofu Module | Notes |
+|----------|----------------|-------|
+| **Neptune Serverless** | `infra/tofu/neptune.tf` | Cluster + subnet group, 1-16 NCU |
+| **OpenSearch Serverless** | `infra/tofu/opensearch.tf` | Collection, encryption & network policies, 1024-dim k-NN |
+| **Bedrock Model Access** | `infra/tofu/bedrock.tf` | Model access for Claude Sonnet/Haiku/Opus 4.5, Titan Embed V2 |
+| **IAM Roles & Policies** | `infra/tofu/iam.tf` | IRSA roles for EKS pods, least-privilege policies |
+| **VPC / Networking** | `infra/tofu/vpc.tf` | VPC, private subnets, security groups, VPC endpoints |
+| **EKS Cluster** | `infra/tofu/eks.tf` | Cluster, managed node groups, OIDC provider |
+
+### File Structure
+```
+infra/tofu/
+  ├── main.tf           # Provider config, backend (S3)
+  ├── variables.tf      # Input variables (region, tags, etc.)
+  ├── outputs.tf        # Endpoint URLs, ARNs for Helm values
+  ├── neptune.tf
+  ├── opensearch.tf
+  ├── bedrock.tf
+  ├── iam.tf
+  ├── vpc.tf
+  └── eks.tf
+```
+
+---
+
+## 10. Deployment (Helm on EKS)
+
+The Helm chart is packaged and published to GitHub (OCI via GHCR, e.g. `oci://ghcr.io/<org>/charts/compound-docs`). Container images also live on GHCR.
+
+### Two Workloads
+1. **MCP Server** — `Deployment` (2+ replicas, HPA on CPU). Handles developer MCP requests via HTTP.
+2. **Worker** — `CronJob` (schedule: `*/10 * * * *` default). Runs git sync → ingestion pipeline for all configured repos, then exits. Each invocation is a short-lived pod.
 
 ### Key K8s Resources
 - `ServiceAccount` with IRSA annotation for Neptune/OpenSearch/Bedrock IAM
@@ -289,7 +328,45 @@ Loaded from `appsettings.json` + environment variables (`CompoundDocs__Neptune__
 - `Service` (ClusterIP) for MCP server
 - `Ingress` or `LoadBalancer` if external access needed
 - `HorizontalPodAutoscaler` for MCP server
-- `PersistentVolume` or `emptyDir` for Worker git clone storage
+- `CronJob` for Worker (configurable schedule via Helm values)
+- `PersistentVolumeClaim` or `emptyDir` for Worker git clone storage
+
+### Crossplane Infrastructure CRDs
+
+The Helm chart optionally includes Crossplane compositions that can self-provision infrastructure when installed on a Crossplane-enabled cluster. These mirror the same resources defined in the OpenTofu files.
+
+> **⛔ The Helm chart and Crossplane resources are code artifacts only. Running `helm install` is a human decision — agents must not execute it. ⛔**
+
+**Crossplane Providers:**
+- `provider-aws` — provisions Neptune, OpenSearch, IAM, VPC resources
+
+**Compositions included in chart:**
+| Composition | Resources Created |
+|-------------|-------------------|
+| `compound-docs-data` | Neptune Serverless cluster, OpenSearch Serverless collection |
+| `compound-docs-network` | VPC, subnets, security groups, VPC endpoints |
+| `compound-docs-iam` | IRSA roles, policies for pod-level AWS access |
+
+**File Structure:**
+```
+deploy/helm/compound-docs/
+  ├── Chart.yaml
+  ├── values.yaml
+  ├── templates/
+  │   ├── server-deployment.yaml
+  │   ├── worker-cronjob.yaml
+  │   ├── service.yaml
+  │   ├── hpa.yaml
+  │   ├── configmap.yaml
+  │   └── ...
+  └── crossplane/          # Optional — ignored if Crossplane not installed
+      ├── compositions/
+      │   ├── data.yaml
+      │   ├── network.yaml
+      │   └── iam.yaml
+      └── claims/
+          └── compound-docs-infra.yaml
+```
 
 ### Networking
 - EKS and Neptune in same VPC, private subnets
@@ -298,7 +375,7 @@ Loaded from `appsettings.json` + environment variables (`CompoundDocs__Neptune__
 
 ---
 
-## 10. Testing Strategy
+## 11. Testing Strategy
 
 | Level | Scope | Tools |
 |-------|-------|-------|
@@ -310,11 +387,11 @@ Existing unit tests for `MarkdownParser`, `FrontmatterParser`, `SchemaValidator`
 
 ---
 
-## 11. Implementation Phases
+## 12. Implementation Phases
 
 ### Phase 1: Foundation
 - Create 6 new projects, update solution file
-- Update `Directory.Packages.props` (add AWS SDKs, remove Ollama/PgVector/Aspire)
+- Update `Directory.Packages.props` (add AWS SDKs, remove Ollama/PgVector; keep Aspire)
 - Implement `CloudConfig` configuration model
 - Implement `INeptuneClient` + `NeptuneClient`
 - Implement `IBedrockEmbeddingService` + `IBedrockLlmService`
@@ -336,12 +413,11 @@ Existing unit tests for `MarkdownParser`, `FrontmatterParser`, `SchemaValidator`
 - Adapt document hooks and event publisher
 - Integration test: markdown file -> graph + vectors
 
-### Phase 4: Git Sync
+### Phase 4: Git Sync + Worker
 - Implement `IGitSyncService` with LibGit2Sharp
-- Implement `GitPollerBackgroundService`
-- Create `CompoundDocs.Worker/Program.cs`
-- Wire git poller -> ingestion pipeline
-- Integration test: simulated git push -> graph updated
+- Create `CompoundDocs.Worker` as a console app (run-once, exit on completion)
+- Wire Worker: git sync → ingestion pipeline for all configured repos
+- Integration test: simulated git push -> Worker run -> graph updated
 
 ### Phase 5: Agentic GraphRAG Pipeline
 - Implement `IGraphRagPipeline` + `GraphRagPipeline`
@@ -362,8 +438,8 @@ Existing unit tests for `MarkdownParser`, `FrontmatterParser`, `SchemaValidator`
 ### Phase 7: Deployment
 - Create Dockerfiles (MCP server + Worker)
 - Create Helm chart
-- Set up AWS infra (Neptune, OpenSearch, IAM, ECR)
-- Create CI/CD pipeline (GitHub Actions -> ECR -> Helm)
+- Set up AWS infra (Neptune, OpenSearch, IAM)
+- Create CI/CD pipeline (GitHub Actions -> GHCR for images + Helm chart OCI)
 - Deploy to dev namespace
 
 ### Phase 8: Validation
@@ -374,7 +450,7 @@ Existing unit tests for `MarkdownParser`, `FrontmatterParser`, `SchemaValidator`
 
 ---
 
-## 12. Verification
+## 13. Verification
 
 After each phase, verify:
 - `dotnet build` succeeds for entire solution
@@ -388,6 +464,6 @@ After each phase, verify:
 - `src/CompoundDocs.McpServer/Program.cs` - Entry point (rewrite)
 - `src/CompoundDocs.McpServer/Tools/RagQueryTool.cs` - Most complex tool (rewrite)
 - `src/CompoundDocs.McpServer/Data/Repositories/IDocumentRepository.cs` - Replaced by IGraphRepository + IVectorStore
-- `src/CompoundDocs.McpServer/Services/FileWatcher/FileWatcherBackgroundService.cs` - Template for GitPollerBackgroundService
+- `src/CompoundDocs.McpServer/Services/FileWatcher/FileWatcherBackgroundService.cs` - Replaced by CompoundDocs.Worker CronJob
 - `src/CompoundDocs.McpServer/Options/McpServerOptions.cs` - Replaced by CloudConfig
 - `Directory.Packages.props` - Package additions/removals

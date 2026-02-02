@@ -1,0 +1,19 @@
+{
+  "name": "cd",
+  "version": "1.0.0",
+  "description": "GraphRAG-powered knowledge base for project documentation. Provides intelligent document retrieval via a single rag_query MCP tool backed by Neptune, OpenSearch, and Bedrock.",
+  "author": {
+    "name": "Michael McCord"
+  },
+  "repository": "https://github.com/michaelmccord/csharp-compound-engineering",
+  "license": "MIT",
+  "keywords": [
+    "graphrag",
+    "knowledge-base",
+    "documentation",
+    "rag",
+    "neptune",
+    "opensearch",
+    "bedrock"
+  ]
+}

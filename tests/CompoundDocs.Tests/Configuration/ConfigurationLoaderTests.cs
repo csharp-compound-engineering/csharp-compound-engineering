@@ -338,80 +338,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
 
     #endregion
 
-    #region ExternalDocsConfig Tests (Phase 134)
-
-    [Fact]
-    public void LoadProjectConfig_WithExternalDocsConfig_LoadsSettings()
-    {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "external-docs-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
-
-        var config = new ProjectConfig
-        {
-            ProjectName = "external-docs-test",
-            ExternalDocsSettings = new ExternalDocsConfig
-            {
-                SyncFrequencyHours = 12,
-                SyncOnStartup = false,
-                DefaultNamespacePrefix = "custom-prefix"
-            }
-        };
-
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "config.json"), json);
-
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
-
-        // Assert
-        result.ExternalDocsSettings.ShouldNotBeNull();
-        result.ExternalDocsSettings.SyncFrequencyHours.ShouldBe(12);
-        result.ExternalDocsSettings.SyncOnStartup.ShouldBeFalse();
-        result.ExternalDocsSettings.DefaultNamespacePrefix.ShouldBe("custom-prefix");
-    }
-
-    [Fact]
-    public void SaveProjectConfig_WithExternalDocSource_PreservesNamespacePrefix()
-    {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "external-source-project");
-        Directory.CreateDirectory(projectPath);
-
-        var config = new ProjectConfig
-        {
-            ProjectName = "external-source-test",
-            ExternalDocsSettings = new ExternalDocsConfig
-            {
-                Sources =
-                [
-                    new ExternalDocSource
-                    {
-                        Id = "docs1",
-                        Name = "External Docs",
-                        Path = "/path/to/docs",
-                        NamespacePrefix = "ext.docs"
-                    }
-                ]
-            }
-        };
-
-        // Act
-        _sut.SaveProjectConfig(projectPath, config);
-
-        // Assert
-        var loaded = _sut.LoadProjectConfig(projectPath);
-        loaded.ExternalDocsSettings.Sources.Count.ShouldBe(1);
-        loaded.ExternalDocsSettings.Sources[0].NamespacePrefix.ShouldBe("ext.docs");
-    }
-
-    #endregion
-
     #region RagConfig Tests (Phase 135)
 
     [Fact]
@@ -522,31 +448,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
                 SimilarityThreshold = 0.75f,
                 LinkDepth = 3
             },
-            ExternalDocsSettings = new ExternalDocsConfig
-            {
-                Sources =
-                [
-                    new ExternalDocSource
-                    {
-                        Id = "external1",
-                        Name = "External Docs 1",
-                        Path = "/path/to/docs1",
-                        Enabled = true,
-                        NamespacePrefix = "ext1"
-                    },
-                    new ExternalDocSource
-                    {
-                        Id = "external2",
-                        Name = "External Docs 2",
-                        Path = "relative/path/docs2",
-                        Enabled = false,
-                        NamespacePrefix = "ext2"
-                    }
-                ],
-                SyncFrequencyHours = 6,
-                SyncOnStartup = true,
-                DefaultNamespacePrefix = "default-ext"
-            },
             LinkResolution = new LinkResolutionSettings
             {
                 MaxDepth = 3,
@@ -562,9 +463,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
         loadedConfig.ProjectName.ShouldBe("integration-test");
         loadedConfig.Rag.ChunkSize.ShouldBe(1500);
         loadedConfig.Rag.MaxResults.ShouldBe(15);
-        loadedConfig.ExternalDocsSettings.SyncFrequencyHours.ShouldBe(6);
-        loadedConfig.ExternalDocsSettings.Sources.Count.ShouldBe(2);
-        loadedConfig.ExternalDocsSettings.Sources[0].NamespacePrefix.ShouldBe("ext1");
         loadedConfig.LinkResolution.MaxDepth.ShouldBe(3);
     }
 

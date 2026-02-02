@@ -7,8 +7,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>CompoundDocs.McpServer</AssemblyName>
     <RootNamespace>CompoundDocs.McpServer</RootNamespace>
-    <!-- Suppress experimental Semantic Kernel connector warnings -->
-    <NoWarn>$(NoWarn);SKEXP0001;SKEXP0010;SKEXP0020;SKEXP0070</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,17 +17,8 @@
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="Serilog.Enrichers.Environment" />
-    <!-- Semantic Kernel packages -->
-    <PackageReference Include="Microsoft.SemanticKernel" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Ollama" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.PgVector" />
-    <!-- Vector Data abstractions for VectorStoreKey etc attributes -->
-    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" />
-    <!-- AI abstractions for IEmbeddingGenerator -->
+    <!-- AI abstractions -->
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
-    <!-- Database -->
-    <PackageReference Include="Npgsql" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <!-- Resilience -->
     <PackageReference Include="Polly" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
@@ -37,6 +26,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CompoundDocs.Common\CompoundDocs.Common.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Vector\CompoundDocs.Vector.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
+    <ProjectReference Include="..\CompoundDocs.Bedrock\CompoundDocs.Bedrock.csproj" />
+    <ProjectReference Include="..\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
   </ItemGroup>
 
 </Project>

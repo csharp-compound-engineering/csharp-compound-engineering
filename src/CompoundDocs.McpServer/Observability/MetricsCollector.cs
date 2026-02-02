@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Text.Json.Serialization;
@@ -37,16 +36,14 @@ public sealed class MetricsCollector : IDisposable
     private readonly Histogram<double> _embeddingLatencyHistogram;
     private readonly Histogram<double> _indexingLatencyHistogram;
 
-    // Observable gauges for current state
-    private readonly ObservableGauge<int> _activeProjectGauge;
-
     // Internal storage for calculated metrics
-    private readonly ConcurrentDictionary<string, TenantMetrics> _tenantMetrics = new();
     private readonly LatencyTracker _queryLatencyTracker = new();
     private readonly LatencyTracker _embeddingLatencyTracker = new();
+    private long _totalDocuments;
+    private long _totalChunks;
+    private long _totalQueries;
     private long _cacheHits;
     private long _cacheMisses;
-    private int _activeProjects;
     private bool _disposed;
 
     /// <summary>
@@ -103,13 +100,6 @@ public sealed class MetricsCollector : IDisposable
             "compounddocs.indexing.latency",
             unit: "ms",
             description: "Document indexing latency in milliseconds");
-
-        // Initialize observable gauges
-        _activeProjectGauge = _meter.CreateObservableGauge(
-            "compounddocs.projects.active",
-            observeValue: () => _activeProjects,
-            unit: "{projects}",
-            description: "Number of active projects");
     }
 
     /// <summary>
@@ -120,34 +110,30 @@ public sealed class MetricsCollector : IDisposable
     /// <summary>
     /// Records a document being indexed.
     /// </summary>
-    /// <param name="tenantKey">The tenant key for the document.</param>
     /// <param name="chunkCount">Number of chunks in the document.</param>
     /// <param name="durationMs">Time taken to index in milliseconds.</param>
-    public void RecordDocumentIndexed(string tenantKey, int chunkCount, double durationMs)
+    public void RecordDocumentIndexed(int chunkCount, double durationMs)
     {
-        _documentIndexedCounter.Add(1, new KeyValuePair<string, object?>("tenant", tenantKey));
-        _chunkIndexedCounter.Add(chunkCount, new KeyValuePair<string, object?>("tenant", tenantKey));
-        _indexingLatencyHistogram.Record(durationMs, new KeyValuePair<string, object?>("tenant", tenantKey));
+        _documentIndexedCounter.Add(1);
+        _chunkIndexedCounter.Add(chunkCount);
+        _indexingLatencyHistogram.Record(durationMs);
 
-        var metrics = _tenantMetrics.GetOrAdd(tenantKey, _ => new TenantMetrics());
-        Interlocked.Increment(ref metrics.DocumentCount);
-        Interlocked.Add(ref metrics.ChunkCount, chunkCount);
+        Interlocked.Increment(ref _totalDocuments);
+        Interlocked.Add(ref _totalChunks, chunkCount);
     }
 
     /// <summary>
     /// Records a query being executed.
     /// </summary>
-    /// <param name="tenantKey">The tenant key for the query.</param>
     /// <param name="durationMs">Time taken in milliseconds.</param>
     /// <param name="resultCount">Number of results returned.</param>
-    public void RecordQuery(string tenantKey, double durationMs, int resultCount)
+    public void RecordQuery(double durationMs, int resultCount)
     {
-        _queryCounter.Add(1, new KeyValuePair<string, object?>("tenant", tenantKey));
-        _queryLatencyHistogram.Record(durationMs, new KeyValuePair<string, object?>("tenant", tenantKey));
+        _queryCounter.Add(1);
+        _queryLatencyHistogram.Record(durationMs);
         _queryLatencyTracker.Record(durationMs);
 
-        var metrics = _tenantMetrics.GetOrAdd(tenantKey, _ => new TenantMetrics());
-        Interlocked.Increment(ref metrics.QueryCount);
+        Interlocked.Increment(ref _totalQueries);
     }
 
     /// <summary>
@@ -189,22 +175,6 @@ public sealed class MetricsCollector : IDisposable
     }
 
     /// <summary>
-    /// Records a project activation.
-    /// </summary>
-    public void RecordProjectActivated()
-    {
-        Interlocked.Increment(ref _activeProjects);
-    }
-
-    /// <summary>
-    /// Records a project deactivation.
-    /// </summary>
-    public void RecordProjectDeactivated()
-    {
-        Interlocked.Decrement(ref _activeProjects);
-    }
-
-    /// <summary>
     /// Starts a new activity for tracing.
     /// </summary>
     /// <param name="operationName">Name of the operation being traced.</param>
@@ -221,22 +191,15 @@ public sealed class MetricsCollector : IDisposable
     /// <returns>A snapshot of current metrics.</returns>
     public MetricsSnapshot GetSnapshot()
     {
-        var tenantSnapshots = _tenantMetrics.Select(kvp => new TenantMetricsSnapshot
-        {
-            TenantKey = kvp.Key,
-            DocumentCount = kvp.Value.DocumentCount,
-            ChunkCount = kvp.Value.ChunkCount,
-            QueryCount = kvp.Value.QueryCount
-        }).ToList();
-
         return new MetricsSnapshot
         {
             GeneratedAt = DateTimeOffset.UtcNow,
-            TenantMetrics = tenantSnapshots,
+            TotalDocuments = Interlocked.Read(ref _totalDocuments),
+            TotalChunks = Interlocked.Read(ref _totalChunks),
+            TotalQueries = Interlocked.Read(ref _totalQueries),
             QueryLatency = _queryLatencyTracker.GetPercentiles(),
             EmbeddingLatency = _embeddingLatencyTracker.GetPercentiles(),
-            CacheHitRate = CalculateCacheHitRate(),
-            ActiveProjects = _activeProjects
+            CacheHitRate = CalculateCacheHitRate()
         };
     }
 
@@ -261,16 +224,6 @@ public sealed class MetricsCollector : IDisposable
         _disposed = true;
         _meter.Dispose();
         _activitySource.Dispose();
-    }
-
-    /// <summary>
-    /// Internal class to track per-tenant metrics.
-    /// </summary>
-    private sealed class TenantMetrics
-    {
-        public long DocumentCount;
-        public long ChunkCount;
-        public long QueryCount;
     }
 }
 
@@ -371,36 +324,6 @@ public sealed class LatencyPercentiles
 }
 
 /// <summary>
-/// Per-tenant metrics snapshot.
-/// </summary>
-public sealed class TenantMetricsSnapshot
-{
-    /// <summary>
-    /// The tenant key.
-    /// </summary>
-    [JsonPropertyName("tenant_key")]
-    public required string TenantKey { get; init; }
-
-    /// <summary>
-    /// Number of documents indexed for this tenant.
-    /// </summary>
-    [JsonPropertyName("document_count")]
-    public long DocumentCount { get; init; }
-
-    /// <summary>
-    /// Number of chunks indexed for this tenant.
-    /// </summary>
-    [JsonPropertyName("chunk_count")]
-    public long ChunkCount { get; init; }
-
-    /// <summary>
-    /// Number of queries executed for this tenant.
-    /// </summary>
-    [JsonPropertyName("query_count")]
-    public long QueryCount { get; init; }
-}
-
-/// <summary>
 /// Complete metrics snapshot.
 /// </summary>
 public sealed class MetricsSnapshot
@@ -412,10 +335,22 @@ public sealed class MetricsSnapshot
     public DateTimeOffset GeneratedAt { get; init; }
 
     /// <summary>
-    /// Per-tenant metrics.
+    /// Total number of documents indexed.
     /// </summary>
-    [JsonPropertyName("tenant_metrics")]
-    public required IReadOnlyList<TenantMetricsSnapshot> TenantMetrics { get; init; }
+    [JsonPropertyName("total_documents")]
+    public long TotalDocuments { get; init; }
+
+    /// <summary>
+    /// Total number of chunks indexed.
+    /// </summary>
+    [JsonPropertyName("total_chunks")]
+    public long TotalChunks { get; init; }
+
+    /// <summary>
+    /// Total number of queries executed.
+    /// </summary>
+    [JsonPropertyName("total_queries")]
+    public long TotalQueries { get; init; }
 
     /// <summary>
     /// Query latency percentiles.
@@ -434,10 +369,4 @@ public sealed class MetricsSnapshot
     /// </summary>
     [JsonPropertyName("cache_hit_rate")]
     public double CacheHitRate { get; init; }
-
-    /// <summary>
-    /// Number of currently active projects.
-    /// </summary>
-    [JsonPropertyName("active_projects")]
-    public int ActiveProjects { get; init; }
 }

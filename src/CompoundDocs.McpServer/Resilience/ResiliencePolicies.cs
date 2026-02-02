@@ -148,7 +148,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
             ShouldHandle = new PredicateBuilder()
                 .Handle<HttpRequestException>()
                 .Handle<TimeoutRejectedException>()
-                .Handle<Npgsql.NpgsqlException>()
+                .Handle<System.IO.IOException>()
                 .Handle<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
                 .Handle<InvalidOperationException>(ex => IsTransientError(ex)),
             OnRetry = args =>
@@ -178,7 +178,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
             ShouldHandle = new PredicateBuilder()
                 .Handle<HttpRequestException>()
                 .Handle<TimeoutRejectedException>()
-                .Handle<Npgsql.NpgsqlException>()
+                .Handle<System.IO.IOException>()
                 .Handle<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested),
             OnOpened = args =>
             {

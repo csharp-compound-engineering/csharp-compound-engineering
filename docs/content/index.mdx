@@ -1,0 +1,42 @@
+---
+title: Getting Started
+---
+
+# CSharp Compound Docs
+
+A GraphRAG-powered knowledge oracle for C#/.NET projects, built as an MCP server for Claude Code.
+
+## What is CSharp Compound Docs?
+
+CSharp Compound Docs implements the "compound-engineering" paradigm — combining **knowledge graph traversal** with **vector search** to provide high-quality, context-aware answers from your codebase documentation.
+
+### Key Features
+
+- **GraphRAG pipeline** — combines graph traversal with vector search for superior retrieval
+- **AWS cloud-native** — fully managed services (Neptune, OpenSearch Serverless, Bedrock)
+- **Git-based sync** — automatic repository monitoring and change detection via LibGit2Sharp
+- **Multi-hop reasoning** — discover related concepts across documents and repositories
+- **MCP integration** — works directly with Claude Code via the `rag_query` tool
+
+## Quick Start
+
+1. **[Install prerequisites](/installation)** — .NET 9 SDK, AWS account, and AWS CLI
+2. **[First-time setup](/first-time-setup)** — configure AWS endpoints and repository monitoring
+3. **[Configure settings](/configuration)** — tune GraphRAG parameters for your use case
+
+## Architecture Overview
+
+```
+Claude Code → MCP Server → GraphRAG Pipeline
+                              ├── OpenSearch Serverless (vector search)
+                              ├── Amazon Neptune (knowledge graph)
+                              └── Amazon Bedrock (embeddings + LLM)
+```
+
+See the [Architecture](/architecture) page for the full system design.
+
+## Need Help?
+
+- [Troubleshooting](/troubleshooting) — common issues and solutions
+- [Diagnostics](/diagnostics) — debug logging and AWS health checks
+- [GitHub Issues](https://github.com/your-org/csharp-compound-engineering/issues) — report bugs or request features

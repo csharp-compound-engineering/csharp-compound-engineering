@@ -1,5 +1,4 @@
 using CompoundDocs.Common.Configuration;
-using CompoundDocs.Common.Graph;
 using CompoundDocs.Common.Logging;
 using CompoundDocs.Common.Parsing;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,9 +23,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MarkdownParser>();
         services.AddSingleton<FrontmatterParser>();
         services.AddSingleton<SchemaValidator>();
-
-        // Graph services (singleton for shared state)
-        services.AddSingleton<DocumentLinkGraph>();
 
         return services;
     }
