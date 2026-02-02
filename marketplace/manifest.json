@@ -1,3 +1,0 @@
-{
-  "notice": "DEPRECATED: This file is no longer used. The marketplace is defined at .claude-plugin/marketplace.json. Users install via: /plugin marketplace add michaelmccord/csharp-compound-engineering"
-}
