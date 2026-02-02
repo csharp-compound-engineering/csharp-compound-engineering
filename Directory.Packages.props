@@ -49,7 +49,7 @@
   <!-- Parsing & Validation -->
   <ItemGroup>
     <PackageVersion Include="Markdig" Version="0.39.0" />
-    <PackageVersion Include="NJsonSchema" Version="11.1.0" />
+    <PackageVersion Include="NJsonSchema" Version="11.5.2" />
     <PackageVersion Include="YamlDotNet" Version="16.2.1" />
   </ItemGroup>
 
