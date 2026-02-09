@@ -1,6 +1,6 @@
 # CompoundDocs MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that implements a GraphRAG knowledge base for C#/.NET documentation. It combines graph traversal (Amazon Neptune), vector search (AWS OpenSearch Serverless), and LLM synthesis (Amazon Bedrock) to provide semantic Q&A over documentation with source attribution.
+A [Model Context Protocol](https://modelcontextprotocol.io/)  (MCP) server that implements a GraphRAG knowledge base for C#/.NET documentation. It combines graph traversal (Amazon Neptune), vector search (AWS OpenSearch Serverless), and LLM synthesis (Amazon Bedrock) to provide semantic Q&A over documentation with source attribution.
 
 ## How It Works
 
