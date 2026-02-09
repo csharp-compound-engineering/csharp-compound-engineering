@@ -40,7 +40,9 @@ RUN dotnet publish src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj \
     -a ${TARGETARCH} \
     --output /app/publish \
     -p:UseAppHost=false \
-    -p:Version=${VERSION}
+    -p:Version=${VERSION} \
+    -p:EnableSourceLink=false \
+    -p:EnableSourceControlManagerQueries=false
 
 # ============================================================================
 # Stage 2: Runtime (Ubuntu Chiseled — non-root by default, UID 1654)
