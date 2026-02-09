@@ -61,9 +61,9 @@
 
   <!-- AWS SDK -->
   <ItemGroup>
-    <PackageVersion Include="AWSSDK.Neptunedata" Version="3.7.500" />
-    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="3.7.414.2" />
-    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.301" />
+    <PackageVersion Include="AWSSDK.Neptunedata" Version="3.7.502.40" />
+    <PackageVersion Include="AWSSDK.BedrockRuntime" Version="3.7.514.1" />
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.400" />
     <PackageVersion Include="OpenSearch.Client" Version="1.8.0" />
     <PackageVersion Include="OpenSearch.Net.Auth.AwsSigV4" Version="1.8.0" />
   </ItemGroup>
