@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.1...v1.0.2) (2026-02-09)
+
+
+### Bug Fixes
+
+* **docker:** suppress SourceLink warnings and remove Dependabot ([fb0d56e](https://github.com/michaelmccord/csharp-compound-engineering/commit/fb0d56e4b6157e65e4f5c9c493868bb1f7f1198e))
+
 ## [1.0.1](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.0...v1.0.1) (2026-02-09)
 
 
