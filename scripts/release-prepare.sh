@@ -17,13 +17,4 @@ sed -i "s|^appVersion:.*|appVersion: \"${VERSION}\"|" charts/compound-docs/Chart
 dotnet build csharp-compounding-docs.sln \
   --configuration Release \
   -p:Version="${VERSION}"
-
-# Build NuGet packages (--no-build is valid since we just built)
-dotnet pack csharp-compounding-docs.sln \
-  --configuration Release \
-  --no-build \
-  --output ./artifacts \
-  -p:PackageVersion="${VERSION}" \
-  -p:Version="${VERSION}"
-
 echo "Release v${VERSION} prepared successfully"

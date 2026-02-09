@@ -1,6 +1,6 @@
 # Unified release workflow for csharp-compounding-docs
 # PR: semantic-release --dry-run (validates commits, build, pack)
-# Push to main/master: full semantic-release (Docker, Helm, NuGet, changelog)
+# Push to main/master: full semantic-release (Docker, Helm, changelog)
 
 name: Release
 
@@ -141,14 +141,6 @@ jobs:
             pnpm exec semantic-release
           fi
 
-      - name: Publish NuGet packages to GitHub Packages
-        if: github.event_name != 'pull_request' && steps.semantic.outputs.new_release_published == 'true'
-        run: |
-          dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ secrets.GITHUB_TOKEN }} \
-            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-            --skip-duplicate
-
   # ──────────────────────────────────────────────
   # Docs: build + deploy to GitHub Pages
   # ──────────────────────────────────────────────
@@ -219,5 +211,4 @@ jobs:
           echo "|----------|----------|" >> $GITHUB_STEP_SUMMARY
           echo "| Docker Image | \`ghcr.io/${REPO}/mcp-server:${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Helm Chart | \`oci://ghcr.io/${REPO_OWNER}/csharp-compound-engineering/charts/compound-docs:${VERSION}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| NuGet Packages | [GitHub Packages](https://github.com/${REPO}/packages) |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation | [GitHub Pages](https://${REPO_OWNER}.github.io/csharp-compound-engineering/) |" >> $GITHUB_STEP_SUMMARY
