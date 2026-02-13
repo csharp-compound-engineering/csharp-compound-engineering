@@ -2,15 +2,15 @@
 # Uses Ubuntu Chiseled images for minimal attack surface with non-root by default
 #
 # Version pins — update these together:
-#   SDK_TAG   → must match global.json sdk.version
-#   RUNTIME_TAG → corresponding ASP.NET runtime for that SDK
-ARG SDK_TAG=9.0.310-noble
-ARG RUNTIME_TAG=9.0.12-noble-chiseled-extra
+#   SDK_DIGEST     → mcr.microsoft.com/dotnet/sdk:9.0.310-noble
+#   RUNTIME_DIGEST → mcr.microsoft.com/dotnet/aspnet:9.0.12-noble-chiseled-extra
+ARG SDK_DIGEST=sha256:e8cb34dc611775780096acdfd5f4dea08f6c33cee563a3422ec56aa2033c0e90
+ARG RUNTIME_DIGEST=sha256:8968d76b946f654614deb5e891c9dfa078e4a2d8e52e3144dd24f32a09a76a77
 
 # ============================================================================
 # Stage 1: Build (runs on host arch, cross-compiles to TARGETARCH)
 # ============================================================================
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${SDK_TAG} AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@${SDK_DIGEST} AS build
 
 ARG TARGETARCH
 ARG VERSION=0.0.0
@@ -47,7 +47,7 @@ RUN dotnet publish src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj \
 # ============================================================================
 # Stage 2: Runtime (Ubuntu Chiseled — non-root by default, UID 1654)
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:${RUNTIME_TAG} AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet@${RUNTIME_DIGEST} AS runtime
 
 WORKDIR /app
 

@@ -71,3 +71,7 @@ GitHub Actions workflows in `.github/workflows/`:
 - `release.yml` — Semantic versioning via `.releaserc.json` (conventional commits)
 - `docs.yml` — Nextra documentation site
 - `validate-plugin.yml` — Plugin validation
+
+## npm vs pnpm
+
+This repository uses pnpm for everything. So do not use `npm` commands.

@@ -70,8 +70,8 @@
     [
       "@semantic-release/exec",
       {
-        "verifyConditionsCmd": "dotnet --version && docker version --format '{{.Server.Version}}' && helm version --short",
-        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version}",
+        "verifyConditionsCmd": "dotnet --version && docker version --format '{{.Server.Version}}' && helm version --short && pnpm --version",
+        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-docs.sh ${nextRelease.version}",
         "publishCmd": "bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-helm.sh ${nextRelease.version}",
         "successCmd": "echo 'Release ${nextRelease.version} published successfully'"
       }
@@ -81,6 +81,15 @@
       {
         "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@qiwi/semantic-release-gh-pages-plugin",
+      {
+        "src": "docs/out",
+        "branch": "gh-pages",
+        "msg": "docs: deploy v${nextRelease.gitTag}",
+        "dotfiles": true
       }
     ],
     [
