@@ -14,7 +14,8 @@ sed -i "s|^version:.*|version: ${VERSION}|" charts/compound-docs/Chart.yaml
 sed -i "s|^appVersion:.*|appVersion: \"${VERSION}\"|" charts/compound-docs/Chart.yaml
 
 # Build first
-dotnet restore csharp-compounding-docs.sln 
+dotnet restore csharp-compounding-docs.sln
+dotnet test csharp-compounding-docs.sln
 dotnet build csharp-compounding-docs.sln \
   --configuration Release \
   -p:Version="${VERSION}"
