@@ -130,6 +130,8 @@ jobs:
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
         run: |
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://${GITHUB_TOKEN}@github.com/"
           if [ "${{ inputs.dry-run }}" == "true" ]; then
             pnpm exec semantic-release --dry-run
           else

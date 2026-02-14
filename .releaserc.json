@@ -89,7 +89,8 @@
         "src": "docs/out",
         "branch": "gh-pages",
         "msg": "docs: deploy v${nextRelease.gitTag}",
-        "dotfiles": true
+        "dotfiles": true,
+        "pullTagsBranch": ""
       }
     ],
     [
