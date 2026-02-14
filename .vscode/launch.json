@@ -8,7 +8,7 @@
             "name": "C#: Debug",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/src/CompoundDocs.AppHost/CompoundDocs.AppHost.csproj"
+            "projectPath": "${workspaceFolder}/src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj"
         }
 
     ]

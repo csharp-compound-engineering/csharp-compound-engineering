@@ -11,7 +11,7 @@ The MCP server exposes a single tool `rag_query` that orchestrates: embedding ge
 ## Build Commands
 
 ```bash
-dotnet build                              # Build all 17 projects
+dotnet build                              # Build all 14 projects
 dotnet test                               # Run all tests (unit, integration, E2E)
 dotnet test --filter "FullyQualifiedName~TestName"  # Run a specific test
 dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj  # Run MCP server
@@ -31,7 +31,7 @@ docker compose up -d                      # Start PostgreSQL (pgvector) + Ollama
 
 ## Architecture
 
-**Solution:** `csharp-compounding-docs.sln` — 10 source projects, 7 test projects. .NET 9.0 with nullable reference types, `TreatWarningsAsErrors=true`, and enforced code style.
+**Solution:** `csharp-compounding-docs.sln` — 8 source projects, 3 test projects. .NET 9.0 with nullable reference types, `TreatWarningsAsErrors=true`, and enforced code style.
 
 **Source projects (`src/`):**
 
@@ -45,16 +45,13 @@ docker compose up -d                      # Start PostgreSQL (pgvector) + Ollama
 | `CompoundDocs.Bedrock` | `IBedrockEmbeddingService` (Titan Embed v2, 1024-dim) and `IBedrockLlmService` (Claude models). |
 | `CompoundDocs.GitSync` | Git repository monitoring via LibGit2Sharp; triggers document re-indexing on changes. |
 | `CompoundDocs.Worker` | Background service for async document processing. |
-| `CompoundDocs.AppHost` | .NET Aspire orchestration for local dev. |
-| `CompoundDocs.ServiceDefaults` | Common DI extension methods. |
 
 **Key patterns:** Dependency injection via `ServiceCollection` extensions, repository/service abstractions, pipeline pattern for RAG, `[McpServerToolType]`/`[McpServerTool]` attributes for MCP tool registration.
 
 **Test projects (`tests/`):**
 - `CompoundDocs.Tests.Unit` — xUnit + Moq + Shouldly
-- `CompoundDocs.Tests.Integration` — Service integration tests
+- `CompoundDocs.Tests.Integration` — Service integration tests (AWS tests skipped, mock equivalents runnable)
 - `CompoundDocs.Tests.E2E` — End-to-end workflow and MCP protocol compliance tests
-- `CompoundDocs.Tests.AppHost` — Aspire host tests
 
 **Code coverage:** Uses `coverlet.collector` (not `coverlet.msbuild`) with configuration centralized in `coverlet.runsettings`. Per-project Cobertura reports are merged into a single report via ReportGenerator (local dotnet tool in `.config/dotnet-tools.json`). The merge script (`scripts/coverage-merge.sh`) enforces 100% line+branch thresholds.
 

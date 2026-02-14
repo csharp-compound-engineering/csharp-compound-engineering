@@ -6,7 +6,7 @@
         <Configuration>
           <Format>cobertura</Format>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
-          <Exclude>[CompoundDocs.AppHost]*,[CompoundDocs.ServiceDefaults]*,[*]*.Program,[*]*ServiceCollectionExtensions</Exclude>
+          <Exclude>[*]*.Program,[*]*ServiceCollectionExtensions</Exclude>
         </Configuration>
       </DataCollector>
     </DataCollectors>

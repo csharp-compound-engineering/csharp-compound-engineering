@@ -45,9 +45,7 @@ src/
 ├── CompoundDocs.Graph         # IGraphRepository — Amazon Neptune (Gremlin)
 ├── CompoundDocs.Bedrock       # IBedrockEmbeddingService + IBedrockLlmService
 ├── CompoundDocs.GitSync       # Git repository monitoring via LibGit2Sharp
-├── CompoundDocs.Worker        # Background document processing service
-├── CompoundDocs.AppHost       # .NET Aspire orchestration for local dev
-└── CompoundDocs.ServiceDefaults  # Common DI extension methods
+└── CompoundDocs.Worker        # Background document processing service
 
 tests/
 ├── CompoundDocs.Tests.Unit         # xUnit + Moq + Shouldly
@@ -181,7 +179,7 @@ The project uses a layered architecture with clear abstractions:
 - **Resilience** via Polly (retry with exponential backoff, circuit breaker, timeout)
 - **Caching** for embeddings (configurable max items and TTL)
 - **Structured logging** with Serilog and correlation IDs
-- **OpenTelemetry** observability via .NET Aspire
+- **Structured logging** and observability
 
 ### Graph Model
 
