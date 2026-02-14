@@ -31,6 +31,22 @@
     <ProjectReference Include="..\..\src\CompoundDocs.Vector\CompoundDocs.Vector.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
+    <ProjectReference Include="..\..\src\CompoundDocs.GitSync\CompoundDocs.GitSync.csproj" />
+    <ProjectReference Include="..\..\src\CompoundDocs.Worker\CompoundDocs.Worker.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="AWSSDK.Neptunedata" />
+    <PackageReference Include="AWSSDK.BedrockRuntime" />
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
 
 </Project>

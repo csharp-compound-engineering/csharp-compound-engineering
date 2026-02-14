@@ -424,3 +424,8 @@ docs/.next/
 docs/out/
 
 generated
+
+# Coverage results
+TestResults/
+CoverageResults/
+coverage-report.tar.gz

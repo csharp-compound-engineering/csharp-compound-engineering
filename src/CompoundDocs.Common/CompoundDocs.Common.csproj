@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="CompoundDocs.Tests" />
+    <InternalsVisibleTo Include="CompoundDocs.Tests.Unit" />
   </ItemGroup>
 
   <ItemGroup>

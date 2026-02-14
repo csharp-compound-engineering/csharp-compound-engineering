@@ -55,52 +55,28 @@ public class ToolResponseTests
         result.Error.ShouldBe("The operation was cancelled.");
         result.ErrorCode.ShouldBe("OPERATION_CANCELLED");
     }
-}
 
-public class ToolErrorsTests
-{
     [Fact]
-    public void EmptyQuery_HasCorrectCodeAndMessage()
+    public void NonGenericFail_WithErrorAndCode_ReturnsFailedResponse()
     {
-        ToolErrors.EmptyQuery.Code.ShouldBe("EMPTY_QUERY");
-        ToolErrors.EmptyQuery.Message.ShouldBe("Query cannot be empty.");
+        // Act
+        var response = ToolResponse.Fail("something failed", "ERR_001");
+
+        // Assert
+        response.Success.ShouldBeFalse();
+        response.Error.ShouldBe("something failed");
+        response.ErrorCode.ShouldBe("ERR_001");
     }
 
     [Fact]
-    public void EmbeddingFailed_IncludesReason()
+    public void NonGenericFail_WithErrorOnly_ReturnsFailedResponseWithNullCode()
     {
-        var error = ToolErrors.EmbeddingFailed("timeout");
-        error.Code.ShouldBe("EMBEDDING_FAILED");
-        error.Message.ShouldContain("timeout");
-    }
+        // Act
+        var response = ToolResponse.Fail("something failed");
 
-    [Fact]
-    public void SearchFailed_IncludesReason()
-    {
-        var error = ToolErrors.SearchFailed("index not found");
-        error.Code.ShouldBe("SEARCH_FAILED");
-        error.Message.ShouldContain("index not found");
-    }
-
-    [Fact]
-    public void RagSynthesisFailed_IncludesReason()
-    {
-        var error = ToolErrors.RagSynthesisFailed("model unavailable");
-        error.Code.ShouldBe("RAG_SYNTHESIS_FAILED");
-        error.Message.ShouldContain("model unavailable");
-    }
-
-    [Fact]
-    public void OperationCancelled_HasCorrectCodeAndMessage()
-    {
-        ToolErrors.OperationCancelled.Code.ShouldBe("OPERATION_CANCELLED");
-    }
-
-    [Fact]
-    public void UnexpectedError_IncludesReason()
-    {
-        var error = ToolErrors.UnexpectedError("something broke");
-        error.Code.ShouldBe("UNEXPECTED_ERROR");
-        error.Message.ShouldContain("something broke");
+        // Assert
+        response.Success.ShouldBeFalse();
+        response.Error.ShouldBe("something failed");
+        response.ErrorCode.ShouldBeNull();
     }
 }

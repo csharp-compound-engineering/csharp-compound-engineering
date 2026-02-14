@@ -96,7 +96,8 @@
       "@semantic-release/github",
       {
         "assets": [
-          { "path": "compound-docs-*.tgz", "label": "Helm Chart" }
+          { "path": "compound-docs-*.tgz", "label": "Helm Chart" },
+          { "path": "coverage-report.tar.gz", "label": "Code Coverage Report (HTML + Cobertura)" }
         ],
         "successComment": "This ${issue.pull_request ? 'PR is included' : 'issue has been resolved'} in version ${nextRelease.version}",
         "failComment": false,

@@ -3,7 +3,6 @@ using CompoundDocs.McpServer.Authentication;
 using CompoundDocs.McpServer.Options;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -118,12 +117,45 @@ public class ApiKeyAuthenticationHandlerTests
     public async Task AuthDisabled_BypassesValidation()
     {
         var context = new DefaultHttpContext();
-        // No key provided
 
         var options = new ApiKeyAuthenticationOptions { Enabled = false };
         var result = await AuthenticateAsync(context, options);
 
         result.Succeeded.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task EnabledButNoKeysConfigured_ReturnsFail()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-API-Key"] = "any-key";
+
+        var options = new ApiKeyAuthenticationOptions { Enabled = true, ApiKeys = "" };
+
+        // Act
+        var result = await AuthenticateAsync(context, options);
+
+        // Assert
+        result.Succeeded.ShouldBeFalse();
+        result.Failure!.Message.ShouldContain("No API keys configured");
+    }
+
+    [Fact]
+    public async Task EnabledButWhitespaceOnlyKeys_ReturnsFail()
+    {
+        // Arrange
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-API-Key"] = "any-key";
+
+        var options = new ApiKeyAuthenticationOptions { Enabled = true, ApiKeys = "   " };
+
+        // Act
+        var result = await AuthenticateAsync(context, options);
+
+        // Assert
+        result.Succeeded.ShouldBeFalse();
+        result.Failure!.Message.ShouldContain("No API keys configured");
     }
 
     [Theory]
@@ -138,7 +170,7 @@ public class ApiKeyAuthenticationHandlerTests
     {
         var options = new ApiKeyAuthenticationOptions { ApiKeys = input };
         var keys = options.GetValidApiKeys();
-        keys.Count().ShouldBe(expectedCount);
+        keys.Count.ShouldBe(expectedCount);
     }
 
     private sealed class TestOptionsMonitor : IOptionsMonitor<AuthenticationSchemeOptions>

@@ -15,6 +15,7 @@ dotnet build                              # Build all 17 projects
 dotnet test                               # Run all tests (unit, integration, E2E)
 dotnet test --filter "FullyQualifiedName~TestName"  # Run a specific test
 dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj  # Run MCP server
+bash scripts/coverage-merge.sh            # Run tests + merge coverage + enforce 100% threshold
 ```
 
 **Infrastructure (Docker):**
@@ -55,6 +56,8 @@ docker compose up -d                      # Start PostgreSQL (pgvector) + Ollama
 - `CompoundDocs.Tests.E2E` — End-to-end workflow and MCP protocol compliance tests
 - `CompoundDocs.Tests.AppHost` — Aspire host tests
 
+**Code coverage:** Uses `coverlet.collector` (not `coverlet.msbuild`) with configuration centralized in `coverlet.runsettings`. Per-project Cobertura reports are merged into a single report via ReportGenerator (local dotnet tool in `.config/dotnet-tools.json`). The merge script (`scripts/coverage-merge.sh`) enforces 100% line+branch thresholds.
+
 Package versions are centrally managed in `Directory.Packages.props`. Global build settings are in `Directory.Build.props`.
 
 ## Critical Testing Rules
@@ -66,9 +69,9 @@ Package versions are centrally managed in `Directory.Packages.props`. Global bui
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
-- `ci.yml` — Build + test on Ubuntu (with coverage via coverlet), Windows, macOS
+- `ci.yml` — Build + test on Ubuntu (with coverage via coverlet.collector), Windows, macOS
 - `docker.yml` — Docker image builds
-- `release.yml` — Semantic versioning via `.releaserc.json` (conventional commits)
+- `release.yml` — Semantic versioning via `.releaserc.json` (conventional commits); uploads `coverage-report.tar.gz` (merged Cobertura XML + HTML) as a release asset
 - `docs.yml` — Nextra documentation site
 - `validate-plugin.yml` — Plugin validation
 

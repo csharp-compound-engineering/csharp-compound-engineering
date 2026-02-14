@@ -15,7 +15,7 @@ sed -i "s|^appVersion:.*|appVersion: \"${VERSION}\"|" charts/compound-docs/Chart
 
 # Build first
 dotnet restore csharp-compounding-docs.sln
-dotnet test csharp-compounding-docs.sln
+bash scripts/coverage-merge.sh
 dotnet build csharp-compounding-docs.sln \
   --configuration Release \
   -p:Version="${VERSION}"
