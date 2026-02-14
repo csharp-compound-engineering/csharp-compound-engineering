@@ -1,0 +1,43 @@
+# CODEOWNERS file for csharp-compounding-docs
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owners for everything in the repo
+*       @maintainers
+
+# Source code ownership
+/src/                           @core-developers
+/src/CompoundDocs.McpServer/    @mcp-team
+/src/CompoundDocs.Common/       @core-developers
+/src/CompoundDocs.Cleanup/      @core-developers
+
+# Test ownership
+/tests/                         @core-developers @qa-team
+
+# Infrastructure and DevOps
+/.github/                       @devops-team
+/docker/                        @devops-team
+/scripts/                       @devops-team
+docker-compose.yml              @devops-team
+Dockerfile                      @devops-team
+
+# Build configuration
+Directory.Build.props           @core-developers @devops-team
+Directory.Packages.props        @core-developers @devops-team
+*.sln                           @core-developers
+*.csproj                        @core-developers
+
+# Documentation
+*.md                            @docs-team
+/docs/                          @docs-team
+
+# Database and migrations
+/docker/postgres/changelog/     @core-developers @database-team
+
+# Semantic release configuration
+.releaserc.json                 @devops-team
+
+# Schema definitions
+/schemas/                       @core-developers @mcp-team
+
+# Templates
+/templates/                     @core-developers

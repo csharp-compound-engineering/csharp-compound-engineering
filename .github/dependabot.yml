@@ -1,0 +1,185 @@
+version: 2
+
+updates:
+  # ──────────────────────────────────────────────────────────────
+  # NuGet packages (via Directory.Packages.props)
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "nuget"
+    ignore:
+      # Prerelease — manage manually until stable
+      - dependency-name: "ModelContextProtocol"
+      - dependency-name: "ModelContextProtocol.AspNetCore"
+    groups:
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+        exclude-patterns:
+          - "Microsoft.Extensions.AI.*"
+          - "Microsoft.Extensions.VectorData.*"
+          - "Microsoft.Extensions.ServiceDiscovery"
+        update-types:
+          - "minor"
+          - "patch"
+      aws-sdk:
+        patterns:
+          - "AWSSDK.*"
+          - "OpenSearch.*"
+        update-types:
+          - "minor"
+          - "patch"
+      aspire:
+        patterns:
+          - "Aspire.*"
+          - "Microsoft.Extensions.ServiceDiscovery"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "xunit*"
+          - "Xunit.*"
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet.*"
+          - "Moq"
+          - "Shouldly"
+          - "Microsoft.AspNetCore.Mvc.Testing"
+        update-types:
+          - "minor"
+          - "patch"
+      serilog:
+        patterns:
+          - "Serilog*"
+        update-types:
+          - "minor"
+          - "patch"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry.*"
+        update-types:
+          - "minor"
+          - "patch"
+      other-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────────
+  # .NET SDK version (global.json)
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "dotnet-sdk"
+    ignore:
+      # Major SDK version bumps require manual review
+      - dependency-name: "dotnet-sdk"
+        update-types:
+          - "version-update:semver-major"
+
+  # ──────────────────────────────────────────────────────────────
+  # pnpm — root (semantic-release tooling)
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "pnpm"
+    groups:
+      semantic-release:
+        patterns:
+          - "semantic-release"
+          - "@semantic-release/*"
+          - "conventional-changelog-*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────────
+  # pnpm — docs (Nextra documentation site)
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/docs"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "pnpm"
+    groups:
+      nextra:
+        patterns:
+          - "next"
+          - "nextra"
+          - "nextra-theme-docs"
+        update-types:
+          - "minor"
+          - "patch"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-tooling:
+        patterns:
+          - "@types/node"
+          - "typescript"
+          - "pagefind"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ──────────────────────────────────────────────────────────────
+  # GitHub Actions workflow versions
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "github-actions"

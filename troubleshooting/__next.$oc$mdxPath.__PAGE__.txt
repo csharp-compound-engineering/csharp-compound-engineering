@@ -1,0 +1,551 @@
+1:"$Sreact.fragment"
+2:I[47401,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/402cdc54cb4e04f8.js","/csharp-compound-engineering/_next/static/chunks/b1e5f1bdc155923e.js","/csharp-compound-engineering/_next/static/chunks/d8b81287e7d259aa.js"],"TOCProvider"]
+3:I[98262,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/402cdc54cb4e04f8.js","/csharp-compound-engineering/_next/static/chunks/b1e5f1bdc155923e.js","/csharp-compound-engineering/_next/static/chunks/d8b81287e7d259aa.js"],"Sidebar"]
+4:I[46578,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/402cdc54cb4e04f8.js","/csharp-compound-engineering/_next/static/chunks/b1e5f1bdc155923e.js","/csharp-compound-engineering/_next/static/chunks/d8b81287e7d259aa.js"],"ClientWrapper"]
+9:I[27144,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/402cdc54cb4e04f8.js","/csharp-compound-engineering/_next/static/chunks/b1e5f1bdc155923e.js","/csharp-compound-engineering/_next/static/chunks/d8b81287e7d259aa.js"],"HeadingAnchor"]
+a:I[931,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/402cdc54cb4e04f8.js","/csharp-compound-engineering/_next/static/chunks/b1e5f1bdc155923e.js","/csharp-compound-engineering/_next/static/chunks/d8b81287e7d259aa.js"],"ToggleWordWrapButton"]
+80:I[85078,["/csharp-compound-engineering/_next/static/chunks/aaecbbaaa36985de.js","/csharp-compound-engineering/_next/static/chunks/1c4e4f6c3e15d61b.js"],"OutletBoundary"]
+81:"$Sreact.suspense"
+5:T2820,---
+title: Troubleshooting
+---
+
+# Troubleshooting Guide
+
+This guide covers common issues and their solutions when working with the CSharp Compound Docs MCP server.
+
+## Quick Diagnostics
+
+Run these checks to quickly identify common issues:
+
+### Check AWS Connectivity
+
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Check Neptune endpoint
+curl -s https://<neptune-endpoint>:8182/status
+
+# Check Bedrock model access
+aws bedrock list-foundation-models --region us-east-1 \
+  --query "modelSummaries[?modelId=='amazon.titan-embed-text-v2:0'].modelId"
+
+# Check OpenSearch Serverless collection
+aws opensearchserverless batch-get-collection \
+  --names compound-docs --query "collectionDetails[0].status"
+```
+
+### Check MCP Server
+
+```bash
+# Start the server and check stderr for errors
+dotnet run --project src/CompoundDocs.McpServer 2>&1
+
+# Verify .NET version
+dotnet --version
+# Should be 9.0 or higher
+```
+
+## AWS Credential Issues
+
+### Credentials Not Found
+
+**Symptoms**:
+- "Unable to find credentials" errors
+- "Access Denied" from AWS services
+
+**Solutions**:
+
+1. **Check credential configuration**
+   ```bash
+   aws sts get-caller-identity
+   ```
+
+2. **Use AWS SSO**
+   ```bash
+   aws sso login --profile your-profile
+   ```
+
+3. **Set environment variables**
+   ```bash
+   export AWS_ACCESS_KEY_ID=your-key
+   export AWS_SECRET_ACCESS_KEY=your-secret
+   export AWS_DEFAULT_REGION=us-east-1
+   ```
+
+4. **Check credential chain order**
+   - Environment variables
+   - AWS credentials file (`~/.aws/credentials`)
+   - AWS SSO cache
+   - IAM instance role (on EC2/ECS)
+
+### Wrong Region
+
+**Symptoms**:
+- "Could not find resource" errors
+- Services not found
+
+**Solution**:
+Ensure `Aws.Region` in configuration matches the region where your Neptune cluster, OpenSearch collection, and Bedrock models are deployed.
+
+## Neptune Issues
+
+### Connection Refused
+
+**Symptoms**:
+- "Connection refused" to Neptune endpoint
+- Timeout connecting to Neptune
+
+**Solutions**:
+
+1. **Verify endpoint**
+   ```bash
+   curl -s https://<endpoint>:8182/status
+   ```
+
+2. **Check network access**
+   - Neptune runs inside a VPC
+   - Your machine must be in the same VPC, connected via VPN, or using VPC peering
+   - Security group must allow inbound on port 8182
+
+3. **Verify IAM permissions**
+   - Ensure your IAM principal has `neptune-db:*` permissions
+   - For IAM authentication, check the Neptune cluster IAM policy
+
+### Query Failures
+
+**Symptoms**:
+- openCypher query errors in logs
+- "Malformed query" exceptions
+
+**Solutions**:
+- Check Neptune engine version supports openCypher
+- Review the Serilog output for the exact query that failed
+- Verify the graph schema has been initialized (nodes and relationships created)
+
+## OpenSearch Serverless Issues
+
+### Access Denied
+
+**Symptoms**:
+- HTTP 403 from OpenSearch Serverless
+- "AccessDeniedException" in logs
+
+**Solutions**:
+
+1. **Check data access policy**
+   - In the AWS Console, navigate to OpenSearch Serverless > Security > Data access policies
+   - Ensure your IAM principal has permissions for the collection
+
+2. **Check network policy**
+   - Verify the network policy allows access from your network
+   - For public access, ensure the network policy is configured for "Public"
+
+3. **Verify collection status**
+   ```bash
+   aws opensearchserverless batch-get-collection --names compound-docs
+   ```
+   - Collection must be in ACTIVE state
+
+### Vector Dimension Mismatch
+
+**Symptoms**:
+- KNN search returns errors about dimensions
+- "Dimension mismatch" exceptions
+
+**Cause**: The OpenSearch index was created with a different vector dimension than the embedding model produces.
+
+**Solution**:
+- Amazon Titan Embed Text v2 produces 1024-dimensional vectors
+- The index must be configured for dimension 1024
+- If the index was created with the wrong dimension, delete and recreate it
+
+### Index Not Found
+
+**Symptoms**:
+- "index_not_found_exception" errors
+
+**Solution**:
+- Verify `OpenSearch.IndexName` matches the actual index name (default: `compound-docs`)
+- The index is created automatically during first document ingestion
+- Ensure the Worker has run at least once to create the index
+
+## Bedrock Issues
+
+### Model Access Denied
+
+**Symptoms**:
+- "AccessDeniedException" when calling Bedrock
+- "You don't have access to the model" errors
+
+**Solutions**:
+
+1. **Enable model access**
+   - In the AWS Console, navigate to Amazon Bedrock > Model access
+   - Enable access for required models:
+     - `amazon.titan-embed-text-v2:0`
+     - `anthropic.claude-haiku-4-5-v1:0`
+     - `anthropic.claude-sonnet-4-5-v1:0`
+
+2. **Check IAM permissions**
+   - Ensure `bedrock:InvokeModel` permission is granted
+   - Check the resource ARN matches the model ID
+
+3. **Check region availability**
+   - Not all models are available in all regions
+   - Verify the model IDs are valid for your configured region
+
+### Embedding Generation Failures
+
+**Symptoms**:
+- `EMBEDDING_FAILED` error from `rag_query`
+- Timeout during embedding generation
+
+**Solutions**:
+- Check Bedrock service health in the AWS Console
+- Verify the embedding model ID is correct (`amazon.titan-embed-text-v2:0`)
+- Check for throttling (Bedrock has per-account rate limits)
+- Polly retry policies should handle transient failures automatically
+
+### LLM Synthesis Failures
+
+**Symptoms**:
+- `RAG_SYNTHESIS_FAILED` error from `rag_query`
+- Timeout during answer generation
+
+**Solutions**:
+- Check Bedrock service availability
+- Verify the Claude model ID is correct
+- For long queries or large context, the LLM call may exceed token limits
+- Reduce `MaxChunksPerQuery` if context is too large
+
+## MCP Server Issues
+
+### Server Not Starting
+
+**Symptoms**:
+- MCP server process exits immediately
+- No response from Claude Code
+
+**Diagnostic Steps**:
+
+1. **Run server manually to see errors**
+   ```bash
+   dotnet run --project src/CompoundDocs.McpServer 2>&1
+   ```
+
+2. **Check for missing dependencies**
+   ```bash
+   dotnet restore
+   ```
+
+3. **Verify .NET version**
+   ```bash
+   dotnet --version
+   # Should be 9.0 or higher
+   ```
+
+### Tool Not Found
+
+**Symptoms**:
+- `rag_query` tool not appearing in Claude Code
+
+**Solutions**:
+
+1. **Verify MCP configuration**
+   - Check the path to `CompoundDocs.McpServer.csproj` is correct
+   - Ensure `command` is set to `dotnet`
+
+2. **Restart Claude Code**
+   - Close and reopen Claude Code/Desktop
+
+3. **Check server startup logs**
+   - Look for tool registration messages in stderr
+
+## GraphRAG Pipeline Issues
+
+### No Results Returned
+
+**Symptoms**:
+- `rag_query` returns empty sources
+- Low confidence scores
+
+**Solutions**:
+
+1. **Verify documents are ingested**
+   - Check Worker logs for successful ingestion
+   - Verify documents exist in OpenSearch and Neptune
+
+2. **Lower relevance threshold**
+   - Set `GraphRag.MinRelevanceScore` to 0.5 or lower for testing
+
+3. **Check query quality**
+   - Ensure the query is specific enough to match indexed content
+   - Try broader or more specific queries
+
+### Poor Answer Quality
+
+**Symptoms**:
+- Answers are vague or off-topic
+- Sources don't seem relevant
+
+**Solutions**:
+
+1. **Increase context**
+   - Set `GraphRag.MaxChunksPerQuery` higher (e.g., 15-20)
+   - Set `GraphRag.MaxTraversalSteps` higher for more concept discovery
+
+2. **Check document quality**
+   - Ensure source documents have meaningful content
+   - Verify frontmatter is correct
+
+3. **Enable cross-repo links**
+   - Set `GraphRag.UseCrossRepoLinks` to `true` if monitoring multiple repos
+
+## Git Sync Issues
+
+### Repository Clone Failures
+
+**Symptoms**:
+- Worker fails to clone repositories
+- Authentication errors from LibGit2Sharp
+
+**Solutions**:
+
+1. **Check repository URL**
+   - Verify the URL is accessible
+   - For private repos, ensure git credentials are available
+
+2. **Check credentials**
+   - SSH: Verify SSH key is configured
+   - HTTPS: Ensure git credential helper is configured
+
+3. **Check disk space**
+   - Large repositories require sufficient disk space for cloning
+
+### Changes Not Detected
+
+**Symptoms**:
+- New commits not triggering re-indexing
+- Documents not updated after push
+
+**Solutions**:
+
+1. **Check polling interval**
+   - Default is 5 minutes (`PollIntervalMinutes`)
+   - Wait for the next poll cycle
+
+2. **Check monitored paths**
+   - If `MonitoredPaths` is set, only files under those paths trigger re-processing
+   - Empty `MonitoredPaths` monitors all files
+
+3. **Check Worker logs**
+   - Look for git pull and diff detection messages
+
+## Performance Issues
+
+### Slow Query Responses
+
+**Symptoms**:
+- `rag_query` responses take more than a few seconds
+
+**Solutions**:
+
+1. **Reduce chunk count**
+   - Lower `GraphRag.MaxChunksPerQuery` to reduce LLM context size
+
+2. **Reduce traversal depth**
+   - Lower `GraphRag.MaxTraversalSteps` for faster graph queries
+
+3. **Check network latency**
+   - AWS service latency depends on region proximity
+   - Consider deploying closer to your AWS services
+
+### High AWS Costs
+
+**Solutions**:
+
+1. **Reduce polling frequency**
+   - Increase `PollIntervalMinutes` for less frequent repository checks
+
+2. **Use Haiku for more tasks**
+   - Haiku is the cheapest Claude model tier
+
+3. **Optimize chunk size**
+   - Larger chunks mean fewer embedding calls but less granular results
+
+## Log Files and Diagnostics
+
+### Log Output
+
+All MCP server and Worker logs go to stderr using Serilog structured logging.
+
+### Enabling Debug Logging
+
+```json
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    }
+  }
+}
+```
+
+Or via environment variable:
+```bash
+export SERILOG_LOGGING_LEVEL=Debug
+```
+
+### Log Levels
+
+| Level | Purpose |
+|-------|---------|
+| Debug | Detailed execution flow, AWS request/response |
+| Information | Normal operations (default) |
+| Warning | Non-critical issues, degraded performance |
+| Error | Operation failures |
+| Fatal | System-stopping errors |
+
+### Getting Help
+
+If issues persist:
+
+1. Check the [GitHub Issues](https://github.com/your-org/csharp-compound-engineering/issues)
+2. Search existing issues for similar problems
+3. Open a new issue with:
+   - Error messages (full text from stderr)
+   - Steps to reproduce
+   - Environment details (OS, .NET version, AWS region)
+   - Relevant log output0:{"buildId":"FE5tNJEaCVmxN99XPA3qR","rsc":["$","$1","c",{"children":[["$","div",null,{"className":"x:mx-auto x:flex x:max-w-(--nextra-content-width)","children":["$","$L2",null,{"value":[{"value":"Quick Diagnostics","id":"quick-diagnostics","depth":2},{"value":"Check AWS Connectivity","id":"check-aws-connectivity","depth":3},{"value":"Check MCP Server","id":"check-mcp-server","depth":3},{"value":"AWS Credential Issues","id":"aws-credential-issues","depth":2},{"value":"Credentials Not Found","id":"credentials-not-found","depth":3},{"value":"Wrong Region","id":"wrong-region","depth":3},{"value":"Neptune Issues","id":"neptune-issues","depth":2},{"value":"Connection Refused","id":"connection-refused","depth":3},{"value":"Query Failures","id":"query-failures","depth":3},{"value":"OpenSearch Serverless Issues","id":"opensearch-serverless-issues","depth":2},{"value":"Access Denied","id":"access-denied","depth":3},{"value":"Vector Dimension Mismatch","id":"vector-dimension-mismatch","depth":3},{"value":"Index Not Found","id":"index-not-found","depth":3},{"value":"Bedrock Issues","id":"bedrock-issues","depth":2},{"value":"Model Access Denied","id":"model-access-denied","depth":3},{"value":"Embedding Generation Failures","id":"embedding-generation-failures","depth":3},{"value":"LLM Synthesis Failures","id":"llm-synthesis-failures","depth":3},{"value":"MCP Server Issues","id":"mcp-server-issues","depth":2},{"value":"Server Not Starting","id":"server-not-starting","depth":3},{"value":"Tool Not Found","id":"tool-not-found","depth":3},{"value":"GraphRAG Pipeline Issues","id":"graphrag-pipeline-issues","depth":2},{"value":"No Results Returned","id":"no-results-returned","depth":3},{"value":"Poor Answer Quality","id":"poor-answer-quality","depth":3},{"value":"Git Sync Issues","id":"git-sync-issues","depth":2},{"value":"Repository Clone Failures","id":"repository-clone-failures","depth":3},{"value":"Changes Not Detected","id":"changes-not-detected","depth":3},{"value":"Performance Issues","id":"performance-issues","depth":2},{"value":"Slow Query Responses","id":"slow-query-responses","depth":3},{"value":"High AWS Costs","id":"high-aws-costs","depth":3},{"value":"Log Files and Diagnostics","id":"log-files-and-diagnostics","depth":2},{"value":"Log Output","id":"log-output","depth":3},{"value":"Enabling Debug Logging","id":"enabling-debug-logging","depth":3},{"value":"Log Levels","id":"log-levels","depth":3},{"value":"Getting Help","id":"getting-help","depth":3}],"children":[["$","$L3",null,{}],["$","$L4",null,{"metadata":{"title":"Troubleshooting","filePath":"content/troubleshooting.mdx","timestamp":1770602995000},"sourceCode":"$5","children":["$L6","$L7"]}]]}]}],null,"$L8"]}],"loading":null,"isPartial":false}
+6:["$","div",null,{"id":"nextra-skip-nav"}]
+7:["$","main",null,{"data-pagefind-body":true,"children":[["$","h1",null,{"className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-bold x:mt-2 x:text-4xl","children":["Troubleshooting Guide","$undefined"]}],"\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":"This guide covers common issues and their solutions when working with the CSharp Compound Docs MCP server."}],"\n",["$","h2",null,{"id":"quick-diagnostics","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Quick Diagnostics",["$","$L9",null,{"id":"quick-diagnostics"}]]}],"\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":"Run these checks to quickly identify common issues:"}],"\n",["$","h3",null,{"id":"check-aws-connectivity","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Check AWS Connectivity",["$","$L9",null,{"id":"check-aws-connectivity"}]]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":[["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Verify AWS credentials"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" sts"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" get-caller-identity"}]]}],"\n",["$","span",null,{"children":" "}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Check Neptune endpoint"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"curl"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" -s"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" https://"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"<"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":"neptune-endpoin"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"t"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":">"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":":8182/status"}]]}],"\n",["$","span",null,{"children":" "}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Check Bedrock model access"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" bedrock"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" list-foundation-models"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --region"}],"$Lb","$Lc"]}],"\n","$Ld","\n","$Le","\n","$Lf","\n","$L10","\n","$L11"]}]]}]]}],"\n","$L12","\n","$L13","\n","$L14","\n","$L15","\n","$L16","\n","$L17","\n","$L18","\n","$L19","\n","$L1a","\n","$L1b","\n","$L1c","\n","$L1d","\n","$L1e","\n","$L1f","\n","$L20","\n","$L21","\n","$L22","\n","$L23","\n","$L24","\n","$L25","\n","$L26","\n","$L27","\n","$L28","\n","$L29","\n","$L2a","\n","$L2b","\n","$L2c","\n","$L2d","\n","$L2e","\n","$L2f","\n","$L30","\n","$L31","\n","$L32","\n","$L33","\n","$L34","\n","$L35","\n","$L36","\n","$L37","\n","$L38","\n","$L39","\n","$L3a","\n","$L3b","\n","$L3c","\n","$L3d","\n","$L3e","\n","$L3f","\n","$L40","\n","$L41","\n","$L42","\n","$L43","\n","$L44","\n","$L45","\n","$L46","\n","$L47","\n","$L48","\n","$L49","\n","$L4a","\n","$L4b","\n","$L4c","\n","$L4d","\n","$L4e","\n","$L4f","\n","$L50","\n","$L51","\n","$L52","\n","$L53","\n","$L54","\n","$L55","\n","$L56","\n","$L57","\n","$L58","\n","$L59","\n","$L5a","\n","$L5b","\n","$L5c","\n","$L5d","\n","$L5e","\n","$L5f","\n","$L60","\n","$L61","\n","$L62","\n","$L63","\n","$L64","\n","$L65","\n","$L66","\n","$L67","\n","$L68","\n","$L69","\n","$L6a","\n","$L6b","\n","$L6c","\n","$L6d","\n","$L6e","\n","$L6f","\n","$L70","\n","$L71","\n","$L72","\n","$L73","\n","$L74","\n","$L75","\n","$L76","\n","$L77","\n","$L78","\n","$L79","\n","$L7a","\n","$L7b","\n","$L7c","\n","$L7d","\n","$L7e","\n","$L7f"]}]
+8:["$","$L80",null,{"children":["$","$81",null,{"name":"Next.MetadataOutlet","children":"$@82"}]}]
+b:["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" us-east-1"}]
+c:["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" \\"}]
+d:["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"  --query"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" \"modelSummaries[?modelId=='amazon.titan-embed-text-v2:0'].modelId\""}]]}]
+e:["$","span",null,{"children":" "}]
+f:["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Check OpenSearch Serverless collection"}]}]
+10:["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" opensearchserverless"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" batch-get-collection"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" \\"}]]}]
+11:["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"  --names"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" compound-docs"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --query"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" \"collectionDetails[0].status\""}]]}]
+12:["$","h3",null,{"id":"check-mcp-server","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Check MCP Server",["$","$L9",null,{"id":"check-mcp-server"}]]}]
+13:["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":[["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Start the server and check stderr for errors"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"dotnet"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" run"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --project"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" src/CompoundDocs.McpServer"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":" 2>&1"}]]}],"\n",["$","span",null,{"children":" "}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Verify .NET version"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"dotnet"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --version"}]]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Should be 9.0 or higher"}]}]]}]]}]]}]
+14:["$","h2",null,{"id":"aws-credential-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["AWS Credential Issues",["$","$L9",null,{"id":"aws-credential-issues"}]]}]
+15:["$","h3",null,{"id":"credentials-not-found","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Credentials Not Found",["$","$L9",null,{"id":"credentials-not-found"}]]}]
+16:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+17:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Unable to find credentials” errors"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Access Denied” from AWS services"}],"\n"]}]
+18:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+19:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check credential configuration"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" sts"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" get-caller-identity"}]]}]}]]}]]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Use AWS SSO"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" sso"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" login"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --profile"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" your-profile"}]]}]}]]}]]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Set environment variables"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":["$L83","$L84"]}]]}],"\n"]}],"\n","$L85","\n"]}]
+1a:["$","h3",null,{"id":"wrong-region","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Wrong Region",["$","$L9",null,{"id":"wrong-region"}]]}]
+1b:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+1c:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Could not find resource” errors"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Services not found"}],"\n"]}]
+1d:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solution"}],":\nEnsure ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"Aws.Region"}]," in configuration matches the region where your Neptune cluster, OpenSearch collection, and Bedrock models are deployed."]}]
+1e:["$","h2",null,{"id":"neptune-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Neptune Issues",["$","$L9",null,{"id":"neptune-issues"}]]}]
+1f:["$","h3",null,{"id":"connection-refused","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Connection Refused",["$","$L9",null,{"id":"connection-refused"}]]}]
+20:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+21:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Connection refused” to Neptune endpoint"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Timeout connecting to Neptune"}],"\n"]}]
+22:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+23:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify endpoint"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"curl"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" -s"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" https://"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"<"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":"endpoin"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"t"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":">"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":":8182/status"}]]}]}]]}]]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check network access"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Neptune runs inside a VPC"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Your machine must be in the same VPC, connected via VPN, or using VPC peering"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Security group must allow inbound on port 8182"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify IAM permissions"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Ensure your IAM principal has ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"neptune-db:*"}]," permissions"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"For IAM authentication, check the Neptune cluster IAM policy"}],"\n"]}],"\n"]}],"\n"]}]
+24:["$","h3",null,{"id":"query-failures","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Query Failures",["$","$L9",null,{"id":"query-failures"}]]}]
+25:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+26:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"openCypher query errors in logs"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Malformed query” exceptions"}],"\n"]}]
+27:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+28:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check Neptune engine version supports openCypher"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Review the Serilog output for the exact query that failed"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify the graph schema has been initialized (nodes and relationships created)"}],"\n"]}]
+29:["$","h2",null,{"id":"opensearch-serverless-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["OpenSearch Serverless Issues",["$","$L9",null,{"id":"opensearch-serverless-issues"}]]}]
+2a:["$","h3",null,{"id":"access-denied","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Access Denied",["$","$L9",null,{"id":"access-denied"}]]}]
+2b:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+2c:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"HTTP 403 from OpenSearch Serverless"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"“AccessDeniedException” in logs"}],"\n"]}]
+2d:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+2e:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check data access policy"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"In the AWS Console, navigate to OpenSearch Serverless > Security > Data access policies"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Ensure your IAM principal has permissions for the collection"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check network policy"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify the network policy allows access from your network"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"For public access, ensure the network policy is configured for “Public”"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify collection status"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"aws"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" opensearchserverless"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" batch-get-collection"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --names"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" compound-docs"}]]}]}]]}]]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Collection must be in ACTIVE state"}],"\n"]}],"\n"]}],"\n"]}]
+2f:["$","h3",null,{"id":"vector-dimension-mismatch","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Vector Dimension Mismatch",["$","$L9",null,{"id":"vector-dimension-mismatch"}]]}]
+30:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+31:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"KNN search returns errors about dimensions"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"“Dimension mismatch” exceptions"}],"\n"]}]
+32:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Cause"}],": The OpenSearch index was created with a different vector dimension than the embedding model produces."]}]
+33:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solution"}],":"]}]
+34:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Amazon Titan Embed Text v2 produces 1024-dimensional vectors"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"The index must be configured for dimension 1024"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"If the index was created with the wrong dimension, delete and recreate it"}],"\n"]}]
+35:["$","h3",null,{"id":"index-not-found","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Index Not Found",["$","$L9",null,{"id":"index-not-found"}]]}]
+36:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+37:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"“index_not_found_exception” errors"}],"\n"]}]
+38:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solution"}],":"]}]
+39:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Verify ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"OpenSearch.IndexName"}]," matches the actual index name (default: ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"compound-docs"}],")"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"The index is created automatically during first document ingestion"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Ensure the Worker has run at least once to create the index"}],"\n"]}]
+3a:["$","h2",null,{"id":"bedrock-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Bedrock Issues",["$","$L9",null,{"id":"bedrock-issues"}]]}]
+3b:["$","h3",null,{"id":"model-access-denied","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Model Access Denied",["$","$L9",null,{"id":"model-access-denied"}]]}]
+3c:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+3d:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"“AccessDeniedException” when calling Bedrock"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"“You don’t have access to the model” errors"}],"\n"]}]
+3e:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+3f:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Enable model access"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"In the AWS Console, navigate to Amazon Bedrock > Model access"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Enable access for required models:","\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["$","code",null,{"className":"nextra-code","dir":"ltr","children":"amazon.titan-embed-text-v2:0"}]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["$","code",null,{"className":"nextra-code","dir":"ltr","children":"anthropic.claude-haiku-4-5-v1:0"}]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["$","code",null,{"className":"nextra-code","dir":"ltr","children":"anthropic.claude-sonnet-4-5-v1:0"}]}],"\n"]}],"\n"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check IAM permissions"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Ensure ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"bedrock:InvokeModel"}]," permission is granted"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check the resource ARN matches the model ID"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check region availability"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Not all models are available in all regions"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify the model IDs are valid for your configured region"}],"\n"]}],"\n"]}],"\n"]}]
+40:["$","h3",null,{"id":"embedding-generation-failures","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Embedding Generation Failures",["$","$L9",null,{"id":"embedding-generation-failures"}]]}]
+41:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+42:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":[["$","code",null,{"className":"nextra-code","dir":"ltr","children":"EMBEDDING_FAILED"}]," error from ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"rag_query"}]]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Timeout during embedding generation"}],"\n"]}]
+43:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+44:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check Bedrock service health in the AWS Console"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Verify the embedding model ID is correct (",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"amazon.titan-embed-text-v2:0"}],")"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check for throttling (Bedrock has per-account rate limits)"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Polly retry policies should handle transient failures automatically"}],"\n"]}]
+45:["$","h3",null,{"id":"llm-synthesis-failures","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["LLM Synthesis Failures",["$","$L9",null,{"id":"llm-synthesis-failures"}]]}]
+46:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+47:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":[["$","code",null,{"className":"nextra-code","dir":"ltr","children":"RAG_SYNTHESIS_FAILED"}]," error from ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"rag_query"}]]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Timeout during answer generation"}],"\n"]}]
+48:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+49:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check Bedrock service availability"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify the Claude model ID is correct"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"For long queries or large context, the LLM call may exceed token limits"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Reduce ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"MaxChunksPerQuery"}]," if context is too large"]}],"\n"]}]
+4a:["$","h2",null,{"id":"mcp-server-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["MCP Server Issues",["$","$L9",null,{"id":"mcp-server-issues"}]]}]
+4b:["$","h3",null,{"id":"server-not-starting","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Server Not Starting",["$","$L9",null,{"id":"server-not-starting"}]]}]
+4c:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+4d:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"MCP server process exits immediately"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"No response from Claude Code"}],"\n"]}]
+4e:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Diagnostic Steps"}],":"]}]
+4f:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Run server manually to see errors"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"dotnet"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" run"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --project"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" src/CompoundDocs.McpServer"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":" 2>&1"}]]}]}]]}]]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check for missing dependencies"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"dotnet"}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":" restore"}]]}]}]]}]]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify .NET version"}]}],"\n",["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":["$L86",false]}],"$L87"]}]]}],"\n"]}],"\n"]}]
+50:["$","h3",null,{"id":"tool-not-found","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Tool Not Found",["$","$L9",null,{"id":"tool-not-found"}]]}]
+51:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+52:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":[["$","code",null,{"className":"nextra-code","dir":"ltr","children":"rag_query"}]," tool not appearing in Claude Code"]}],"\n"]}]
+53:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+54:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify MCP configuration"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Check the path to ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"CompoundDocs.McpServer.csproj"}]," is correct"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Ensure ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"command"}]," is set to ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"dotnet"}]]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Restart Claude Code"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Close and reopen Claude Code/Desktop"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check server startup logs"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Look for tool registration messages in stderr"}],"\n"]}],"\n"]}],"\n"]}]
+55:["$","h2",null,{"id":"graphrag-pipeline-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["GraphRAG Pipeline Issues",["$","$L9",null,{"id":"graphrag-pipeline-issues"}]]}]
+56:["$","h3",null,{"id":"no-results-returned","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["No Results Returned",["$","$L9",null,{"id":"no-results-returned"}]]}]
+57:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+58:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":[["$","code",null,{"className":"nextra-code","dir":"ltr","children":"rag_query"}]," returns empty sources"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Low confidence scores"}],"\n"]}]
+59:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+5a:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Verify documents are ingested"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Check Worker logs for successful ingestion"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify documents exist in OpenSearch and Neptune"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Lower relevance threshold"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Set ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.MinRelevanceScore"}]," to 0.5 or lower for testing"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check query quality"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Ensure the query is specific enough to match indexed content"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Try broader or more specific queries"}],"\n"]}],"\n"]}],"\n"]}]
+5b:["$","h3",null,{"id":"poor-answer-quality","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Poor Answer Quality",["$","$L9",null,{"id":"poor-answer-quality"}]]}]
+5c:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+5d:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Answers are vague or off-topic"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Sources don’t seem relevant"}],"\n"]}]
+5e:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+5f:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Increase context"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Set ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.MaxChunksPerQuery"}]," higher (e.g., 15-20)"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Set ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.MaxTraversalSteps"}]," higher for more concept discovery"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check document quality"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Ensure source documents have meaningful content"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify frontmatter is correct"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Enable cross-repo links"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Set ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.UseCrossRepoLinks"}]," to ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"true"}]," if monitoring multiple repos"]}],"\n"]}],"\n"]}],"\n"]}]
+60:["$","h2",null,{"id":"git-sync-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Git Sync Issues",["$","$L9",null,{"id":"git-sync-issues"}]]}]
+61:["$","h3",null,{"id":"repository-clone-failures","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Repository Clone Failures",["$","$L9",null,{"id":"repository-clone-failures"}]]}]
+62:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+63:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Worker fails to clone repositories"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Authentication errors from LibGit2Sharp"}],"\n"]}]
+64:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+65:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check repository URL"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Verify the URL is accessible"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"For private repos, ensure git credentials are available"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check credentials"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"SSH: Verify SSH key is configured"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"HTTPS: Ensure git credential helper is configured"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check disk space"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Large repositories require sufficient disk space for cloning"}],"\n"]}],"\n"]}],"\n"]}]
+66:["$","h3",null,{"id":"changes-not-detected","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Changes Not Detected",["$","$L9",null,{"id":"changes-not-detected"}]]}]
+67:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+68:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"New commits not triggering re-indexing"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Documents not updated after push"}],"\n"]}]
+69:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+6a:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check polling interval"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Default is 5 minutes (",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"PollIntervalMinutes"}],")"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Wait for the next poll cycle"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check monitored paths"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["If ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"MonitoredPaths"}]," is set, only files under those paths trigger re-processing"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Empty ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"MonitoredPaths"}]," monitors all files"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check Worker logs"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Look for git pull and diff detection messages"}],"\n"]}],"\n"]}],"\n"]}]
+6b:["$","h2",null,{"id":"performance-issues","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Performance Issues",["$","$L9",null,{"id":"performance-issues"}]]}]
+6c:["$","h3",null,{"id":"slow-query-responses","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Slow Query Responses",["$","$L9",null,{"id":"slow-query-responses"}]]}]
+6d:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Symptoms"}],":"]}]
+6e:["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":[["$","code",null,{"className":"nextra-code","dir":"ltr","children":"rag_query"}]," responses take more than a few seconds"]}],"\n"]}]
+6f:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+70:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Reduce chunk count"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Lower ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.MaxChunksPerQuery"}]," to reduce LLM context size"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Reduce traversal depth"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Lower ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"GraphRag.MaxTraversalSteps"}]," for faster graph queries"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check network latency"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"AWS service latency depends on region proximity"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Consider deploying closer to your AWS services"}],"\n"]}],"\n"]}],"\n"]}]
+71:["$","h3",null,{"id":"high-aws-costs","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["High AWS Costs",["$","$L9",null,{"id":"high-aws-costs"}]]}]
+72:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":[["$","strong",null,{"children":"Solutions"}],":"]}]
+73:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Reduce polling frequency"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Increase ",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"PollIntervalMinutes"}]," for less frequent repository checks"]}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Use Haiku for more tasks"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Haiku is the cheapest Claude model tier"}],"\n"]}],"\n"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Optimize chunk size"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Larger chunks mean fewer embedding calls but less granular results"}],"\n"]}],"\n"]}],"\n"]}]
+74:["$","h2",null,{"id":"log-files-and-diagnostics","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-10 x:border-b x:pb-1 x:text-3xl nextra-border","children":["Log Files and Diagnostics",["$","$L9",null,{"id":"log-files-and-diagnostics"}]]}]
+75:["$","h3",null,{"id":"log-output","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Log Output",["$","$L9",null,{"id":"log-output"}]]}]
+76:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":"All MCP server and Worker logs go to stderr using Serilog structured logging."}]
+77:["$","h3",null,{"id":"enabling-debug-logging","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Enabling Debug Logging",["$","$L9",null,{"id":"enabling-debug-logging"}]]}]
+78:["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":[["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"{"}]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"  \"Serilog\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": {"}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"    \"MinimumLevel\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": {"}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"      \"Default\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": "}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":"\"Debug\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":","}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"      \"Override\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": {"}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"        \"Microsoft\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": "}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":"\"Warning\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":","}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":"        \"System\""}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":": "}],["$","span",null,{"style":{"--shiki-light":"#032F62","--shiki-dark":"#9ECBFF"},"children":"\"Warning\""}]]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"      }"}]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"    }"}]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"  }"}]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"}"}]}]]}]]}]]}]
+79:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":"Or via environment variable:"}]
+7a:["$","div",null,{"data-pagefind-ignore":"all","className":"nextra-code x:relative x:not-first:mt-[1.25em]","children":["$undefined",["$","pre",null,{"className":"x:group x:focus-visible:nextra-focus x:overflow-x-auto x:subpixel-antialiased x:text-[.9em] x:bg-white x:dark:bg-black x:py-4 x:ring-1 x:ring-inset x:ring-gray-300 x:dark:ring-neutral-700 x:contrast-more:ring-gray-900 x:contrast-more:dark:ring-gray-50 x:contrast-more:contrast-150 x:rounded-md not-prose","tabIndex":"0","children":[["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}],["$","code",null,{"className":"nextra-code","dir":"ltr","children":["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"export"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":" SERILOG_LOGGING_LEVEL"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"="}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"Debug"}]]}]}]]}]]}]
+7b:["$","h3",null,{"id":"log-levels","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Log Levels",["$","$L9",null,{"id":"log-levels"}]]}]
+7c:["$","table",null,{"className":"x:block x:overflow-x-auto nextra-scrollbar x:not-first:mt-[1.25em] x:p-0","children":[["$","thead",null,{"children":["$","tr",null,{"children":[["$","th",null,{"children":"Level","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:font-semibold x:dark:border-gray-600"}],["$","th",null,{"children":"Purpose","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:font-semibold x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}]}],["$","tbody",null,{"children":[["$","tr",null,{"children":[["$","td",null,{"children":"Debug","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}],["$","td",null,{"children":"Detailed execution flow, AWS request/response","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}],["$","tr",null,{"children":[["$","td",null,{"children":"Information","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}],["$","td",null,{"children":"Normal operations (default)","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}],["$","tr",null,{"children":[["$","td",null,{"children":"Warning","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}],["$","td",null,{"children":"Non-critical issues, degraded performance","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}],["$","tr",null,{"children":[["$","td",null,{"children":"Error","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}],["$","td",null,{"children":"Operation failures","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}],["$","tr",null,{"children":[["$","td",null,{"children":"Fatal","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}],["$","td",null,{"children":"System-stopping errors","className":"x:m-0 x:border x:border-gray-300 x:px-4 x:py-2 x:dark:border-gray-600"}]],"className":"x:m-0 x:border-t x:border-gray-300 x:p-0 x:dark:border-gray-600 x:even:bg-gray-100 x:even:dark:bg-gray-600/20"}]]}]]}]
+7d:["$","h3",null,{"id":"getting-help","className":"x:tracking-tight x:text-slate-900 x:dark:text-slate-100 x:font-semibold x:target:animate-[fade-in_1.5s] x:mt-8 x:text-2xl","children":["Getting Help",["$","$L9",null,{"id":"getting-help"}]]}]
+7e:["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":"If issues persist:"}]
+7f:["$","ol",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-decimal x:ms-6","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":["Check the ",["$","a",null,{"href":"https://github.com/your-org/csharp-compound-engineering/issues","target":"_blank","rel":"noreferrer","className":"x:focus-visible:nextra-focus x:text-primary-600 x:underline x:hover:no-underline x:decoration-from-font x:[text-underline-position:from-font]","children":["GitHub Issues",[" ",["$","svg",null,{"fill":"none","stroke":"currentColor","strokeLinecap":"round","strokeLinejoin":"round","strokeWidth":1.7,"viewBox":"0 0 24 24","height":"1em","className":"x:inline x:align-baseline x:shrink-0","children":[["$","path",null,{"d":"M7 17L17 7"}],["$","path",null,{"d":"M7 7h10v10"}]]}]]]}]]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Search existing issues for similar problems"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["Open a new issue with:","\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Error messages (full text from stderr)"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Steps to reproduce"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Environment details (OS, .NET version, AWS region)"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"Relevant log output"}],"\n"]}],"\n"]}],"\n"]}]
+82:null
+83:["$","div",null,{"className":"x:group-hover:opacity-100 x:group-focus:opacity-100 x:opacity-0 x:transition x:focus-within:opacity-100 x:flex x:gap-1 x:absolute x:right-4 x:top-2","children":[["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}],false]}]
+84:["$","code",null,{"className":"nextra-code","dir":"ltr","children":[["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"export"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":" AWS_ACCESS_KEY_ID"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"="}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"your-key"}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"export"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":" AWS_SECRET_ACCESS_KEY"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"="}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"your-secret"}]]}],"\n",["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"export"}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":" AWS_DEFAULT_REGION"}],["$","span",null,{"style":{"--shiki-light":"#D73A49","--shiki-dark":"#F97583"},"children":"="}],["$","span",null,{"style":{"--shiki-light":"#24292E","--shiki-dark":"#E1E4E8"},"children":"us-east-1"}]]}]]}]
+85:["$","li",null,{"className":"x:my-[.5em]","children":["\n",["$","p",null,{"className":"x:not-first:mt-[1.25em] x:leading-7","children":["$","strong",null,{"children":"Check credential chain order"}]}],"\n",["$","ul",null,{"className":"x:[:is(ol,ul)_&]:my-[.75em] x:not-first:mt-[1.25em] x:list-disc x:ms-[1.5em]","children":["\n",["$","li",null,{"className":"x:my-[.5em]","children":"Environment variables"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":["AWS credentials file (",["$","code",null,{"className":"nextra-code","dir":"ltr","children":"~/.aws/credentials"}],")"]}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"AWS SSO cache"}],"\n",["$","li",null,{"className":"x:my-[.5em]","children":"IAM instance role (on EC2/ECS)"}],"\n"]}],"\n"]}]
+86:["$","$La",null,{"children":["$","svg",null,{"viewBox":"0 0 24 24","fill":"currentColor","height":"1em","children":["$","path",null,{"d":"M4 19h6v-2H4v2zM20 5H4v2h16V5zm-3 6H4v2h13.25c1.1 0 2 .9 2 2s-.9 2-2 2H15v-2l-3 3l3 3v-2h2c2.21 0 4-1.79 4-4s-1.79-4-4-4z"}]}]}]
+87:["$","code",null,{"className":"nextra-code","dir":"ltr","children":[["$","span",null,{"children":[["$","span",null,{"style":{"--shiki-light":"#6F42C1","--shiki-dark":"#B392F0"},"children":"dotnet"}],["$","span",null,{"style":{"--shiki-light":"#005CC5","--shiki-dark":"#79B8FF"},"children":" --version"}]]}],"\n",["$","span",null,{"children":["$","span",null,{"style":{"--shiki-light":"#6A737D","--shiki-dark":"#6A737D"},"children":"# Should be 9.0 or higher"}]}]]}]
