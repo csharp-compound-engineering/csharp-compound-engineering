@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.8...v1.0.9) (2026-02-14)
+
+### Bug Fixes
+
+* **tests:** consolidate test projects and unify code coverage pipeline ([d42069d](https://github.com/michaelmccord/csharp-compound-engineering/commit/d42069d7d3d2dcd863787ef5e4cf0f0fcafb7a9e))
+
 ## [1.0.8](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.7...v1.0.8) (2026-02-13)
 
 ### Bug Fixes
