@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.9...v1.0.10) (2026-02-14)
+
+### Bug Fixes
+
+* **release:** configure git credentials for gh-pages deployment ([341d90c](https://github.com/michaelmccord/csharp-compound-engineering/commit/341d90cb8c842860d664f15ebc8308e54e9db9a5))
+
 ## [1.0.9](https://github.com/michaelmccord/csharp-compound-engineering/compare/v1.0.8...v1.0.9) (2026-02-14)
 
 ### Bug Fixes
