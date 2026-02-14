@@ -11,23 +11,19 @@ The MCP server exposes a single tool `rag_query` that orchestrates: embedding ge
 ## Build Commands
 
 ```bash
-dotnet build                              # Build all 14 projects
+dotnet build                              # Build all projects (8 src + 3 test)
 dotnet test                               # Run all tests (unit, integration, E2E)
 dotnet test --filter "FullyQualifiedName~TestName"  # Run a specific test
 dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj  # Run MCP server
 bash scripts/coverage-merge.sh            # Run tests + merge coverage + enforce 100% threshold
 ```
 
-**Infrastructure (Docker):**
-```bash
-docker compose up -d                      # Start PostgreSQL (pgvector) + Ollama
-```
-
-**PowerShell scripts in `scripts/`:**
-- `build.ps1` — Build orchestration
-- `start-infrastructure.ps1` — Docker compose startup
-- `launch-mcp-server.ps1` — MCP server launcher
-- `verify-release-readiness.ps1` — Release verification
+**Bash scripts in `scripts/`:**
+- `coverage-merge.sh` — Run tests + merge coverage + enforce 100% threshold
+- `release-prepare.sh` — Version bumps for releases
+- `release-docker.sh` — Docker image build/push
+- `release-helm.sh` — Helm chart packaging/push
+- `release-docs.sh` — Documentation site build
 
 ## Architecture
 
@@ -65,12 +61,12 @@ Package versions are centrally managed in `Directory.Packages.props`. Global bui
 
 ## CI/CD
 
-GitHub Actions workflows in `.github/workflows/`:
-- `ci.yml` — Build + test on Ubuntu (with coverage via coverlet.collector), Windows, macOS
-- `docker.yml` — Docker image builds
-- `release.yml` — Semantic versioning via `.releaserc.json` (conventional commits); uploads `coverage-report.tar.gz` (merged Cobertura XML + HTML) as a release asset
-- `docs.yml` — Nextra documentation site
-- `validate-plugin.yml` — Plugin validation
+Single unified GitHub Actions workflow: `.github/workflows/ci.yml` (named "Release").
+- **PR** → semantic-release dry-run (validates commits, build, test, pack)
+- **Push to main/master** → full semantic-release with conventional commits
+- Handles: Docker build+push (GHCR), Helm chart publish (GHCR), docs deploy (gh-pages), changelog, GitHub release
+- Release assets: Helm chart (`.tgz`), coverage report (`coverage-report.tar.gz` — merged Cobertura XML + HTML)
+- Config in `.releaserc.json`
 
 ## npm vs pnpm
 

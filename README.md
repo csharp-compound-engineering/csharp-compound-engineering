@@ -50,7 +50,7 @@ src/
 tests/
 ├── CompoundDocs.Tests.Unit         # xUnit + Moq + Shouldly
 ├── CompoundDocs.Tests.Integration  # Service integration tests
-└── CompoundDocs.Tests              # Additional unit tests
+└── CompoundDocs.Tests.E2E          # End-to-end workflow and MCP protocol compliance tests
 ```
 
 ## MCP Tool
@@ -88,13 +88,19 @@ Performs RAG-based question answering with source attribution.
 
 ## Configuration
 
-Configuration is loaded from `appsettings.json`, environment variables, and command-line args.
+Configuration is loaded from multiple sources (highest priority wins):
+
+1. **Code defaults** — `CompoundDocsServerOptions` provides sensible defaults
+2. **Global config** — `~/.claude/.csharp-compounding-docs/global-config.json`
+3. **Project config** — `.csharp-compounding-docs/config.json` (per-repository)
+4. **Environment variables** — override any config file values
+
+Config loading is handled by `ConfigurationLoader` in `CompoundDocs.Common`.
 
 ### Key Sections
 
 | Section | Description |
 |---------|-------------|
-| `McpServer` | Server name, description, port (default: 3000) |
 | `Authentication` | API key auth — keys (comma-separated), header name, enabled flag |
 | `EmbeddingCache` | In-memory cache — max items (10,000), TTL (24h), optional disk persistence |
 | `Resilience` | Polly policies — retry, circuit breaker, timeout settings |
@@ -105,13 +111,16 @@ Configuration is loaded from `appsettings.json`, environment variables, and comm
 | Variable | Description |
 |----------|-------------|
 | `ASPNETCORE_ENVIRONMENT` | Runtime environment |
-| `COMPOUNDDOCS_CONNECTION_STRING` | Database connection string |
-| `COMPOUNDDOCS_OLLAMA_URL` | Ollama endpoint for local embedding |
-| `COMPOUNDDOCS_EMBEDDING_MODEL` | Embedding model name |
-| `COMPOUNDDOCS_CHAT_MODEL` | Chat/LLM model name |
-| `COMPOUNDDOCS_LOG_LEVEL` | Log level (default: Information) |
-| `COMPOUNDDOCS_TRANSPORT` | Transport mode |
-| `COMPOUNDDOCS_PORT` | Server port |
+| `COMPOUNDING_POSTGRES_HOST` | PostgreSQL host |
+| `COMPOUNDING_POSTGRES_PORT` | PostgreSQL port |
+| `COMPOUNDING_POSTGRES_DATABASE` | PostgreSQL database name |
+| `COMPOUNDING_POSTGRES_USERNAME` | PostgreSQL username |
+| `COMPOUNDING_POSTGRES_PASSWORD` | PostgreSQL password |
+| `COMPOUNDING_OLLAMA_HOST` | Ollama endpoint host |
+| `COMPOUNDING_OLLAMA_PORT` | Ollama endpoint port |
+| `COMPOUNDING_OLLAMA_MODEL` | Ollama model name |
+
+> **Note:** `COMPOUNDDOCS_LOG_LEVEL` is set in the Dockerfile only. `COMPOUNDDOCS_API_KEYS` is used in the Helm chart deployment template only.
 
 ## Authentication
 
@@ -134,12 +143,9 @@ Set `Enabled` to `false` to disable authentication for local development. The `/
 ```bash
 # Build the image
 docker build -t compound-docs-mcp .
-
-# Run
-docker run -p 3000:3000 compound-docs-mcp
 ```
 
-The image uses a multi-stage Alpine build with a non-root user. Pre-built images are published to GitHub Container Registry on release.
+The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 1654). The MCP server uses stdio transport by default. Pre-built multi-arch images are published to GitHub Container Registry on release.
 
 ## Infrastructure
 
@@ -158,16 +164,14 @@ The image uses a multi-stage Alpine build with a non-root user. Pre-built images
 
 ## CI/CD
 
-GitHub Actions workflows:
+A single unified GitHub Actions workflow (`ci.yml`, named "Release") handles everything:
 
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| `ci.yml` | Push / PR | Build and test on Ubuntu, Windows, macOS with coverage |
-| `docker.yml` | Release / push to main | Multi-arch Docker image build and push to GHCR |
-| `release.yml` | Push to main | Semantic versioning via conventional commits |
-| `docs.yml` | Push | Nextra documentation site deployment |
+- **PR** → semantic-release dry-run (validates commits, build, test, pack)
+- **Push to main/master** → full semantic-release: Docker build+push (GHCR), Helm chart publish (GHCR), docs deploy (gh-pages), changelog, GitHub release
 
-Releases follow [Conventional Commits](https://www.conventionalcommits.org/) with automatic changelog generation and GitHub releases.
+Release assets include the Helm chart (`.tgz`) and a coverage report (`coverage-report.tar.gz` with merged Cobertura XML + HTML). Config in `.releaserc.json`.
+
+Releases follow [Conventional Commits](https://www.conventionalcommits.org/) with automatic changelog generation.
 
 ## Architecture
 
@@ -179,7 +183,6 @@ The project uses a layered architecture with clear abstractions:
 - **Resilience** via Polly (retry with exponential backoff, circuit breaker, timeout)
 - **Caching** for embeddings (configurable max items and TTL)
 - **Structured logging** with Serilog and correlation IDs
-- **Structured logging** and observability
 
 ### Graph Model
 
@@ -189,22 +192,23 @@ Documents are represented as a property graph with typed relationships:
 DocumentNode ──HAS_SECTION──▶ SectionNode
      │                            │
      └──────HAS_CHUNK──────▶ ChunkNode ──MENTIONS──▶ ConceptNode
-                                                          │
-                                                    RELATES_TO
-                                                          │
-                                                    ConceptNode
+                                  │                       │
+                            HAS_EXAMPLE             RELATES_TO
+                                  │                       │
+                          CodeExampleNode            ConceptNode
 ```
 
 ## Scripts
 
-PowerShell scripts in `scripts/`:
+Bash scripts in `scripts/`:
 
 | Script | Purpose |
 |--------|---------|
-| `build.ps1` | Build orchestration with coverage reporting |
-| `launch-mcp-server.ps1` | MCP server launcher with transport mode options |
-| `start-infrastructure.ps1` | Docker infrastructure management |
-| `verify-release-readiness.ps1` | Pre-release verification |
+| `coverage-merge.sh` | Run tests, merge coverage with ReportGenerator, enforce 100% threshold |
+| `release-prepare.sh` | Update version in `Directory.Build.props` and `Chart.yaml` |
+| `release-docker.sh` | Build and push multi-arch Docker image to GHCR |
+| `release-helm.sh` | Package and push Helm chart to GHCR |
+| `release-docs.sh` | Build Nextra documentation site |
 
 ## Testing
 
