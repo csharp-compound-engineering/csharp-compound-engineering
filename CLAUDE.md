@@ -59,6 +59,33 @@ Package versions are centrally managed in `Directory.Packages.props`. Global bui
 - **Assertions: Use Shouldly only.** Do NOT use FluentAssertions. Use Shouldly's `ShouldBe()`, `ShouldNotBeNull()`, `ShouldContain()`, `ShouldThrow()`, etc.
 - These rules apply to all test projects — unit, integration, and E2E.
 
+## Commit Convention
+
+This repository uses [Conventional Commits](https://www.conventionalcommits.org/). PR titles and single-commit messages are validated by CI (`pr-title.yml`).
+
+**Format:** `type(scope): lowercase description`
+
+| Type | Release | Description |
+|------|---------|-------------|
+| `feat` | minor | New feature |
+| `fix` | patch | Bug fix |
+| `perf` | minor | Performance improvement |
+| `revert` | patch | Reverts a previous commit |
+| `refactor` | **major** | Code restructuring (no behavior change) |
+| `docs` | none | Documentation only |
+| `style` | none | Formatting, whitespace |
+| `test` | none | Adding or updating tests |
+| `build` | none | Build system or dependencies |
+| `ci` | none | CI configuration |
+| `chore` | none | Tooling, maintenance |
+
+**Rules:**
+- Subject must start with **lowercase** (enforced by CI)
+- Append `!` after type/scope for breaking changes: `feat(mcp)!: remove legacy endpoint`
+- Or use a `BREAKING CHANGE:` footer
+- Breaking changes always trigger a **major** release regardless of type
+- Scopes are optional; common scopes: `mcp`, `tools`, `db`, `docker`, `docs`, `tests`
+
 ## CI/CD
 
 Single unified GitHub Actions workflow: `.github/workflows/ci.yml` (named "Release").

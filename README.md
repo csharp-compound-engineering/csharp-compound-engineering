@@ -184,7 +184,20 @@ A single unified GitHub Actions workflow (`ci.yml`, named "Release") handles eve
 
 Release assets include the Helm chart (`.tgz`) and a coverage report (`coverage-report.tar.gz` with merged Cobertura XML + HTML). Config in `.releaserc.json`.
 
-Releases follow [Conventional Commits](https://www.conventionalcommits.org/) with automatic changelog generation.
+Releases follow [Conventional Commits](https://www.conventionalcommits.org/) with automatic changelog generation. PR titles and single-commit messages are validated by CI.
+
+**Format:** `type(scope): lowercase description`
+
+| Type | Release | Type | Release |
+|------|---------|------|---------|
+| `feat` | minor | `docs` | none |
+| `fix` | patch | `style` | none |
+| `perf` | minor | `test` | none |
+| `revert` | patch | `build` | none |
+| `refactor` | **major** | `ci` | none |
+| `chore` | none | | |
+
+Breaking changes (`!` suffix or `BREAKING CHANGE:` footer) always trigger a **major** release. See [CONTRIBUTING.md](CONTRIBUTING.md#commit-message-format) for full details.
 
 ## Architecture
 
@@ -235,7 +248,17 @@ dotnet test --filter "FullyQualifiedName~TestName"
 
 Tests use **xUnit** as the framework, **Moq** for mocking, and **Shouldly** for assertions. Integration tests that require AWS infrastructure will skip automatically when services are unavailable.
 
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, testing requirements, and the pull request process.
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+
+## Security
+
+To report a vulnerability, please use [GitHub Private Vulnerability Reporting](https://github.com/csharp-compound-engineering/csharp-compound-engineering/security/advisories/new) instead of opening a public issue. See [SECURITY.md](SECURITY.md) for the full disclosure policy and response timeline.
+
 ## License
 
-MIT
+[MIT](LICENSE) — see [NOTICE](NOTICE) for third-party attribution.
 
