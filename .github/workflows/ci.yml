@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       dry-run:
-        description: 'Run in dry-run mode (no release created)'
+        description: "Run in dry-run mode (no release created)"
         required: false
         default: false
         type: boolean
@@ -30,10 +30,7 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  packages: write
+  contents: read
 
 jobs:
   # ──────────────────────────────────────────────
@@ -42,38 +39,45 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+    environment:
+      name: production
     outputs:
       new_release_published: ${{ steps.semantic.outputs.new_release_published }}
       new_release_version: ${{ steps.semantic.outputs.new_release_version }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
         with:
           version: 10
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
           cache: pnpm
           cache-dependency-path: |
             pnpm-lock.yaml
             docs/pnpm-lock.yaml
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5
         with:
-          global-json-file: 'global.json'
+          global-json-file: "global.json"
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
@@ -86,23 +90,23 @@ jobs:
       # Docker/Helm setup — only needed for actual publishing (push events)
       - name: Set up Helm
         if: github.event_name == 'push'
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: v3.14.0
 
       - name: Set up QEMU
         if: github.event_name == 'push'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
         with:
           platforms: linux/amd64,linux/arm64
 
       - name: Set up Docker Buildx
         if: github.event_name == 'push'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GitHub Container Registry (Docker)
         if: github.event_name == 'push'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
