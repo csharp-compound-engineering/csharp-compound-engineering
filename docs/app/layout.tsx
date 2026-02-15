@@ -21,11 +21,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           navbar={
             <Navbar
               logo={<b>CSharp Compound Docs</b>}
-              projectLink="https://github.com/michaelmccord/csharp-compound-engineering"
+              projectLink="https://github.com/csharp-compound-engineering/csharp-compound-engineering"
             />
           }
           footer={<Footer>MIT {new Date().getFullYear()} © CSharp Compound Docs</Footer>}
-          docsRepositoryBase="https://github.com/michaelmccord/csharp-compound-engineering/tree/master/docs"
+          docsRepositoryBase="https://github.com/csharp-compound-engineering/csharp-compound-engineering/tree/master/docs"
           pageMap={await getPageMap()}
         >
           {children}

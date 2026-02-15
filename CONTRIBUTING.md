@@ -19,12 +19,7 @@ Thank you for your interest in contributing to CSharp Compound Docs! This docume
 
 ## Code of Conduct
 
-This project adheres to a code of conduct. By participating, you are expected to:
-
-- Be respectful and inclusive
-- Welcome newcomers and help them get started
-- Focus on constructive criticism
-- Accept responsibility for mistakes and learn from them
+This project has adopted the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior by opening a GitHub Issue with the `conduct` label.
 
 ---
 
@@ -45,12 +40,12 @@ Before contributing, ensure you have:
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/csharp-compound-engineering.git
+   git clone https://github.com/YOUR-USERNAME/csharp-compound-engineering.git  # your fork
    cd csharp-compound-engineering
    ```
 3. Add upstream remote:
    ```bash
-   git remote add upstream https://github.com/ORIGINAL-ORG/csharp-compound-engineering.git
+   git remote add upstream https://github.com/csharp-compound-engineering/csharp-compound-engineering.git
    ```
 4. Create a feature branch:
    ```bash

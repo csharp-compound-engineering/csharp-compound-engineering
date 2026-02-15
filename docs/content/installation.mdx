@@ -25,7 +25,7 @@ This guide covers installing CSharp Compound Docs for use with Claude Code.
 
 ```bash
 # Clone the repository
-git clone https://github.com/michaelmccord/csharp-compound-engineering.git
+git clone https://github.com/csharp-compound-engineering/csharp-compound-engineering.git
 cd csharp-compound-engineering
 
 # Restore dependencies
@@ -249,7 +249,7 @@ helm install compound-docs charts/compound-docs \
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `image.repository` | string | `ghcr.io/compound-docs/...` | Container image repository |
+| `image.repository` | string | `ghcr.io/csharp-compound-engineering/csharp-compound-engineering/mcp-server` | Container image repository |
 | `image.tag` | string | `""` | Image tag (defaults to Chart.AppVersion) |
 | `image.pullPolicy` | string | `IfNotPresent` | Image pull policy |
 | `replicaCount` | int | `1` | Number of replicas |
@@ -484,7 +484,7 @@ Open Claude Code and verify the `rag_query` tool is available.
 
 ### Getting Help
 
-- [GitHub Issues](https://github.com/michaelmccord/csharp-compound-engineering/issues)
+- [GitHub Issues](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues)
 - [Troubleshooting Guide](/troubleshooting)
 - [Architecture Documentation](/architecture)
 
