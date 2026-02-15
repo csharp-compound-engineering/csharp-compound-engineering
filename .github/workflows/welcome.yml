@@ -1,0 +1,34 @@
+name: Welcome New Contributors
+
+on:
+  pull_request_target:
+    types:
+      - opened
+  issues:
+    types:
+      - opened
+
+permissions:
+  contents: read
+
+jobs:
+  welcome:
+    name: Welcome
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Welcome first-time contributors
+        uses: actions/first-interaction@2ec0f0fd78838633cd1c1342e4536d49ef72be54 # v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            Welcome to the project! Thanks for opening your first issue.
+            A maintainer will review it soon. In the meantime, please make sure
+            you've read our [Contributing Guide](CONTRIBUTING.md).
+          pr-message: >
+            Welcome to the project! Thanks for opening your first pull request.
+            A maintainer will review it soon. Please make sure your PR follows
+            our [Contributing Guide](CONTRIBUTING.md) and all checks pass.

@@ -1,0 +1,62 @@
+source:
+  - changed-files:
+      - any-glob-to-any-file: 'src/**'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: 'tests/**'
+
+mcp-server:
+  - changed-files:
+      - any-glob-to-any-file: 'src/CompoundDocs.McpServer/**'
+
+graph-rag:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/CompoundDocs.GraphRag/**'
+          - 'src/CompoundDocs.Graph/**'
+          - 'src/CompoundDocs.Vector/**'
+
+bedrock:
+  - changed-files:
+      - any-glob-to-any-file: 'src/CompoundDocs.Bedrock/**'
+
+infrastructure:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'opentofu/**'
+          - 'charts/**'
+          - 'scripts/**'
+          - 'Dockerfile'
+          - 'docker-compose.yml'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+
+skills:
+  - changed-files:
+      - any-glob-to-any-file: 'skills/**'
+
+agents:
+  - changed-files:
+      - any-glob-to-any-file: 'agents/**'
+
+plugin:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.claude-plugin/**'
+          - '.claude/**'
+
+build-config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Directory.Build.props'
+          - 'Directory.Packages.props'
+          - '**/*.csproj'
+          - '*.sln'
+          - '.releaserc.json'
+          - 'global.json'
