@@ -1,7 +1,7 @@
 # Default values for compound-docs Helm chart
 
 image:
-  repository: ghcr.io/compound-docs/csharp-compound-engineering/mcp-server
+  repository: ghcr.io/michaelmccord/csharp-compound-engineering/mcp-server
   tag: ""  # Defaults to .Chart.AppVersion
   pullPolicy: IfNotPresent
 
@@ -16,14 +16,23 @@ syncWaves:
   provider: "0"
   providerConfig: "1"
   workspaces: "2"
-  externalSecrets: "3"
-  application: "4"
+  iamOpenSearchPolicy: "3"
+  externalSecrets: "4"
+  application: "5"
 
 # --- Crossplane / OpenTofu ---
 crossplane:
   enabled: true
   provider:
     package: xpkg.upbound.io/upbound/provider-opentofu:v1.0.3
+  # DeploymentRuntimeConfig name — pins a deterministic SA name for pod identity matching
+  runtimeConfigRef: provider-aws-pod-identity
+  credentials:
+    # Credential source for the ProviderConfig: "None" (pod identity) or "Secret" (static credentials)
+    source: "None"
+    # Only used when source: Secret
+    secretName: aws-credentials
+    secretKey: credentials
 
 # --- External Secrets Operator ---
 externalSecrets:
@@ -42,8 +51,6 @@ aws:
   region: us-east-1
   # AWS account ID — required when externalSecrets.enabled=true and esoRoleArn is empty
   accountId: ""
-  credentialsSecretName: aws-credentials
-  credentialsSecretKey: credentials
 
 # --- VPC (pre-existing) ---
 vpc:
@@ -57,6 +64,7 @@ vpc:
 # When crossplane.enabled: false, supply endpoint/port directly.
 neptune:
   enabled: true
+  createServiceLinkedRole: true
   engineVersion: "1.2.0.1"
   minCapacity: 2.5
   maxCapacity: 128
@@ -99,7 +107,7 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
-  targetPort: 3000
+  targetPort: 8080
 
 ingress:
   enabled: false

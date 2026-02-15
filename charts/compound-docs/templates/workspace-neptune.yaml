@@ -29,6 +29,8 @@ spec:
         value: {{ .Values.vpc.privateSubnetIds | quote }}
       - key: security_group_id
         value: {{ .Values.vpc.neptuneSecurityGroupId | quote }}
+      - key: create_service_linked_role
+        value: {{ .Values.neptune.createServiceLinkedRole | default true | quote }}
       {{- if .Values.externalSecrets.enabled }}
       - key: write_to_secrets_manager
         value: "true"

@@ -33,16 +33,16 @@ bash scripts/coverage-merge.sh            # Run tests + merge coverage + enforce
 
 | Project | Purpose |
 |---------|---------|
-| `CompoundDocs.McpServer` | Main MCP server app (stdio transport). Contains the `RagQueryTool`, document processing pipeline, resilience policies (Polly), and observability. |
+| `CompoundDocs.McpServer` | Main MCP server app (HTTP transport, port 3000). Contains the `RagQueryTool`, document processing pipeline, resilience policies (Polly), and observability. |
 | `CompoundDocs.Common` | Shared models (`DocumentNode`, `ChunkNode`, `ConceptNode`, etc.), graph relationships (`HAS_SECTION`, `HAS_CHUNK`, `MENTIONS`, `RELATES_TO`, `LINKS_TO`), config loading, Markdown/YAML parsing, logging with correlation IDs. |
 | `CompoundDocs.GraphRag` | Orchestrates the full RAG pipeline: embed → vector search → graph traversal → LLM synthesis. Key interface: `IGraphRagPipeline`. |
 | `CompoundDocs.Vector` | `IVectorStore` abstraction over AWS OpenSearch Serverless for KNN search. |
-| `CompoundDocs.Graph` | `IGraphRepository` abstraction over Amazon Neptune (Gremlin). |
+| `CompoundDocs.Graph` | `IGraphRepository` abstraction over Amazon Neptune (openCypher via AWS Neptunedata SDK). |
 | `CompoundDocs.Bedrock` | `IBedrockEmbeddingService` (Titan Embed v2, 1024-dim) and `IBedrockLlmService` (Claude models). |
 | `CompoundDocs.GitSync` | Git repository monitoring via LibGit2Sharp; triggers document re-indexing on changes. |
 | `CompoundDocs.Worker` | Background service for async document processing. |
 
-**Key patterns:** Dependency injection via `ServiceCollection` extensions, repository/service abstractions, pipeline pattern for RAG, `[McpServerToolType]`/`[McpServerTool]` attributes for MCP tool registration.
+**Key patterns:** Dependency injection via `ServiceCollection` extensions, repository/service abstractions, pipeline pattern for RAG, `[McpServerToolType]`/`[McpServerTool]` attributes for MCP tool registration. HTTP transport via `MapMcp().RequireAuthorization()` on ASP.NET Core.
 
 **Test projects (`tests/`):**
 - `CompoundDocs.Tests.Unit` — xUnit + Moq + Shouldly

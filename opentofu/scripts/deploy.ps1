@@ -172,6 +172,25 @@ function Wait-ForEks {
     if ($LASTEXITCODE -ne 0) { throw "EKS health check failed" }
 }
 
+function Wait-ForVpnConnection {
+    Write-Host ""
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host " VPN CONNECTION REQUIRED" -ForegroundColor Cyan
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "The network phase is complete. Before continuing, connect to the AWS Client VPN."
+    Write-Host ""
+    Write-Host "  1. Import the generated OpenVPN config into your VPN client:"
+    Write-Host "     phases/01-network/generated/client.ovpn" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  2. Connect to the VPN and verify connectivity."
+    Write-Host ""
+    Write-Host "===============================================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Read-Host "Press Enter once you are connected to the VPN to continue"
+    Write-LogSuccess "Continuing deployment..."
+}
+
 function Sync-NodeGroupScaling {
     param([switch]$DryRun)
 
@@ -342,6 +361,9 @@ switch ($Command) {
         foreach ($p in (Resolve-Phases -Phase $Phase -Direction forward)) {
             Invoke-Init -Phase $p
             Invoke-Apply -Phase $p
+            if ($p -eq 'network' -and $Phase -eq 'all') {
+                Wait-ForVpnConnection
+            }
             if ($p -eq 'cluster' -and $Phase -eq 'all') {
                 Wait-ForEks
             }

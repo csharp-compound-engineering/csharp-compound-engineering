@@ -30,6 +30,11 @@ variable "security_group_id" {
   type = string
 }
 
+variable "create_service_linked_role" {
+  type    = bool
+  default = true
+}
+
 variable "write_to_secrets_manager" {
   type    = bool
   default = false
@@ -38,6 +43,11 @@ variable "write_to_secrets_manager" {
 variable "secrets_manager_prefix" {
   type    = string
   default = ""
+}
+
+resource "aws_iam_service_linked_role" "neptune" {
+  count            = var.create_service_linked_role ? 1 : 0
+  aws_service_name = "rds.amazonaws.com"
 }
 
 resource "aws_neptune_subnet_group" "main" {
@@ -82,6 +92,8 @@ resource "aws_neptune_cluster" "main" {
   tags = {
     Name = "${var.name_prefix}-neptune"
   }
+
+  depends_on = [aws_iam_service_linked_role.neptune]
 }
 
 resource "aws_neptune_cluster_instance" "main" {
@@ -96,8 +108,9 @@ resource "aws_neptune_cluster_instance" "main" {
 }
 
 resource "aws_secretsmanager_secret" "neptune" {
-  count = var.write_to_secrets_manager ? 1 : 0
-  name  = "${var.secrets_manager_prefix}/neptune"
+  count                   = var.write_to_secrets_manager ? 1 : 0
+  name                    = "${var.secrets_manager_prefix}/neptune"
+  recovery_window_in_days = 0
 
   tags = {
     Name = "${var.name_prefix}-neptune-secret"

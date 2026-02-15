@@ -11,6 +11,23 @@ Deploys the CompoundDocs MCP Server — a GraphRAG knowledge base for C#/.NET do
 - **Mode A/B**: AWS Secrets Manager with appropriate IAM permissions
 - **All modes**: Pre-existing VPC, subnets, and security groups (when using Crossplane)
 
+### Crossplane Provider IAM Permissions
+
+When using **Mode A** or **Mode D** (Crossplane enabled), the Crossplane `provider-opentofu` pod requires an IAM role with permissions to provision the following AWS resources:
+
+| Service | Actions | Purpose |
+|---------|---------|---------|
+| Neptune (rds:*) | CreateDBSubnetGroup, CreateDBCluster, CreateDBInstance, DescribeDBClusterParameters, DescribeGlobalClusters, etc. | Provision Neptune serverless cluster |
+| OpenSearch Serverless (aoss:*) | CreateCollection, CreateSecurityPolicy, CreateAccessPolicy, CreateVpcEndpoint, DeleteVpcEndpoint, UpdateVpcEndpoint, BatchGetVpcEndpoint, etc. | Provision AOSS vector search collection and VPC endpoint |
+| IAM (iam:*) | CreateRole, PutRolePolicy, PassRole, CreateServiceLinkedRole, etc. | Create application Pod Identity roles and service-linked roles |
+| EKS (eks:*PodIdentity*) | CreatePodIdentityAssociation, etc. | Bind IAM roles to K8s service accounts |
+| Secrets Manager | CreateSecret, PutSecretValue, GetResourcePolicy, etc. | Store connection details (when ESO enabled) |
+| EC2 (ec2:*) | CreateVpcEndpoint, DeleteVpcEndpoints, DescribeVpcEndpoints, ModifyVpcEndpoint, DescribeVpcs, DescribeSubnets, DescribeSecurityGroups, DescribeNetworkInterfaces, CreateTags | Create AOSS VPC endpoints for private network access |
+| Route 53 (route53:*) | CreateHostedZone, DeleteHostedZone, GetChange, AssociateVPCWithHostedZone, DisassociateVPCFromHostedZone, ListHostedZonesByVPC, ListHostedZonesByName, ChangeResourceRecordSets, GetHostedZone, ListResourceRecordSets | Manage private hosted zones for AOSS VPC endpoint DNS resolution |
+| STS | GetCallerIdentity | Account ID lookups in OpenTofu |
+
+The project includes a reference OpenTofu configuration (`opentofu/`) that provisions this policy automatically in `opentofu/phases/00-prereqs`. If you are not using the reference IaC, create and attach a policy with the above permissions manually to the role assumed by the Crossplane provider pod.
+
 ## Configuration Modes
 
 | Mode | `crossplane.enabled` | `externalSecrets.enabled` | Who creates K8s secrets? | When to use |
@@ -27,10 +44,20 @@ Resources are deployed in order via ArgoCD sync waves:
 ```
 Wave 0: Crossplane Provider
 Wave 1: Crossplane ProviderConfig
-Wave 2: Crossplane Workspaces (provisions infra + writes to Secrets Manager)
-Wave 3: ESO resources (ServiceAccount, SecretStore, ExternalSecrets)
-Wave 4: Application (Deployment, Service, ConfigMap, ServiceAccount)
+Wave 2: Crossplane Workspaces (IAM core, Neptune, OpenSearch)
+Wave 3: IAM OpenSearch Policy (attaches scoped OpenSearch policy to the app role)
+Wave 4: ESO resources (ServiceAccount, SecretStore, ExternalSecrets)
+Wave 5: Application (Deployment, Service, ConfigMap, ServiceAccount)
 ```
+
+## Deployment Ordering
+
+> **Important — Deployment Ordering for Manual Installs:**
+> The IAM OpenSearch Policy workspace (wave 3) requires the OpenSearch Serverless collection to exist before it can run. When using ArgoCD with sync waves, this ordering is handled automatically. If you are deploying manually (e.g., via `helm install` without ArgoCD), you must ensure the OpenSearch collection is fully created before the IAM OpenSearch Policy workspace reconciles. In practice this means:
+>
+> 1. The OpenSearch workspace (wave 2) must reach `READY=True` before the IAM OpenSearch Policy workspace (wave 3) can plan successfully.
+> 2. If deploying without ArgoCD sync wave enforcement, apply the workspaces in two steps: first apply the wave 2 workspaces (IAM core, Neptune, OpenSearch), wait for all to become Ready, then apply the wave 3 workspace (IAM OpenSearch Policy).
+> 3. If the IAM OpenSearch Policy workspace fails with `empty result` for the OpenSearch collection data source, it means the collection hasn't been created yet — wait for the OpenSearch workspace to complete and the workspace will self-heal on its next reconciliation loop.
 
 ## Architecture: Secret Flow
 
@@ -138,8 +165,9 @@ helm install compound-docs charts/compound-docs \
 | `syncWaves.provider` | string | `"0"` | Crossplane Provider wave |
 | `syncWaves.providerConfig` | string | `"1"` | Crossplane ProviderConfig wave |
 | `syncWaves.workspaces` | string | `"2"` | Crossplane Workspaces wave |
-| `syncWaves.externalSecrets` | string | `"3"` | ESO resources wave |
-| `syncWaves.application` | string | `"4"` | Application resources wave |
+| `syncWaves.iamOpenSearchPolicy` | string | `"3"` | IAM OpenSearch Policy workspace wave |
+| `syncWaves.externalSecrets` | string | `"4"` | ESO resources wave |
+| `syncWaves.application` | string | `"5"` | Application resources wave |
 
 ### Crossplane
 
@@ -172,6 +200,7 @@ helm install compound-docs charts/compound-docs \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `neptune.enabled` | bool | `true` | Enable Neptune provisioning |
+| `neptune.createServiceLinkedRole` | bool | `true` | Create the `AWSServiceRoleForNeptune` service-linked role |
 | `neptune.engineVersion` | string | `"1.2.0.1"` | Neptune engine version |
 | `neptune.minCapacity` | float | `2.5` | Serverless min capacity |
 | `neptune.maxCapacity` | int | `128` | Serverless max capacity |
@@ -206,7 +235,7 @@ helm install compound-docs charts/compound-docs \
 | `serviceAccount.annotations` | object | `{}` | Additional SA annotations |
 | `service.type` | string | `ClusterIP` | Service type |
 | `service.port` | int | `80` | Service port |
-| `service.targetPort` | int | `3000` | Container port |
+| `service.targetPort` | int | `8080` | Container port |
 | `resources.limits.cpu` | string | `"1"` | CPU limit |
 | `resources.limits.memory` | string | `512Mi` | Memory limit |
 | `resources.requests.cpu` | string | `250m` | CPU request |
@@ -233,5 +262,10 @@ kubectl describe secretstore <release> -n <namespace>
 
 - **SecretStore `InvalidProvider`**: Ensure the ESO ServiceAccount has a Pod Identity association and the IAM role has `secretsmanager:GetSecretValue` permissions.
 - **ExternalSecret `SecretSyncedError`**: Verify the Secrets Manager path exists and matches the `secretsManagerPrefix` value (e.g. `compound-docs/neptune`).
+- **Crossplane Workspace `AccessDenied`**: The Crossplane provider IAM role is missing permissions. If using the reference OpenTofu configuration (`opentofu/phases/00-prereqs`), re-apply after updating. Otherwise ensure the role has Neptune, OpenSearch Serverless, IAM, EKS, Secrets Manager, and STS permissions as documented in the Prerequisites section.
+- **Neptune `InvalidParameterCombination` / service-linked role missing**: Neptune requires the `AWSServiceRoleForNeptune` service-linked role. The chart creates it by default (`neptune.createServiceLinkedRole: true`). If your account already has this role, set `neptune.createServiceLinkedRole: false` to skip creation.
+- **IAM OpenSearch Policy workspace `empty result`**: The OpenSearch Serverless collection doesn't exist yet. Wait for the OpenSearch workspace (wave 2) to reach `READY=True` — the policy workspace will self-heal on its next reconciliation loop.
+- **Crossplane provider pod identity not working after association**: After the IAM workspace creates the `eks:PodIdentityAssociation`, the Crossplane provider pod may need a restart to pick up the new credentials. Delete the provider pod to trigger a restart: `kubectl delete pod -n crossplane-system -l pkg.crossplane.io/revision`.
+- **OpenSearch `ValidationException: Policy json is invalid`**: The network security policy requires either `AllowFromPublic: true` or at least one VPC endpoint. Ensure `vpc.vpcId`, `vpc.privateSubnetIds`, and `vpc.opensearchSecurityGroupId` are set correctly. The chart creates an AOSS VPC endpoint automatically.
 - **Crossplane Workspace stuck**: Check `kubectl describe workspace <name>` for TF apply errors. Common cause: missing VPC/subnet/SG IDs.
 - **`writeConnectionSecretToRef` conflict**: If switching from Mode D to Mode A, delete the existing K8s secrets first — Crossplane and ESO cannot both own the same secret.

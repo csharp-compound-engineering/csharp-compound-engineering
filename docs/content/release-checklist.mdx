@@ -62,13 +62,13 @@ Complete all items before creating a release.
 
 ### Version Updates
 
-- [ ] Version number updated in `marketplace/manifest.json`
+- [ ] Version number updated in `.claude-plugin/plugin.json`
 
-- [ ] Version number updated in all `.csproj` files
+- [ ] Version number updated in `Directory.Build.props` (centralized for all projects)
   ```xml
   <Version>x.y.z</Version>
-  <AssemblyVersion>x.y.z</AssemblyVersion>
-  <FileVersion>x.y.z</FileVersion>
+  <AssemblyVersion>x.y.z.0</AssemblyVersion>
+  <FileVersion>x.y.z.0</FileVersion>
   ```
 
 ### Build Verification
@@ -106,11 +106,11 @@ git checkout -b release/v{version}
 Update all version references:
 
 ```bash
-# Update version in manifest
-sed -i 's/"version": ".*"/"version": "{version}"/' marketplace/manifest.json
+# Update version in plugin manifest
+sed -i 's/"version": ".*"/"version": "{version}"/' .claude-plugin/plugin.json
 
-# Update .csproj files
-find src -name "*.csproj" -exec sed -i 's/<Version>.*<\/Version>/<Version>{version}<\/Version>/' {} \;
+# Update centralized version in Directory.Build.props
+sed -i 's/<Version>.*<\/Version>/<Version>{version}<\/Version>/' Directory.Build.props
 ```
 
 ### Step 3: Generate Changelog Entry

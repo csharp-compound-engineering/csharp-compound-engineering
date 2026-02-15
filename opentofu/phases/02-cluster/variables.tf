@@ -97,3 +97,25 @@ variable "node_desired_size" {
     error_message = "Desired node size must be non-negative."
   }
 }
+
+# ------------------------------------------------------------------------------
+# Pod Identity Associations
+# ------------------------------------------------------------------------------
+
+variable "external_secrets_enabled" {
+  description = "Whether to create EKS Pod Identity association for External Secrets Operator"
+  type        = bool
+  default     = true
+}
+
+variable "external_dns_enabled" {
+  description = "Whether to create EKS Pod Identity association for ExternalDNS"
+  type        = bool
+  default     = true
+}
+
+variable "crossplane_enabled" {
+  description = "Whether to create EKS Pod Identity association for Crossplane"
+  type        = bool
+  default     = true
+}

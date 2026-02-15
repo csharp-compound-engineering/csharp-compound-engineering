@@ -9,16 +9,20 @@ metadata:
     argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.providerConfig | quote }}
 spec:
   credentials:
-    source: Secret
-    secretRef:
-      namespace: {{ .Release.Namespace }}
-      name: {{ .Values.aws.credentialsSecretName }}
-      key: {{ .Values.aws.credentialsSecretKey }}
+    - source: {{ .Values.crossplane.credentials.source }}
+      filename: aws-credentials.json
+      {{- if eq .Values.crossplane.credentials.source "Secret" }}
+      secretRef:
+        namespace: {{ .Release.Namespace }}
+        name: {{ .Values.crossplane.credentials.secretName }}
+        key: {{ .Values.crossplane.credentials.secretKey }}
+      {{- end }}
   configuration: |
     terraform {
       backend "kubernetes" {
         in_cluster_config = true
         namespace         = "{{ .Release.Namespace }}"
+        secret_suffix     = "{{ include "compound-docs.fullname" . }}"
       }
     }
 

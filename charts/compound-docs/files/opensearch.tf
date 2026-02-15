@@ -32,6 +32,19 @@ variable "secrets_manager_prefix" {
 
 data "aws_caller_identity" "current" {}
 
+resource "aws_opensearchserverless_vpc_endpoint" "main" {
+  name               = "${var.name_prefix}-vpce"
+  vpc_id             = var.vpc_id
+  subnet_ids         = split(",", var.private_subnet_ids)
+  security_group_ids = [var.security_group_id]
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
+}
+
 resource "aws_opensearchserverless_security_policy" "encryption" {
   name = "${var.name_prefix}-encryption"
   type = "encryption"
@@ -58,7 +71,7 @@ resource "aws_opensearchserverless_security_policy" "network" {
         }
       ]
       AllowFromPublic = false
-      SourceVPCEs     = []
+      SourceVPCEs     = [aws_opensearchserverless_vpc_endpoint.main.id]
     }
   ])
 }
@@ -101,8 +114,9 @@ resource "aws_opensearchserverless_collection" "main" {
 }
 
 resource "aws_secretsmanager_secret" "opensearch" {
-  count = var.write_to_secrets_manager ? 1 : 0
-  name  = "${var.secrets_manager_prefix}/opensearch"
+  count                   = var.write_to_secrets_manager ? 1 : 0
+  name                    = "${var.secrets_manager_prefix}/opensearch"
+  recovery_window_in_days = 0
 
   tags = {
     Name = "${var.name_prefix}-opensearch-secret"

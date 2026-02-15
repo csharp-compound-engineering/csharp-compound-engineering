@@ -187,33 +187,26 @@ Project configuration is stored at `<project-root>/.csharp-compounding-docs/conf
 
 ### Claude Code Integration
 
-Add the MCP server to your Claude Code configuration:
+The MCP server uses HTTP transport on port 3000. Add it to your Claude Code configuration:
 
 ```json
 {
   "mcpServers": {
     "csharp-compounding-docs": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/path/to/csharp-compound-engineering/src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj"
-      ]
+      "url": "http://localhost:3000/mcp"
     }
   }
 }
 ```
 
-### Using Pre-built Binary
+Start the server before connecting:
 
-```json
-{
-  "mcpServers": {
-    "csharp-compounding-docs": {
-      "command": "/path/to/CompoundDocs.McpServer"
-    }
-  }
-}
+```bash
+# From source
+dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj
+
+# Or from published binary
+./CompoundDocs.McpServer
 ```
 
 ### AWS Credentials

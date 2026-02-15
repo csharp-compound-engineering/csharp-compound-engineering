@@ -4,7 +4,7 @@ title: Getting Started
 
 # CSharp Compound Docs
 
-A GraphRAG-powered knowledge oracle for C#/.NET projects, built as an MCP server for Claude Code.
+A GraphRAG-powered knowledge oracle for C#/.NET projects, built as a Claude Code plugin (`cd`).
 
 ## What is CSharp Compound Docs?
 
@@ -27,7 +27,7 @@ CSharp Compound Docs implements the "compound-engineering" paradigm — combinin
 ## Architecture Overview
 
 ```
-Claude Code → MCP Server → GraphRAG Pipeline
+Claude Code → Plugin (cd) → MCP Server (HTTP) → GraphRAG Pipeline
                               ├── OpenSearch Serverless (vector search)
                               ├── Amazon Neptune (knowledge graph)
                               └── Amazon Bedrock (embeddings + LLM)
@@ -39,4 +39,4 @@ See the [Architecture](/architecture) page for the full system design.
 
 - [Troubleshooting](/troubleshooting) — common issues and solutions
 - [Diagnostics](/diagnostics) — debug logging and AWS health checks
-- [GitHub Issues](https://github.com/your-org/csharp-compound-engineering/issues) — report bugs or request features
+- [GitHub Issues](https://github.com/michaelmccord/csharp-compound-engineering/issues) — report bugs or request features

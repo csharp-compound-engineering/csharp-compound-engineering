@@ -32,7 +32,7 @@ locals {
 # External Secrets Operator (ESO)
 ################################################################################
 
-# IAM resources (role, policy, pod identity) are in phase 00-prereqs.
+# IAM resources (role, policy) are in phase 00-prereqs; pod identity association is in phase 02-cluster.
 
 resource "helm_release" "external_secrets" {
   count = var.external_secrets_enabled ? 1 : 0
@@ -58,7 +58,7 @@ resource "helm_release" "external_secrets" {
 # ExternalDNS
 ################################################################################
 
-# IAM resources (role, policy, pod identity) are in phase 00-prereqs.
+# IAM resources (role, policy) are in phase 00-prereqs; pod identity association is in phase 02-cluster.
 
 resource "helm_release" "external_dns" {
   count = var.external_dns_enabled ? 1 : 0
@@ -343,7 +343,7 @@ resource "helm_release" "argocd" {
 # Crossplane
 ################################################################################
 
-# IAM resources (role, pod identity, policy attachment) are in phase 00-prereqs.
+# IAM resources (role, policy attachment) are in phase 00-prereqs; pod identity association is in phase 02-cluster.
 
 resource "helm_release" "crossplane" {
   count = var.crossplane_enabled ? 1 : 0

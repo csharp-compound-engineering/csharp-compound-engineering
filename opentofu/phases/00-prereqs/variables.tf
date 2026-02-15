@@ -65,7 +65,7 @@ variable "crossplane_enabled" {
 }
 
 variable "crossplane_provider_aws_policy_arn" {
-  description = "ARN of the IAM policy to attach to the Crossplane AWS provider role. Leave empty to attach policies separately."
+  description = "ARN of an additional IAM policy to attach to the Crossplane AWS provider role. The default compound-docs policy is always attached."
   type        = string
   default     = ""
 }

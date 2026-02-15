@@ -22,11 +22,6 @@ variable "neptune_cluster_resource_id" {
   default = "*"
 }
 
-variable "opensearch_collection_id" {
-  type    = string
-  default = "*"
-}
-
 variable "write_to_secrets_manager" {
   type    = bool
   default = false
@@ -38,11 +33,6 @@ variable "secrets_manager_prefix" {
 }
 
 variable "eso_service_account_name" {
-  type    = string
-  default = ""
-}
-
-variable "collection_name" {
   type    = string
   default = ""
 }
@@ -92,18 +82,6 @@ data "aws_iam_policy_document" "neptune" {
   }
 }
 
-data "aws_iam_policy_document" "opensearch" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "aoss:APIAccessAll",
-    ]
-    resources = [
-      "arn:aws:aoss:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:collection/${local.resolved_collection_id}"
-    ]
-  }
-}
-
 data "aws_iam_policy_document" "bedrock" {
   statement {
     effect = "Allow"
@@ -121,32 +99,10 @@ resource "aws_iam_role_policy" "neptune" {
   policy = data.aws_iam_policy_document.neptune.json
 }
 
-resource "aws_iam_role_policy" "opensearch" {
-  name   = "opensearch-access"
-  role   = aws_iam_role.main.id
-  policy = data.aws_iam_policy_document.opensearch.json
-}
-
 resource "aws_iam_role_policy" "bedrock" {
   name   = "bedrock-access"
   role   = aws_iam_role.main.id
   policy = data.aws_iam_policy_document.bedrock.json
-}
-
-# --- Data source for OpenSearch collection ID (used when ESO enabled) ---
-data "aws_opensearchserverless_collection" "lookup" {
-  count = var.opensearch_collection_id == "*" && var.collection_name != "" ? 1 : 0
-  name  = var.collection_name
-}
-
-locals {
-  resolved_collection_id = (
-    var.opensearch_collection_id != "*"
-    ? var.opensearch_collection_id
-    : (length(data.aws_opensearchserverless_collection.lookup) > 0
-      ? data.aws_opensearchserverless_collection.lookup[0].id
-      : "*")
-  )
 }
 
 # --- ESO reader Pod Identity role ---
@@ -207,8 +163,9 @@ resource "aws_iam_role_policy" "eso_secrets_manager" {
 
 # --- Write IAM outputs to Secrets Manager ---
 resource "aws_secretsmanager_secret" "iam" {
-  count = var.write_to_secrets_manager ? 1 : 0
-  name  = "${var.secrets_manager_prefix}/iam"
+  count                   = var.write_to_secrets_manager ? 1 : 0
+  name                    = "${var.secrets_manager_prefix}/iam"
+  recovery_window_in_days = 0
 
   tags = {
     Name = "${var.name_prefix}-iam-secret"

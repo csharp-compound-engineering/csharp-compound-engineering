@@ -9,7 +9,7 @@ export const metadata = {
     default: 'CSharp Compound Docs',
     template: '%s | CSharp Compound Docs',
   },
-  description: 'Documentation for the CSharp Compound Docs MCP server — a GraphRAG-powered knowledge oracle for C#/.NET projects.',
+  description: 'Documentation for the CSharp Compound Docs plugin — a GraphRAG-powered knowledge oracle for C#/.NET projects.',
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
@@ -21,11 +21,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           navbar={
             <Navbar
               logo={<b>CSharp Compound Docs</b>}
-              projectLink="https://github.com/your-org/csharp-compound-engineering"
+              projectLink="https://github.com/michaelmccord/csharp-compound-engineering"
             />
           }
           footer={<Footer>MIT {new Date().getFullYear()} © CSharp Compound Docs</Footer>}
-          docsRepositoryBase="https://github.com/your-org/csharp-compound-engineering/tree/master/docs"
+          docsRepositoryBase="https://github.com/michaelmccord/csharp-compound-engineering/tree/master/docs"
           pageMap={await getPageMap()}
         >
           {children}

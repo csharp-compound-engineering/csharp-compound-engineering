@@ -89,3 +89,36 @@ module "eks" {
 
   tags = local.common_tags
 }
+
+################################################################################
+# Pod Identity Associations
+#
+# These must live in the cluster phase (not prereqs) because they require the
+# EKS cluster to exist. Using module.eks.cluster_name creates an implicit
+# dependency so OpenTofu creates the cluster before the associations.
+# IAM roles are read from prereqs via remote state.
+################################################################################
+
+resource "aws_eks_pod_identity_association" "external_secrets" {
+  count           = var.external_secrets_enabled ? 1 : 0
+  cluster_name    = module.eks.cluster_name
+  namespace       = "external-secrets"
+  service_account = "external-secrets"
+  role_arn        = data.terraform_remote_state.prereqs.outputs.external_secrets_role_arn
+}
+
+resource "aws_eks_pod_identity_association" "external_dns" {
+  count           = var.external_dns_enabled ? 1 : 0
+  cluster_name    = module.eks.cluster_name
+  namespace       = "external-dns"
+  service_account = "external-dns"
+  role_arn        = data.terraform_remote_state.prereqs.outputs.external_dns_role_arn
+}
+
+resource "aws_eks_pod_identity_association" "crossplane_provider_aws" {
+  count           = var.crossplane_enabled ? 1 : 0
+  cluster_name    = module.eks.cluster_name
+  namespace       = "crossplane-system"
+  service_account = "provider-opentofu"
+  role_arn        = data.terraform_remote_state.prereqs.outputs.crossplane_provider_aws_role_arn
+}

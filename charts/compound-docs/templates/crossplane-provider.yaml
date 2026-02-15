@@ -9,4 +9,8 @@ metadata:
     argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.provider | quote }}
 spec:
   package: {{ .Values.crossplane.provider.package }}
+  {{- with .Values.crossplane.runtimeConfigRef }}
+  runtimeConfigRef:
+    name: {{ . }}
+  {{- end }}
 {{- end }}

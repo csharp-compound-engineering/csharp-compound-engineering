@@ -24,23 +24,12 @@ spec:
       - key: service_account_name
         value: {{ include "compound-docs.serviceAccountName" . | quote }}
       {{- if .Values.externalSecrets.enabled }}
-      - key: opensearch_collection_id
-        value: "*"
-      - key: collection_name
-        value: {{ .Values.opensearch.collectionName | quote }}
       - key: write_to_secrets_manager
         value: "true"
       - key: secrets_manager_prefix
         value: {{ .Values.externalSecrets.secretsManagerPrefix | quote }}
       - key: eso_service_account_name
         value: {{ include "compound-docs.esoServiceAccountName" . | quote }}
-      {{- else }}
-      - key: opensearch_collection_id
-        valueFrom:
-          secretKeyRef:
-            namespace: {{ .Release.Namespace }}
-            name: {{ .Values.opensearch.connectionSecretName }}
-            key: collection_id
       {{- end }}
   {{- if not .Values.externalSecrets.enabled }}
   writeConnectionSecretToRef:

@@ -1,10 +1,10 @@
-# CompoundDocs MCP Server
+# CompoundDocs — Claude Code Plugin
 
-A [Model Context Protocol](https://modelcontextprotocol.io/)  (MCP) server that implements a GraphRAG knowledge base for C#/.NET documentation. It combines graph traversal (Amazon Neptune), vector search (AWS OpenSearch Serverless), and LLM synthesis (Amazon Bedrock) to provide semantic Q&A over documentation with source attribution.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) plugin (`cd`) that implements a GraphRAG knowledge base for C#/.NET documentation. It bundles an HTTP-based [MCP](https://modelcontextprotocol.io/) server backed by graph traversal (Amazon Neptune), vector search (AWS OpenSearch Serverless), and LLM synthesis (Amazon Bedrock) to provide semantic Q&A over documentation with source attribution.
 
 ## How It Works
 
-The server exposes a single MCP tool, `rag_query`, that orchestrates a multi-stage retrieval pipeline:
+The plugin exposes a single MCP tool, `rag_query`, that orchestrates a multi-stage retrieval pipeline:
 
 ```
 Query → Embedding Generation → KNN Vector Search → Graph Traversal → LLM Synthesis → Answer + Sources
@@ -38,11 +38,11 @@ dotnet test
 
 ```
 src/
-├── CompoundDocs.McpServer     # MCP server app (stdio transport), RagQueryTool, processing pipeline, resilience
+├── CompoundDocs.McpServer     # MCP server app (HTTP transport), RagQueryTool, processing pipeline, resilience
 ├── CompoundDocs.Common        # Shared models, graph relationships, config loading, logging
 ├── CompoundDocs.GraphRag      # RAG pipeline orchestration (IGraphRagPipeline)
 ├── CompoundDocs.Vector        # IVectorStore — AWS OpenSearch Serverless KNN search
-├── CompoundDocs.Graph         # IGraphRepository — Amazon Neptune (Gremlin)
+├── CompoundDocs.Graph         # IGraphRepository — Amazon Neptune (openCypher)
 ├── CompoundDocs.Bedrock       # IBedrockEmbeddingService + IBedrockLlmService
 ├── CompoundDocs.GitSync       # Git repository monitoring via LibGit2Sharp
 └── CompoundDocs.Worker        # Background document processing service
@@ -108,19 +108,28 @@ Config loading is handled by `ConfigurationLoader` in `CompoundDocs.Common`.
 
 ### Environment Variables
 
+#### Local Development Mode
+
+These override the local `GlobalConfig` defaults (PostgreSQL + Ollama) used when running without AWS services:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `COMPOUNDING_POSTGRES_HOST` | PostgreSQL host | `127.0.0.1` |
+| `COMPOUNDING_POSTGRES_PORT` | PostgreSQL port | `5433` |
+| `COMPOUNDING_POSTGRES_DATABASE` | PostgreSQL database name | `compounding_docs` |
+| `COMPOUNDING_POSTGRES_USERNAME` | PostgreSQL username | `compounding` |
+| `COMPOUNDING_POSTGRES_PASSWORD` | PostgreSQL password | `compounding` |
+| `COMPOUNDING_OLLAMA_HOST` | Ollama endpoint host | `127.0.0.1` |
+| `COMPOUNDING_OLLAMA_PORT` | Ollama endpoint port | `11435` |
+| `COMPOUNDING_OLLAMA_MODEL` | Ollama generation model | `mistral` |
+
+#### Cloud / Container Deployment
+
 | Variable | Description |
 |----------|-------------|
-| `ASPNETCORE_ENVIRONMENT` | Runtime environment |
-| `COMPOUNDING_POSTGRES_HOST` | PostgreSQL host |
-| `COMPOUNDING_POSTGRES_PORT` | PostgreSQL port |
-| `COMPOUNDING_POSTGRES_DATABASE` | PostgreSQL database name |
-| `COMPOUNDING_POSTGRES_USERNAME` | PostgreSQL username |
-| `COMPOUNDING_POSTGRES_PASSWORD` | PostgreSQL password |
-| `COMPOUNDING_OLLAMA_HOST` | Ollama endpoint host |
-| `COMPOUNDING_OLLAMA_PORT` | Ollama endpoint port |
-| `COMPOUNDING_OLLAMA_MODEL` | Ollama model name |
-
-> **Note:** `COMPOUNDDOCS_LOG_LEVEL` is set in the Dockerfile only. `COMPOUNDDOCS_API_KEYS` is used in the Helm chart deployment template only.
+| `ASPNETCORE_ENVIRONMENT` | Runtime environment (`Production`, `Development`) |
+| `COMPOUNDDOCS_LOG_LEVEL` | Log level (set in the Dockerfile) |
+| `COMPOUNDDOCS_API_KEYS` | API keys (used in the Helm chart deployment template) |
 
 ## Authentication
 
@@ -145,7 +154,7 @@ Set `Enabled` to `false` to disable authentication for local development. The `/
 docker build -t compound-docs-mcp .
 ```
 
-The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 1654). The MCP server uses stdio transport by default. Pre-built multi-arch images are published to GitHub Container Registry on release.
+The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 1654). The MCP server listens on HTTP port 3000. Pre-built multi-arch images are published to GitHub Container Registry on release.
 
 ## Infrastructure
 
@@ -153,13 +162,17 @@ The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 165
 
 | Service | Purpose |
 |---------|---------|
-| Amazon Neptune | Graph database for concept relationships (Gremlin) |
+| Amazon Neptune | Graph database for concept relationships (openCypher) |
 | AWS OpenSearch Serverless | Vector store for KNN semantic search |
 | Amazon Bedrock | Embedding generation (Titan Embed v2) and LLM synthesis (Claude) |
 
 ### Infrastructure as Code
 
-- **OpenTofu** (`opentofu/`) — Modular AWS infrastructure provisioning (VPC, EKS, platform)
+- **OpenTofu** (`opentofu/`) — Reference IaC configuration for provisioning the full AWS infrastructure stack across 4 phases:
+  - `00-prereqs` — IAM roles and policies (Crossplane provider, ESO, ExternalDNS) + Secrets Manager
+  - `01-network` — VPC and subnets
+  - `02-cluster` — EKS cluster + Pod Identity associations
+  - `03-platform` — Helm releases and Crossplane DeploymentRuntimeConfig
 - **Helm** (`charts/compound-docs/`) — Kubernetes deployment with Crossplane, External Secrets, and IRSA support
 
 ## CI/CD

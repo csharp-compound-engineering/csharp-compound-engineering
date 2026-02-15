@@ -1,0 +1,22 @@
+{{- if and .Values.crossplane.enabled .Values.iam.enabled .Values.opensearch.enabled }}
+apiVersion: opentofu.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-iam-opensearch-policy
+  labels:
+    {{- include "compound-docs.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.iamOpenSearchPolicy | quote }}
+spec:
+  providerConfigRef:
+    name: {{ include "compound-docs.fullname" . }}
+  forProvider:
+    source: Inline
+    module: |
+      {{ .Files.Get "files/iam-opensearch-policy.tf" | nindent 6 }}
+    vars:
+      - key: role_name
+        value: {{ include "compound-docs.fullname" . }}-pod-identity
+      - key: collection_name
+        value: {{ .Values.opensearch.collectionName | quote }}
+{{- end }}

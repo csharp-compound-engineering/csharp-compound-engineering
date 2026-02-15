@@ -4,7 +4,7 @@ title: Architecture
 
 # Architecture Documentation
 
-This document provides a comprehensive overview of the CSharp Compound Docs MCP server architecture, including system design, component interactions, and key design decisions.
+This document provides a comprehensive overview of the CSharp Compound Docs plugin architecture, including system design, component interactions, and key design decisions.
 
 ## High-Level Overview
 
@@ -30,12 +30,12 @@ CSharp Compound Docs is a Claude Code plugin that implements the "compound-engin
 |                      Claude Code / Claude Desktop                  |
 +------------------------------------------------------------------+
                                 |
-                          stdio transport
+                     HTTP transport (port 3000)
                                 |
                                 v
 +------------------------------------------------------------------+
 |                          MCP Server                               |
-|                    (.NET 9.0 Generic Host)                        |
+|                    (.NET 9.0 ASP.NET Core)                        |
 |                                                                    |
 |  +--------------------+  +--------------------+                    |
 |  |   MCP Tool (1)     |  |  GraphRAG Pipeline |                   |
@@ -70,7 +70,7 @@ CSharp Compound Docs is a Claude Code plugin that implements the "compound-engin
                     |   Plugin System   |
                     +--------+----------+
                              |
-                  MCP Protocol (stdio)
+                  MCP Protocol (HTTP)
                              |
                              v
                     +-------------------+
@@ -197,14 +197,13 @@ User Query: "How do we handle connection pool exhaustion?"
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| MCP Server | .NET 9 Generic Host | Application hosting, DI, logging |
-| MCP Protocol | ModelContextProtocol.Server | Claude Code integration (stdio) |
+| MCP Server | .NET 9 ASP.NET Core | Application hosting, DI, logging |
+| MCP Protocol | ModelContextProtocol.AspNetCore | Claude Code integration (HTTP) |
 | Vector Storage | AWS OpenSearch Serverless | Semantic search via KNN |
 | Knowledge Graph | Amazon Neptune (openCypher) | Concept relationships, multi-hop traversal |
 | Embeddings | Amazon Bedrock (Titan Embed v2) | 1024-dimension vector generation |
 | LLM Synthesis | Amazon Bedrock (Claude) | RAG answer generation, entity extraction |
 | Git Sync | LibGit2Sharp | Repository cloning, change detection |
-| Orchestration | .NET Aspire | Service discovery, observability |
 
 ### Supporting Libraries
 
@@ -215,7 +214,7 @@ User Query: "How do we handle connection pool exhaustion?"
 | YamlDotNet | YAML configuration parsing |
 | Polly | Resilience (retry, circuit breaker) for all AWS calls |
 | Serilog | Structured logging (stderr for MCP compliance) |
-| Gremlin.Net | Neptune graph client connectivity |
+| AWSSDK.Neptunedata | Neptune openCypher query client |
 
 ### AWS Services
 
@@ -282,18 +281,19 @@ User Query: "How do we handle connection pool exhaustion?"
 - Polling-based (configurable interval, default 5 minutes)
 - Requires git credentials for private repositories
 
-### Decision 5: Stdio Transport
+### Decision 5: HTTP Transport
 
-**Choice**: MCP server uses stdio transport (not HTTP)
+**Choice**: MCP server uses HTTP transport via ASP.NET Core (port 3000)
 
 **Rationale**:
-- One server instance per Claude Code session
-- Simpler security model (no network exposure)
-- Automatic lifecycle management by Claude Code
+- Full ASP.NET Core middleware pipeline (authentication, authorization, health checks)
+- API key authentication via `X-API-Key` header or `Authorization: Bearer` scheme
+- Supports multiple concurrent clients
+- Compatible with Kubernetes / containerized deployments
 
 **Trade-offs**:
-- Cannot share server across multiple clients
-- Server restarts on each Claude Code session
+- Requires network access and port management
+- Must configure authentication for security (enabled by default)
 
 ## Security Architecture
 
@@ -305,11 +305,11 @@ User Query: "How do we handle connection pool exhaustion?"
 |   (trusted)       |
 +--------+----------+
          |
-         | stdio (local only)
+         | HTTP (port 3000, API key auth)
          v
 +-------------------+
 |    MCP Server     |
-|   (localhost)     |
+| (ASP.NET Core)    |
 +--------+----------+
          |
          | HTTPS + AWS IAM SigV4
@@ -325,7 +325,7 @@ User Query: "How do we handle connection pool exhaustion?"
 
 | Boundary | Protection |
 |----------|------------|
-| MCP Transport | stdio (no network exposure) |
+| MCP Transport | HTTP with API key authentication (X-API-Key or Bearer token) |
 | AWS Services | IAM authentication, SigV4 request signing |
 | Neptune | VPC-based access control |
 | OpenSearch Serverless | AWS IAM policies, encryption at rest |
@@ -351,7 +351,7 @@ User Query: "How do we handle connection pool exhaustion?"
 | Graph queries | Neptune scales with instance size |
 | Embeddings | Bedrock is serverless, scales on demand |
 | Repositories | Configurable list with independent polling |
-| Concurrent sessions | 1 per MCP server instance (stdio limitation) |
+| Concurrent sessions | Multiple (HTTP transport supports concurrent connections) |
 
 ### Cross-Repository Support
 
@@ -378,14 +378,6 @@ Concepts discovered in one repository can be linked to concepts in another via t
 | Worker Service | stderr | Structured JSON (Serilog) |
 | AWS Services | CloudWatch | AWS native logging |
 
-### OpenTelemetry
-
-The Aspire ServiceDefaults project provides:
-- Distributed tracing
-- Metrics collection
-- HTTP client instrumentation
-- Service discovery
-
 ### Resilience
 
 All AWS service calls use Polly resilience policies:
@@ -397,14 +389,12 @@ All AWS service calls use Polly resilience policies:
 
 ```
 src/
-  CompoundDocs.AppHost/        # .NET Aspire orchestration
-  CompoundDocs.McpServer/      # MCP server with rag_query tool
+  CompoundDocs.McpServer/      # MCP server with rag_query tool (HTTP transport, port 3000)
   CompoundDocs.Worker/         # Background worker (GitSync + ingestion)
   CompoundDocs.Common/         # Shared configuration and models
   CompoundDocs.Vector/         # OpenSearch Serverless client
-  CompoundDocs.Graph/          # Neptune graph repository
+  CompoundDocs.Graph/          # Neptune graph repository (openCypher)
   CompoundDocs.Bedrock/        # Bedrock embedding + LLM services
   CompoundDocs.GraphRag/       # GraphRAG pipeline orchestration
   CompoundDocs.GitSync/        # Git repository sync (LibGit2Sharp)
-  CompoundDocs.ServiceDefaults/# Aspire shared defaults + telemetry
 ```
