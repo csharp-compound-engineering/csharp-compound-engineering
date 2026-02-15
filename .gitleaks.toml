@@ -1,0 +1,40 @@
+title = "Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''node_modules/''',
+  '''TestResults/''',
+  '''coverage/''',
+  '''\.nuget/''',
+  '''pnpm-lock\.yaml''',
+  '''docs/pnpm-lock\.yaml''',
+]
+
+# Custom rules for .NET patterns
+[[rules]]
+id = "dotnet-connection-string"
+description = "Possible .NET connection string with credentials"
+regex = '''(?i)(password|pwd)\s*=\s*[^\s;]{8,}'''
+tags = ["connection-string", "dotnet"]
+
+[rules.allowlist]
+paths = [
+  '''appsettings\.Development\.json''',
+  '''\.example''',
+]
+
+[[rules]]
+id = "aws-neptune-endpoint"
+description = "AWS Neptune cluster endpoint"
+regex = '''[\w.-]+\.neptune\.amazonaws\.com'''
+tags = ["aws", "neptune"]
+
+[[rules]]
+id = "aws-opensearch-endpoint"
+description = "AWS OpenSearch Serverless endpoint"
+regex = '''[\w.-]+\.aoss\.amazonaws\.com'''
+tags = ["aws", "opensearch"]

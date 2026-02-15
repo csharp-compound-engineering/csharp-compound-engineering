@@ -1,7 +1,7 @@
 # Default values for compound-docs Helm chart
 
 image:
-  repository: ghcr.io/michaelmccord/csharp-compound-engineering/mcp-server
+  repository: ghcr.io/csharp-compound-engineering/csharp-compound-engineering/mcp-server
   tag: ""  # Defaults to .Chart.AppVersion
   pullPolicy: IfNotPresent
 

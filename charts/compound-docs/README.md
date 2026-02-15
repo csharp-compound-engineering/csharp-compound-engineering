@@ -151,7 +151,7 @@ helm install compound-docs charts/compound-docs \
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `image.repository` | string | `ghcr.io/compound-docs/...` | Container image repository |
+| `image.repository` | string | `ghcr.io/csharp-compound-engineering/csharp-compound-engineering/mcp-server` | Container image repository |
 | `image.tag` | string | `""` | Image tag (defaults to Chart.AppVersion) |
 | `image.pullPolicy` | string | `IfNotPresent` | Image pull policy |
 | `replicaCount` | int | `1` | Number of replicas |

@@ -16,8 +16,8 @@
         "name": "Michael McCord"
       },
       "source": ".",
-      "homepage": "https://github.com/michaelmccord/csharp-compound-engineering",
-      "repository": "https://github.com/michaelmccord/csharp-compound-engineering",
+      "homepage": "https://github.com/csharp-compound-engineering/csharp-compound-engineering",
+      "repository": "https://github.com/csharp-compound-engineering/csharp-compound-engineering",
       "license": "MIT",
       "category": "knowledge-management",
       "keywords": [

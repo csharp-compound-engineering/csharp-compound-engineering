@@ -4,6 +4,9 @@ description: GraphRAG MCP server for C#/.NET documentation — Neptune + OpenSea
 type: application
 version: 2.1.0
 appVersion: "2.1.0"
+home: https://github.com/csharp-compound-engineering/csharp-compound-engineering
+sources:
+  - https://github.com/csharp-compound-engineering/csharp-compound-engineering
 keywords:
   - mcp
   - graphrag
@@ -12,4 +15,5 @@ keywords:
   - bedrock
   - dotnet
 maintainers:
-  - name: compound-docs
+  - name: Michael McCord
+    url: https://github.com/michaelmccord

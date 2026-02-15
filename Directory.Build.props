@@ -17,6 +17,21 @@
     <Version>2.1.0</Version>
     <FileVersion>2.1.0.0</FileVersion>
     <AssemblyVersion>2.1.0.0</AssemblyVersion>
+
+    <!-- NuGet package metadata -->
+    <Authors>Michael McCord</Authors>
+    <Description>GraphRAG knowledge base MCP plugin for C#/.NET projects</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/csharp-compound-engineering/csharp-compound-engineering</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/csharp-compound-engineering/csharp-compound-engineering</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mcp;claude;graphrag;dotnet;csharp</PackageTags>
+
+    <!-- Symbol packages for NuGet debugging -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
   </PropertyGroup>
 
   <!-- Common package references for all projects -->
