@@ -19,7 +19,7 @@ Query → Embedding Generation → KNN Vector Search → Graph Traversal → LLM
 
 - [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
 - AWS credentials configured for Neptune, OpenSearch Serverless, and Bedrock access
-- Docker (optional, for local infrastructure)
+- Docker (optional, for building/running the production container image)
 
 ## Quick Start
 
@@ -108,23 +108,6 @@ Config loading is handled by `ConfigurationLoader` in `CompoundDocs.Common`.
 
 ### Environment Variables
 
-#### Local Development Mode
-
-These override the local `GlobalConfig` defaults (PostgreSQL + Ollama) used when running without AWS services:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `COMPOUNDING_POSTGRES_HOST` | PostgreSQL host | `127.0.0.1` |
-| `COMPOUNDING_POSTGRES_PORT` | PostgreSQL port | `5433` |
-| `COMPOUNDING_POSTGRES_DATABASE` | PostgreSQL database name | `compounding_docs` |
-| `COMPOUNDING_POSTGRES_USERNAME` | PostgreSQL username | `compounding` |
-| `COMPOUNDING_POSTGRES_PASSWORD` | PostgreSQL password | `compounding` |
-| `COMPOUNDING_OLLAMA_HOST` | Ollama endpoint host | `127.0.0.1` |
-| `COMPOUNDING_OLLAMA_PORT` | Ollama endpoint port | `11435` |
-| `COMPOUNDING_OLLAMA_MODEL` | Ollama generation model | `mistral` |
-
-#### Cloud / Container Deployment
-
 | Variable | Description |
 |----------|-------------|
 | `ASPNETCORE_ENVIRONMENT` | Runtime environment (`Production`, `Development`) |
@@ -150,11 +133,14 @@ Set `Enabled` to `false` to disable authentication for local development. The `/
 ## Docker
 
 ```bash
-# Build the image
+# Pull pre-built image from GHCR
+docker pull ghcr.io/csharp-compound-engineering/csharp-compound-engineering/mcp-server:latest
+
+# Or build locally
 docker build -t compound-docs-mcp .
 ```
 
-The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 1654). The MCP server listens on HTTP port 3000. Pre-built multi-arch images are published to GitHub Container Registry on release.
+The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 1654). The MCP server listens on HTTP port 8080 (ASP.NET Core default). Pre-built multi-arch images are published to GitHub Container Registry on release.
 
 ## Infrastructure
 
@@ -173,7 +159,7 @@ The image uses a multi-stage Ubuntu Chiseled build with a non-root user (UID 165
   - `01-network` — VPC and subnets
   - `02-cluster` — EKS cluster + Pod Identity associations
   - `03-platform` — Helm releases and Crossplane DeploymentRuntimeConfig
-- **Helm** (`charts/compound-docs/`) — Kubernetes deployment with Crossplane, External Secrets, and IRSA support
+- **Helm** (`charts/compound-docs/`) — Production Kubernetes deployment chart with Crossplane, External Secrets, and IRSA support
 
 ## CI/CD
 
@@ -226,7 +212,7 @@ DocumentNode ──HAS_SECTION──▶ SectionNode
 
 ## Scripts
 
-Bash scripts in `scripts/`:
+Build and release automation scripts in `scripts/` (not part of the MCP server or plugin):
 
 | Script | Purpose |
 |--------|---------|

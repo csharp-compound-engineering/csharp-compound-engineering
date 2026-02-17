@@ -18,7 +18,7 @@ dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj  #
 bash scripts/coverage-merge.sh            # Run tests + merge coverage + enforce 100% threshold
 ```
 
-**Bash scripts in `scripts/`:**
+**Build and release scripts in `scripts/` (not part of the MCP server or plugin):**
 - `coverage-merge.sh` — Run tests + merge coverage + enforce 100% threshold
 - `release-prepare.sh` — Version bumps for releases
 - `release-docker.sh` — Docker image build/push
@@ -33,7 +33,7 @@ bash scripts/coverage-merge.sh            # Run tests + merge coverage + enforce
 
 | Project | Purpose |
 |---------|---------|
-| `CompoundDocs.McpServer` | Main MCP server app (HTTP transport, port 3000). Contains the `RagQueryTool`, document processing pipeline, resilience policies (Polly), and observability. |
+| `CompoundDocs.McpServer` | Main MCP server app (HTTP transport, port 8080). Contains the `RagQueryTool`, document processing pipeline, resilience policies (Polly), and observability. |
 | `CompoundDocs.Common` | Shared models (`DocumentNode`, `ChunkNode`, `ConceptNode`, etc.), graph relationships (`HAS_SECTION`, `HAS_CHUNK`, `MENTIONS`, `RELATES_TO`, `LINKS_TO`), config loading, Markdown/YAML parsing, logging with correlation IDs. |
 | `CompoundDocs.GraphRag` | Orchestrates the full RAG pipeline: embed → vector search → graph traversal → LLM synthesis. Key interface: `IGraphRagPipeline`. |
 | `CompoundDocs.Vector` | `IVectorStore` abstraction over AWS OpenSearch Serverless for KNN search. |
