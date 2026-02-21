@@ -30,10 +30,11 @@ This project has adopted the [Contributor Covenant Code of Conduct](CODE_OF_COND
 Before contributing, ensure you have:
 
 - .NET 9.0 SDK or later
-- Docker Desktop
-- PowerShell 7+
 - Git
 - A code editor (Visual Studio, VS Code, or Rider recommended)
+- PowerShell 7+ (only needed for the reference IaC scripts in `opentofu/scripts/`)
+- AWS credentials (optional — only needed to run against real AWS services)
+- Docker (optional — only needed for building the production container image)
 
 ### Quick Start
 
@@ -66,35 +67,31 @@ dotnet restore
 dotnet build
 ```
 
-### 2. Start Infrastructure
+### 2. Configure AWS (Optional)
+
+Unit tests and mock-based integration/E2E tests run without AWS credentials. To run tests against real AWS services, configure credentials:
 
 ```bash
-# Start Docker containers
-docker compose -p csharp-compounding-docs up -d
-
-# Verify services
-docker compose -p csharp-compounding-docs ps
+aws sso login   # or: aws configure
 ```
 
-### 3. Pull Required Ollama Models
-
-```bash
-docker compose -p csharp-compounding-docs exec ollama ollama pull mxbai-embed-large
-docker compose -p csharp-compounding-docs exec ollama ollama pull mistral
-```
-
-### 4. Run Tests
+### 3. Run Tests
 
 ```bash
 # Run all tests
 dotnet test
 
-# Run specific test category
-dotnet test --filter "Category=Unit"
-dotnet test --filter "Category=Integration"
+# Run only unit tests
+dotnet test tests/CompoundDocs.Tests.Unit
+
+# Run only integration tests
+dotnet test tests/CompoundDocs.Tests.Integration
+
+# Run a specific test
+dotnet test --filter "FullyQualifiedName~MyTestMethod"
 ```
 
-### 5. Run the MCP Server Locally
+### 4. Run the MCP Server Locally
 
 ```bash
 dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj
@@ -107,20 +104,24 @@ dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj
 ```
 csharp-compound-engineering/
 ├── src/                          # Source code
-│   ├── CompoundDocs.McpServer/   # MCP server application
-│   ├── CompoundDocs.Cleanup/     # Cleanup console application
-│   └── CompoundDocs.Common/      # Shared library
+│   ├── CompoundDocs.McpServer/   # MCP server app (HTTP transport)
+│   ├── CompoundDocs.Common/      # Shared models, config loading, logging
+│   ├── CompoundDocs.GraphRag/    # RAG pipeline orchestration
+│   ├── CompoundDocs.Vector/      # AWS OpenSearch Serverless KNN search
+│   ├── CompoundDocs.Graph/       # Amazon Neptune (openCypher)
+│   ├── CompoundDocs.Bedrock/     # Embedding + LLM services
+│   ├── CompoundDocs.GitSync/     # Git repo monitoring
+│   └── CompoundDocs.Worker/      # Background document processing
 ├── tests/                        # Test projects
-│   ├── CompoundDocs.Tests/       # Unit tests
-│   ├── CompoundDocs.IntegrationTests/
-│   └── CompoundDocs.E2ETests/
-├── plugins/                      # Claude Code plugin files
-│   └── csharp-compounding-docs/
-├── docker/                       # Docker configurations
-├── scripts/                      # PowerShell scripts
-├── docs/                         # Documentation
-├── marketplace/                  # Marketplace assets
-└── spec/                         # Specifications
+│   ├── CompoundDocs.Tests.Unit/
+│   ├── CompoundDocs.Tests.Integration/
+│   └── CompoundDocs.Tests.E2E/
+├── charts/compound-docs/         # Helm chart for Kubernetes deployment (production)
+├── opentofu/                     # Reference IaC for AWS infrastructure (dev/testing)
+│   └── scripts/                  # PowerShell orchestration scripts
+├── scripts/                      # Bash scripts (coverage, release)
+├── docs/                         # Documentation site (Nextra)
+└── .claude-plugin/               # Claude Code plugin manifests
 ```
 
 ---
@@ -459,11 +460,11 @@ Include:
 
 | Type | Location |
 |------|----------|
-| API Reference | `/docs/API-REFERENCE.md` |
-| Architecture | `/docs/ARCHITECTURE.md` |
-| Configuration | `/docs/configuration.md` |
-| Troubleshooting | `/docs/TROUBLESHOOTING.md` |
-| Specifications | `/spec/` |
+| API Reference | `docs/content/api-reference.mdx` |
+| Architecture | `docs/content/architecture.mdx` |
+| Configuration | `docs/content/configuration.mdx` |
+| Installation | `docs/content/installation.mdx` |
+| Troubleshooting | `docs/content/troubleshooting.mdx` |
 
 ### Documentation Style
 

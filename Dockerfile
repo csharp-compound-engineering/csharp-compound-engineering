@@ -66,10 +66,10 @@ LABEL org.opencontainers.image.title="CompoundDocs MCP Server" \
     org.opencontainers.image.description="Model Context Protocol server for compound documentation" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.revision="${COMMIT_SHA}" \
-    org.opencontainers.image.source="https://github.com/compound-docs/csharp-compounding-docs" \
+    org.opencontainers.image.source="https://github.com/csharp-compound-engineering/csharp-compound-engineering" \
     org.opencontainers.image.licenses="MIT"
 
-EXPOSE 3000
+EXPOSE 8080
 
 # Entry point
 ENTRYPOINT ["dotnet", "CompoundDocs.McpServer.dll"]
