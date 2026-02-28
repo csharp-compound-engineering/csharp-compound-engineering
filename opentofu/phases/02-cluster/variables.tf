@@ -119,3 +119,9 @@ variable "crossplane_enabled" {
   type        = bool
   default     = true
 }
+
+variable "efs_enabled" {
+  description = "Whether to create EFS resources and EKS Pod Identity association for EFS CSI driver"
+  type        = bool
+  default     = true
+}

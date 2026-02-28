@@ -5,7 +5,7 @@ using CompoundDocs.GraphRag;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace CompoundDocs.McpServer.Background;
+namespace CompoundDocs.GitSync.Job;
 
 internal sealed partial class GitSyncRunner : IGitSyncRunner
 {

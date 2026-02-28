@@ -19,10 +19,8 @@ spec:
         value: {{ include "compound-docs.fullname" . | quote }}
       - key: engine_version
         value: {{ .Values.neptune.engineVersion | quote }}
-      - key: min_capacity
-        value: {{ .Values.neptune.minCapacity | quote }}
-      - key: max_capacity
-        value: {{ .Values.neptune.maxCapacity | quote }}
+      - key: instance_class
+        value: {{ .Values.neptune.instanceClass | quote }}
       - key: vpc_id
         value: {{ .Values.vpc.vpcId | quote }}
       - key: private_subnet_ids

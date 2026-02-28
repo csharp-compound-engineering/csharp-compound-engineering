@@ -8,14 +8,9 @@ variable "engine_version" {
   default = "1.2.0.1"
 }
 
-variable "min_capacity" {
-  type    = number
-  default = 2.5
-}
-
-variable "max_capacity" {
-  type    = number
-  default = 128
+variable "instance_class" {
+  type    = string
+  default = "db.t4g.medium"
 }
 
 variable "vpc_id" {
@@ -84,11 +79,6 @@ resource "aws_neptune_cluster" "main" {
   iam_database_authentication_enabled  = true
   skip_final_snapshot                  = true
 
-  serverless_v2_scaling_configuration {
-    min_capacity = var.min_capacity
-    max_capacity = var.max_capacity
-  }
-
   tags = {
     Name = "${var.name_prefix}-neptune"
   }
@@ -99,7 +89,7 @@ resource "aws_neptune_cluster" "main" {
 resource "aws_neptune_cluster_instance" "main" {
   identifier         = "${var.name_prefix}-neptune-0"
   cluster_identifier = aws_neptune_cluster.main.id
-  instance_class     = "db.serverless"
+  instance_class     = var.instance_class
   engine             = "neptune"
 
   tags = {

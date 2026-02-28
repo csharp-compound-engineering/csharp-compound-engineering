@@ -101,8 +101,13 @@ spec:
         - name: tmp
           emptyDir: {}
         - name: git-repos
+          {{- if .Values.efs.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "compound-docs.fullname" . }}-gitsync-pvc
+          {{- else }}
           emptyDir:
             sizeLimit: {{ .Values.gitSync.sizeLimit | default "2Gi" }}
+          {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

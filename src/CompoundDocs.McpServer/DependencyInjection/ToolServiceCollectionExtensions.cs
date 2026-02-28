@@ -1,7 +1,6 @@
 using CompoundDocs.McpServer.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using ModelContextProtocol.Server;
 
 namespace CompoundDocs.McpServer.DependencyInjection;
 
@@ -17,14 +16,5 @@ public static class ToolServiceCollectionExtensions
     {
         services.TryAddScoped<RagQueryTool>();
         return services;
-    }
-
-    /// <summary>
-    /// Registers the RagQueryTool with the MCP server builder.
-    /// </summary>
-    public static IMcpServerBuilder WithAllTools(this IMcpServerBuilder builder)
-    {
-        builder.WithTools<RagQueryTool>();
-        return builder;
     }
 }

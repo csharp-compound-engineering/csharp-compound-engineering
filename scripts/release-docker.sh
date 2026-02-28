@@ -31,3 +31,27 @@ docker buildx build \
   --file ./Dockerfile .
 
 echo "Docker image ${IMAGE}:${VERSION} pushed successfully"
+
+# --- GitSync Job Image ---
+GITSYNC_IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}/gitsync-job"
+GITSYNC_TAGS=("--tag" "${GITSYNC_IMAGE}:${VERSION}" "--tag" "${GITSYNC_IMAGE}:sha-${SHORT_SHA}")
+
+if [ -z "$CHANNEL" ] || [ "$CHANNEL" = "null" ]; then
+  GITSYNC_TAGS+=("--tag" "${GITSYNC_IMAGE}:latest" "--tag" "${GITSYNC_IMAGE}:${MAJOR}" "--tag" "${GITSYNC_IMAGE}:${MAJOR}.${MINOR}")
+fi
+
+echo "Building and pushing Docker image ${GITSYNC_IMAGE}:${VERSION}..."
+
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --push \
+  "${GITSYNC_TAGS[@]}" \
+  --build-arg "VERSION=${VERSION}" \
+  --build-arg "COMMIT_SHA=${GITHUB_SHA}" \
+  --label "org.opencontainers.image.version=${VERSION}" \
+  --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+  --cache-from "type=gha" \
+  --cache-to "type=gha,mode=max" \
+  --file ./Dockerfile.gitsync .
+
+echo "Docker image ${GITSYNC_IMAGE}:${VERSION} pushed successfully"

@@ -66,8 +66,7 @@ neptune:
   enabled: true
   createServiceLinkedRole: true
   engineVersion: "1.2.0.1"
-  minCapacity: 2.5
-  maxCapacity: 128
+  instanceClass: "db.t4g.medium"
   connectionSecretName: compound-docs-neptune
   # Direct connection (used when crossplane.enabled: false)
   endpoint: ""
@@ -165,6 +164,13 @@ auth:
 logging:
   level: Information
 
+# --- EFS (shared storage for git repos) ---
+efs:
+  enabled: false
+  fileSystemId: ""
+  accessPointId: ""
+  storageCapacity: "50Gi"
+
 # --- Git Sync ---
 gitSync:
   intervalSeconds: 21600        # 6 hours
@@ -177,6 +183,20 @@ gitSync:
   #     branch: main
   #     monitoredPaths: ["docs/"]
   repositories: {}
+  # Standalone CronJob for git sync (replaces background service)
+  job:
+    enabled: false
+    schedule: "0 */6 * * *"
+    image:
+      repository: ghcr.io/csharp-compound-engineering/csharp-compound-engineering/gitsync-job
+      tag: ""
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
 
 # =============================================================================
 # Configuration Mode Examples

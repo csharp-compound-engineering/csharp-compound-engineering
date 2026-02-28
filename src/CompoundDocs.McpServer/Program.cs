@@ -1,11 +1,10 @@
+using Amazon.Lambda.AspNetCoreServer;
 using CompoundDocs.Bedrock.DependencyInjection;
 using CompoundDocs.Common.Configuration;
 using CompoundDocs.Common.DependencyInjection;
-using CompoundDocs.GitSync.DependencyInjection;
 using CompoundDocs.Graph.DependencyInjection;
 using CompoundDocs.GraphRag.DependencyInjection;
 using CompoundDocs.McpServer;
-using CompoundDocs.McpServer.Background;
 using CompoundDocs.McpServer.DependencyInjection;
 using CompoundDocs.McpServer.Health;
 using CompoundDocs.McpServer.Options;
@@ -19,6 +18,8 @@ try
 {
     logger.LogInformation("Starting CSharp Compound Docs MCP Server");
 
+    var isLambda = Environment.GetEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME") is not null;
+
     var serverOptions = new CompoundDocsServerOptions();
     var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,14 @@ try
         options.ServerName = serverOptions.ServerName;
     });
 
+    // Lambda hosting: uses API Gateway HTTP API (v2) as the event source.
+    // Auth is handled by ApiKeyAuthenticationHandler on the Function URL / API Gateway level.
+    // The same X-API-Key header validation works in both ECS and Lambda modes.
+    if (isLambda)
+    {
+        builder.Services.AddAWSLambdaHosting(LambdaEventSource.HttpApi);
+    }
+
     builder.Services.AddApiKeyAuthentication(builder.Configuration);
 
     var config = builder.Configuration;
@@ -39,30 +48,32 @@ try
     builder.Services.AddNeptuneGraph(config);
     builder.Services.AddOpenSearchVector(config);
     builder.Services.AddGraphRag();
-    builder.Services.AddGitSync(config);
-    builder.Services.AddSingleton<IGitSyncRunner, GitSyncRunner>();
-    builder.Services.AddSingleton<GitSyncBackgroundService>();
-    builder.Services.AddSingleton<IGitSyncStatus>(sp => sp.GetRequiredService<GitSyncBackgroundService>());
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<GitSyncBackgroundService>());
 
     builder.Services
         .AddCompoundDocsMcpServer(serverOptions)
-        .ConfigureServer()
+        .ConfigureServer(stateless: isLambda)
         .RegisterTools();
 
     builder.Services.AddObservability();
-    builder.Services.AddHealthChecks()
-        .AddCheck<NeptuneHealthCheck>("neptune")
-        .AddCheck<OpenSearchHealthCheck>("opensearch")
-        .AddCheck<BedrockHealthCheck>("bedrock")
-        .AddCheck<GitSyncHealthCheck>("git-sync");
+
+    if (!isLambda)
+    {
+        builder.Services.AddHealthChecks()
+            .AddCheck<NeptuneHealthCheck>("neptune")
+            .AddCheck<OpenSearchHealthCheck>("opensearch")
+            .AddCheck<BedrockHealthCheck>("bedrock");
+    }
 
     var app = builder.Build();
 
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.MapHealthChecks("/health").AllowAnonymous();
+    if (!isLambda)
+    {
+        app.MapHealthChecks("/health").AllowAnonymous();
+    }
+
     app.MapMcp().RequireAuthorization();
 
     await app.RunAsync();

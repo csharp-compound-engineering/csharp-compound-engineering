@@ -1,9 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RootNamespace>CompoundDocs.Tests.Unit</RootNamespace>
@@ -32,6 +29,7 @@
     <ProjectReference Include="..\..\src\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.GitSync\CompoundDocs.GitSync.csproj" />
+    <ProjectReference Include="..\..\src\CompoundDocs.GitSync.Job\CompoundDocs.GitSync.Job.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,7 +42,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="AWSSDK.Neptunedata" />
     <PackageReference Include="AWSSDK.BedrockRuntime" />
-    <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 
 

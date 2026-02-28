@@ -2,7 +2,6 @@ using System.Net;
 using CompoundDocs.Bedrock;
 using CompoundDocs.Graph;
 using CompoundDocs.GraphRag;
-using CompoundDocs.McpServer.Background;
 using CompoundDocs.McpServer.Options;
 using CompoundDocs.Vector;
 using Microsoft.AspNetCore.Hosting;
@@ -26,10 +25,6 @@ public class ApiKeyAuthenticationIntegrationTests
         embeddingServiceMock
             .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
             .ReturnsAsync([0.1f, 0.2f]);
-        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
-        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
-        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -49,7 +44,7 @@ public class ApiKeyAuthenticationIntegrationTests
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(new Mock<IOpenSearchClient>().Object);
-                    services.AddSingleton(gitSyncStatusMock.Object);
+
                 });
             });
         using var client = factory.CreateClient();
@@ -70,10 +65,6 @@ public class ApiKeyAuthenticationIntegrationTests
         embeddingServiceMock
             .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
             .ReturnsAsync([0.1f, 0.2f]);
-        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
-        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
-        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -93,7 +84,7 @@ public class ApiKeyAuthenticationIntegrationTests
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(new Mock<IOpenSearchClient>().Object);
-                    services.AddSingleton(gitSyncStatusMock.Object);
+
                 });
             });
         using var client = factory.CreateClient();
@@ -114,10 +105,6 @@ public class ApiKeyAuthenticationIntegrationTests
         embeddingServiceMock
             .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
             .ReturnsAsync([0.1f, 0.2f]);
-        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
-        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
-        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -137,7 +124,7 @@ public class ApiKeyAuthenticationIntegrationTests
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(new Mock<IOpenSearchClient>().Object);
-                    services.AddSingleton(gitSyncStatusMock.Object);
+
                 });
             });
         using var client = factory.CreateClient();
@@ -160,10 +147,6 @@ public class ApiKeyAuthenticationIntegrationTests
         embeddingServiceMock
             .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
             .ReturnsAsync([0.1f, 0.2f]);
-        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
-        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
-        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -183,7 +166,7 @@ public class ApiKeyAuthenticationIntegrationTests
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(new Mock<IOpenSearchClient>().Object);
-                    services.AddSingleton(gitSyncStatusMock.Object);
+
                 });
             });
         using var client = factory.CreateClient();
@@ -207,10 +190,6 @@ public class ApiKeyAuthenticationIntegrationTests
         embeddingServiceMock
             .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
             .ReturnsAsync([0.1f, 0.2f]);
-        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
-        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
-        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
         await using var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -230,7 +209,7 @@ public class ApiKeyAuthenticationIntegrationTests
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(new Mock<IOpenSearchClient>().Object);
-                    services.AddSingleton(gitSyncStatusMock.Object);
+
                 });
             });
         using var client = factory.CreateClient();

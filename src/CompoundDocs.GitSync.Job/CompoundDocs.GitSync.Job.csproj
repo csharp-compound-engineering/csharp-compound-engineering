@@ -1,23 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
-
   <ItemGroup>
     <InternalsVisibleTo Include="CompoundDocs.Tests.Unit" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
-
   <ItemGroup>
+    <ProjectReference Include="..\CompoundDocs.Common\CompoundDocs.Common.csproj" />
+    <ProjectReference Include="..\CompoundDocs.GitSync\CompoundDocs.GitSync.csproj" />
+    <ProjectReference Include="..\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
     <ProjectReference Include="..\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
     <ProjectReference Include="..\CompoundDocs.Vector\CompoundDocs.Vector.csproj" />
     <ProjectReference Include="..\CompoundDocs.Bedrock\CompoundDocs.Bedrock.csproj" />
-    <ProjectReference Include="..\CompoundDocs.Common\CompoundDocs.Common.csproj" />
   </ItemGroup>
-
 </Project>

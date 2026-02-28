@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompoundDocs.Tests.Integrat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompoundDocs.Tests.E2E", "tests\CompoundDocs.Tests.E2E\CompoundDocs.Tests.E2E.csproj", "{E962A6EF-EBF2-4A69-86F6-35F6F47A30A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompoundDocs.GitSync.Job", "src\CompoundDocs.GitSync.Job\CompoundDocs.GitSync.Job.csproj", "{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -157,6 +159,18 @@ Global
 		{E962A6EF-EBF2-4A69-86F6-35F6F47A30A7}.Release|x64.Build.0 = Release|Any CPU
 		{E962A6EF-EBF2-4A69-86F6-35F6F47A30A7}.Release|x86.ActiveCfg = Release|Any CPU
 		{E962A6EF-EBF2-4A69-86F6-35F6F47A30A7}.Release|x86.Build.0 = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Debug|x86.Build.0 = Debug|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|x64.Build.0 = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|x86.ActiveCfg = Release|Any CPU
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -172,5 +186,6 @@ Global
 		{451A156A-61E4-4AA2-BE76-98225FBADFBA} = {2A2B2C2D-2E2F-3030-3131-323233333434}
 		{4229ABCE-27BE-41E5-B033-7FB89687125F} = {2A2B2C2D-2E2F-3030-3131-323233333434}
 		{E962A6EF-EBF2-4A69-86F6-35F6F47A30A7} = {2A2B2C2D-2E2F-3030-3131-323233333434}
+		{DB253AA2-93DE-4BB1-A128-AE377A6C6C15} = {1A1B1C1D-1E1F-2020-2121-222223232424}
 	EndGlobalSection
 EndGlobal

@@ -1,8 +1,8 @@
 using CompoundDocs.Common.Configuration;
 using CompoundDocs.GitSync;
+using CompoundDocs.GitSync.Job;
 using CompoundDocs.Graph;
 using CompoundDocs.GraphRag;
-using CompoundDocs.McpServer.Background;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shouldly;

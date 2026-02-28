@@ -360,3 +360,64 @@ resource "aws_secretsmanager_secret_version" "argocd_main" {
     "server.secretkey"    = var.argocd_server_secret_key
   })
 }
+
+################################################################################
+# EFS CSI Driver — IAM
+################################################################################
+
+resource "aws_iam_role" "efs_csi_driver" {
+  count = var.efs_enabled ? 1 : 0
+
+  name = "${var.cluster_name}-efs-csi-driver"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = ["sts:AssumeRole", "sts:TagSession"]
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_policy" "efs_csi_driver" {
+  count = var.efs_enabled ? 1 : 0
+
+  name        = "${var.cluster_name}-efs-csi-driver"
+  description = "Allow EFS CSI driver to manage EFS access points and mount targets"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticfilesystem:DescribeAccessPoints",
+          "elasticfilesystem:DescribeFileSystems",
+          "elasticfilesystem:DescribeMountTargets",
+          "elasticfilesystem:CreateAccessPoint",
+          "elasticfilesystem:DeleteAccessPoint",
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:ClientRootAccess",
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "efs_csi_driver" {
+  count = var.efs_enabled ? 1 : 0
+
+  role       = aws_iam_role.efs_csi_driver[0].name
+  policy_arn = aws_iam_policy.efs_csi_driver[0].arn
+}
