@@ -1,22 +1,41 @@
 # Task Completion Checklist
 
-When completing a task, ensure:
+When a coding task is completed, verify the following:
 
-1. **Build Verification**
-   ```bash
-   dotnet build
-   ```
-   Ensure no compilation errors
+## 1. Build
+```bash
+dotnet build
+```
+- Must pass with zero warnings (TreatWarningsAsErrors=true)
+- Check for nullable reference type warnings
+- Check for code style violations (EnforceCodeStyleInBuild=true)
 
-2. **Code Style**
-   - XML documentation on public APIs
-   - Proper nullable annotations
-   - File-scoped namespaces
-   - Sealed classes where appropriate
+## 2. Tests
+```bash
+dotnet test
+```
+- All existing tests must pass
+- New code should have corresponding unit tests in `tests/CompoundDocs.Tests.Unit/`
+- Use **Moq** for mocking, **Shouldly** for assertions, **xUnit** for test framework
+- Integration/E2E tests if applicable
 
-3. **Testing** (when tests exist)
-   ```bash
-   dotnet test
-   ```
+## 3. Coverage (for significant changes)
+```bash
+bash scripts/coverage-merge.sh
+```
+- Enforces 100% line+branch coverage threshold
+- Coverage config in `coverlet.runsettings`
+- Excludes: `Program` classes, `*ServiceCollectionExtensions`, `[ExcludeFromCodeCoverage]` attributed members
 
-4. **Do NOT commit** unless explicitly requested
+## 4. Code Quality
+- File-scoped namespaces
+- Private fields: `_camelCase`
+- Interfaces: `I` prefix
+- `var` usage preferred
+- No compiler warnings
+- Nullable annotations correct
+
+## 5. Commit
+- Follow Conventional Commits: `type(scope): lowercase description`
+- Pre-commit gitleaks hook will run automatically
+- CI validates PR titles against conventional commit format

@@ -1,41 +1,58 @@
 # Suggested Commands
 
-## Build Commands
+## Build & Run
 ```bash
-# Build entire solution
+# Build all projects
 dotnet build
 
-# Build specific project
-dotnet build src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj
-
-# Run the MCP server
+# Run MCP server (HTTP transport, port 8080)
 dotnet run --project src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj
 
-# Run tests (when available)
-dotnet test
+# Run GitSync Job (standalone, iterates all configured repos)
+dotnet run --project src/CompoundDocs.GitSync.Job/CompoundDocs.GitSync.Job.csproj
 ```
 
-## Docker Commands
+## Testing
 ```bash
-# Start services (PostgreSQL with pgvector)
-docker-compose up -d
+# Run all tests
+dotnet test
 
-# Stop services
-docker-compose down
+# Run a specific test by name
+dotnet test --filter "FullyQualifiedName~TestName"
+
+# Run a specific test project
+dotnet test tests/CompoundDocs.Tests.Unit/CompoundDocs.Tests.Unit.csproj
+dotnet test tests/CompoundDocs.Tests.Integration/CompoundDocs.Tests.Integration.csproj
+dotnet test tests/CompoundDocs.Tests.E2E/CompoundDocs.Tests.E2E.csproj
+
+# Run tests with coverage + enforce 100% threshold
+bash scripts/coverage-merge.sh
 ```
 
-## Git Commands (Darwin/macOS)
+## Release & Deployment Scripts
+```bash
+bash scripts/release-prepare.sh    # Version bumps
+bash scripts/release-docker.sh     # Docker build/push
+bash scripts/release-helm.sh       # Helm chart packaging/push
+bash scripts/release-docs.sh       # Docs site build
+```
+
+## JavaScript/Node Tooling
+```bash
+# IMPORTANT: Use pnpm, NOT npm
+pnpm install
+pnpm run <script>
+```
+
+## Git & System Utilities (macOS/Darwin)
 ```bash
 git status
-git add <file>
-git commit -m "message"
-git push
-git log --oneline
+git log --oneline -10
+git diff
+git diff --cached
 ```
 
-## File System (Darwin)
-```bash
-ls -la          # List files with details
-find . -name "*.cs"  # Find C# files
-grep -r "pattern" .  # Search in files
-```
+## Formatting & Linting
+- Code style enforced at build time via `.editorconfig` + `EnforceCodeStyleInBuild=true`
+- No separate formatting/linting commands needed — build catches style issues
+- Pre-commit: gitleaks for secret scanning

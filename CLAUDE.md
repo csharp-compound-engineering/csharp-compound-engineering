@@ -139,6 +139,31 @@ Single unified GitHub Actions workflow: `.github/workflows/ci.yml` (named "Relea
 - Release assets: Helm chart (`.tgz`), coverage report (`coverage-report.tar.gz` — merged Cobertura XML + HTML)
 - Config in `.releaserc.json`
 
+## Agent Teams (MANDATORY)
+
+**Agent teams MUST be used for all plan execution and for any task of sufficient complexity.** This is not optional. Executing a plan without agent teams is **FORBIDDEN**.
+
+### Rules
+
+- **Plans MUST be written to use agent teams.** Every plan file MUST specify team composition, task breakdown, and teammate assignments. A plan that does not use agent teams is invalid and MUST be rewritten.
+- **Executing a plan without agent teams is FORBIDDEN.** Do NOT execute plan steps sequentially in a single session. Always create a team, spawn teammates, and distribute work across them.
+- **Any task touching 3+ files, 2+ projects, or requiring parallel workstreams MUST use agent teams.** This includes refactors, new features, cross-cutting changes, and multi-project test updates.
+- **You are NOT necessarily the team lead.** Spawn a dedicated lead agent to orchestrate the team. You may do other work or monitor progress while the lead coordinates teammates.
+- **One teammate per file.** No two teammates may edit the same file. The lead (or you) must assign clear file ownership before work begins.
+- **Use appropriate agent types.** Match `subagent_type` to the work: `backend-architect` for service design, `quality-engineer` for tests, `security-engineer` for auth/security, `refactoring-expert` for refactors, `frontend-architect` for UI, etc.
+- **Task lists are mandatory.** All team work MUST be tracked via `TaskCreate`/`TaskUpdate`/`TaskList`. Every teammate MUST mark tasks completed when done.
+- **Graceful shutdown is required.** When work is complete, send `shutdown_request` to all teammates and call `TeamDelete` to clean up.
+
+### When single-session work is acceptable
+
+Agent teams are NOT required for:
+- Single-file edits (typo fixes, small bug fixes, config changes)
+- Pure research/exploration with no code changes
+- Answering questions about the codebase
+- Tasks the user explicitly asks to be done without a team
+
+Everything else uses agent teams. When in doubt, use a team.
+
 ## npm vs pnpm
 
 This repository uses pnpm for everything. So do not use `npm` commands.
