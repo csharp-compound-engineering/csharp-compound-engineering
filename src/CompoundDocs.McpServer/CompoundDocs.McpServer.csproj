@@ -11,16 +11,14 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="CompoundDocs.Tests.Unit" />
+    <InternalsVisibleTo Include="CompoundDocs.Tests.E2E" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" />
-    <PackageReference Include="Serilog" />
-    <PackageReference Include="Serilog.Extensions.Hosting" />
-    <PackageReference Include="Serilog.Sinks.Console" />
-    <PackageReference Include="Serilog.Enrichers.Environment" />
     <!-- AI abstractions -->
     <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
     <!-- Resilience -->
@@ -34,6 +32,7 @@
     <ProjectReference Include="..\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
     <ProjectReference Include="..\CompoundDocs.Bedrock\CompoundDocs.Bedrock.csproj" />
     <ProjectReference Include="..\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
+    <ProjectReference Include="..\CompoundDocs.GitSync\CompoundDocs.GitSync.csproj" />
   </ItemGroup>
 
 </Project>

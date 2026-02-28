@@ -6,8 +6,24 @@ using Microsoft.Extensions.Options;
 
 namespace CompoundDocs.GitSync;
 
-public sealed class GitSyncService : IGitSyncService
+public sealed partial class GitSyncService : IGitSyncService
 {
+    [LoggerMessage(EventId = 1, Level = Microsoft.Extensions.Logging.LogLevel.Debug,
+        Message = "Pulling updates for {RepoName}")]
+    private partial void LogPullingUpdates(string repoName);
+
+    [LoggerMessage(EventId = 2, Level = Microsoft.Extensions.Logging.LogLevel.Information,
+        Message = "Cloning repository {RepoName} from {Url}")]
+    private partial void LogCloningRepository(string repoName, string url);
+
+    [LoggerMessage(EventId = 3, Level = Microsoft.Extensions.Logging.LogLevel.Warning,
+        Message = "Repository {RepoName} not found at {Path}")]
+    private partial void LogRepositoryNotFound(string repoName, string path);
+
+    [LoggerMessage(EventId = 4, Level = Microsoft.Extensions.Logging.LogLevel.Warning,
+        Message = "Commit {CommitHash} not found")]
+    private partial void LogCommitNotFound(string commitHash);
+
     private readonly string _baseDirectory;
     private readonly ILogger<GitSyncService> _logger;
 
@@ -40,14 +56,14 @@ public sealed class GitSyncService : IGitSyncService
 
             if (Repository.IsValid(repoPath))
             {
-                _logger.LogDebug("Pulling updates for {RepoName}", repoConfig.Name);
+                LogPullingUpdates(repoConfig.Name);
                 using var repo = new Repository(repoPath);
                 var signature = new Signature("CompoundDocs", "compound@docs.local", DateTimeOffset.Now);
                 Commands.Pull(repo, signature, new PullOptions());
             }
             else
             {
-                _logger.LogInformation("Cloning repository {RepoName} from {Url}", repoConfig.Name, repoConfig.Url);
+                LogCloningRepository(repoConfig.Name, repoConfig.Url);
                 Repository.Clone(repoConfig.Url, repoPath, new CloneOptions
                 {
                     BranchName = repoConfig.Branch
@@ -71,7 +87,7 @@ public sealed class GitSyncService : IGitSyncService
 
             if (!Repository.IsValid(repoPath))
             {
-                _logger.LogWarning("Repository {RepoName} not found at {Path}", repoConfig.Name, repoPath);
+                LogRepositoryNotFound(repoConfig.Name, repoPath);
                 return changedFiles;
             }
 
@@ -90,7 +106,7 @@ public sealed class GitSyncService : IGitSyncService
 
             if (oldCommit == null)
             {
-                _logger.LogWarning("Commit {CommitHash} not found", lastCommitHash);
+                LogCommitNotFound(lastCommitHash);
                 return changedFiles;
             }
 
@@ -131,6 +147,16 @@ public sealed class GitSyncService : IGitSyncService
             }
 
             return File.ReadAllText(fullPath);
+        }, ct);
+    }
+
+    [ExcludeFromCodeCoverage(Justification = "Uses LibGit2Sharp Repository to read HEAD commit SHA")]
+    public Task<string> GetHeadCommitHashAsync(string repoPath, CancellationToken ct = default)
+    {
+        return Task.Run(() =>
+        {
+            using var repo = new Repository(repoPath);
+            return repo.Head.Tip.Sha;
         }, ct);
     }
 

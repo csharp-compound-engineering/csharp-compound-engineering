@@ -7,8 +7,16 @@ using Polly.Retry;
 
 namespace CompoundDocs.Graph;
 
-public sealed class NeptuneClient : INeptuneClient
+public sealed partial class NeptuneClient : INeptuneClient
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Executing openCypher query: {Query}")]
+    private partial void LogExecutingQuery(string query);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Neptune connection test failed")]
+    private partial void LogConnectionTestFailed(Exception exception);
+
     private readonly IAmazonNeptunedata _client;
     private readonly ILogger<NeptuneClient> _logger;
     private readonly ResiliencePipeline _retryPipeline;
@@ -51,7 +59,7 @@ public sealed class NeptuneClient : INeptuneClient
     {
         return await _retryPipeline.ExecuteAsync(async token =>
         {
-            _logger.LogDebug("Executing openCypher query: {Query}", query);
+            LogExecutingQuery(query);
 
             var request = new ExecuteOpenCypherQueryRequest
             {
@@ -79,7 +87,7 @@ public sealed class NeptuneClient : INeptuneClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Neptune connection test failed");
+            LogConnectionTestFailed(ex);
             return false;
         }
     }

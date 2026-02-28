@@ -25,6 +25,7 @@ COPY --link src/CompoundDocs.Vector/*.csproj src/CompoundDocs.Vector/
 COPY --link src/CompoundDocs.Graph/*.csproj src/CompoundDocs.Graph/
 COPY --link src/CompoundDocs.Bedrock/*.csproj src/CompoundDocs.Bedrock/
 COPY --link src/CompoundDocs.GraphRag/*.csproj src/CompoundDocs.GraphRag/
+COPY --link src/CompoundDocs.GitSync/*.csproj src/CompoundDocs.GitSync/
 
 # Restore dependencies (arch-specific)
 RUN dotnet restore src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj \

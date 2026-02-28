@@ -53,43 +53,18 @@ spec:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
             {{- if .Values.auth.apiKeysSecretName }}
-            - name: COMPOUNDDOCS_API_KEYS
+            - name: Authentication__ApiKeys
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.auth.apiKeysSecretName }}
                   key: api-keys
             {{- end }}
-            - name: COMPOUNDDOCS_LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "compound-docs.fullname" . }}
-                  key: log-level
-            - name: AWS_REGION
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "compound-docs.fullname" . }}
-                  key: aws-region
-            - name: BEDROCK_EMBEDDING_MODEL_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "compound-docs.fullname" . }}
-                  key: bedrock-embedding-model-id
-            - name: BEDROCK_LLM_MODEL_ID
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "compound-docs.fullname" . }}
-                  key: bedrock-llm-model-id
-            - name: NEPTUNE_ENDPOINT
+            - name: CompoundDocs__Neptune__Endpoint
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.neptune.connectionSecretName }}
                   key: endpoint
-            - name: NEPTUNE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.neptune.connectionSecretName }}
-                  key: port
-            - name: OPENSEARCH_ENDPOINT
+            - name: CompoundDocs__OpenSearch__CollectionEndpoint
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.opensearch.connectionSecretName }}
@@ -111,11 +86,23 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
+            - name: config
+              mountPath: /app/appsettings.json
+              subPath: appsettings.json
+              readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: git-repos
+              mountPath: {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" }}
       volumes:
+        - name: config
+          configMap:
+            name: {{ include "compound-docs.fullname" . }}
         - name: tmp
           emptyDir: {}
+        - name: git-repos
+          emptyDir:
+            sizeLimit: {{ .Values.gitSync.sizeLimit | default "2Gi" }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

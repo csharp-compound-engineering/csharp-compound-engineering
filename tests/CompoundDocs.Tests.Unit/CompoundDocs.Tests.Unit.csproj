@@ -32,7 +32,6 @@
     <ProjectReference Include="..\..\src\CompoundDocs.Graph\CompoundDocs.Graph.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.GraphRag\CompoundDocs.GraphRag.csproj" />
     <ProjectReference Include="..\..\src\CompoundDocs.GitSync\CompoundDocs.GitSync.csproj" />
-    <ProjectReference Include="..\..\src\CompoundDocs.Worker\CompoundDocs.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -33,12 +33,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
 
         // Assert
         result.ShouldNotBeNull();
-        result.Postgres.ShouldNotBeNull();
-        result.Postgres.Host.ShouldBe("127.0.0.1");
-        result.Postgres.Port.ShouldBe(5433);
-        result.Ollama.ShouldNotBeNull();
-        result.Ollama.Host.ShouldBe("127.0.0.1");
-        result.Ollama.Port.ShouldBe(11435);
     }
 
     [Fact]
@@ -62,20 +56,7 @@ public sealed class ConfigurationLoaderTests : IDisposable
         var configDir = Path.Combine(_tempDir, "existing-global");
         Directory.CreateDirectory(configDir);
 
-        var config = new GlobalConfig
-        {
-            Postgres = new PostgresSettings
-            {
-                Host = "custom-host",
-                Port = 5433,
-                Database = "custom-db"
-            },
-            Ollama = new OllamaSettings
-            {
-                Host = "ollama-host",
-                Port = 11435
-            }
-        };
+        var config = new GlobalConfig();
 
         var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
         {
@@ -89,11 +70,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
 
         // Assert
         result.ShouldNotBeNull();
-        result.Postgres.Host.ShouldBe("custom-host");
-        result.Postgres.Port.ShouldBe(5433);
-        result.Postgres.Database.ShouldBe("custom-db");
-        result.Ollama.Host.ShouldBe("ollama-host");
-        result.Ollama.Port.ShouldBe(11435);
     }
 
     #endregion
@@ -397,21 +373,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
     }
 
     [Fact]
-    public void EnsureGlobalConfigDirectory_CreatesDataAndOllamaDirectories()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "ensure-subdirs");
-        var config = new GlobalConfig { ConfigDirectory = configDir };
-
-        // Act
-        _sut.EnsureGlobalConfigDirectory(config);
-
-        // Assert
-        Directory.Exists(Path.Combine(configDir, "data", "pgdata")).ShouldBeTrue();
-        Directory.Exists(Path.Combine(configDir, "ollama", "models")).ShouldBeTrue();
-    }
-
-    [Fact]
     public void EnsureGlobalConfigDirectory_DoesNotOverwriteExistingConfig()
     {
         // Arrange - create a config file with custom values first
@@ -420,8 +381,7 @@ public sealed class ConfigurationLoaderTests : IDisposable
 
         var originalConfig = new GlobalConfig
         {
-            ConfigDirectory = configDir,
-            Postgres = new PostgresSettings { Host = "original-host", Port = 9999 }
+            ConfigDirectory = configDir
         };
         var json = JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions
         {
@@ -433,15 +393,13 @@ public sealed class ConfigurationLoaderTests : IDisposable
         // Act - call EnsureGlobalConfigDirectory with different config
         var newConfig = new GlobalConfig
         {
-            ConfigDirectory = configDir,
-            Postgres = new PostgresSettings { Host = "new-host", Port = 1111 }
+            ConfigDirectory = configDir
         };
         _sut.EnsureGlobalConfigDirectory(newConfig);
 
         // Assert - original config should be preserved
         var loaded = _sut.LoadGlobalConfig(configDir);
-        loaded.Postgres.Host.ShouldBe("original-host");
-        loaded.Postgres.Port.ShouldBe(9999);
+        loaded.ShouldNotBeNull();
     }
 
     #endregion
@@ -532,235 +490,6 @@ public sealed class ConfigurationLoaderTests : IDisposable
 
         // Assert
         ragSettings.SimilarityThreshold.ShouldBe(0.9f);
-    }
-
-    #endregion
-
-    #region ApplyEnvironmentOverrides Tests
-
-    [Fact]
-    public void LoadGlobalConfig_WithPostgresEnvOverrides_AppliesValues()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "pg-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_HOST", "custom-pg-host");
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", "9876");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Postgres.Host.ShouldBe("custom-pg-host");
-            result.Postgres.Port.ShouldBe(9876);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_HOST", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithOllamaEnvOverrides_AppliesValues()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "ollama-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_HOST", "custom-ollama-host");
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", "llama3:70b");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Ollama.Host.ShouldBe("custom-ollama-host");
-            result.Ollama.GenerationModel.ShouldBe("llama3:70b");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_HOST", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithInvalidPortEnvVar_KeepsDefault()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "invalid-port-env");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", "not-a-number");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert - port should remain the default since int.TryParse fails
-            result.Postgres.Port.ShouldBe(5433);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithPostgresDatabaseEnvOverride_AppliesValue()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "pg-db-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_DATABASE", "custom-database");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Postgres.Database.ShouldBe("custom-database");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_DATABASE", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithPostgresUsernameEnvOverride_AppliesValue()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "pg-user-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_USERNAME", "custom-user");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Postgres.Username.ShouldBe("custom-user");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_USERNAME", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithPostgresPasswordEnvOverride_AppliesValue()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "pg-pass-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PASSWORD", "secret-password");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Postgres.Password.ShouldBe("secret-password");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PASSWORD", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithOllamaPortEnvOverride_AppliesValue()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "ollama-port-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_PORT", "12345");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Ollama.Port.ShouldBe(12345);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_PORT", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithOllamaModelEnvOverride_AppliesValue()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "ollama-model-env-override");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", "mistral:7b");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Ollama.GenerationModel.ShouldBe("mistral:7b");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", null);
-        }
-    }
-
-    [Fact]
-    public void LoadGlobalConfig_WithAllEnvOverrides_AppliesAllValues()
-    {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "all-env-overrides");
-        Directory.CreateDirectory(configDir);
-
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_HOST", "pg-host");
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", "5555");
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_DATABASE", "mydb");
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_USERNAME", "admin");
-        Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PASSWORD", "pass123");
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_HOST", "ollama-host");
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_PORT", "7777");
-        Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", "codellama:13b");
-        try
-        {
-            // Act
-            var result = _sut.LoadGlobalConfig(configDir);
-
-            // Assert
-            result.Postgres.Host.ShouldBe("pg-host");
-            result.Postgres.Port.ShouldBe(5555);
-            result.Postgres.Database.ShouldBe("mydb");
-            result.Postgres.Username.ShouldBe("admin");
-            result.Postgres.Password.ShouldBe("pass123");
-            result.Ollama.Host.ShouldBe("ollama-host");
-            result.Ollama.Port.ShouldBe(7777);
-            result.Ollama.GenerationModel.ShouldBe("codellama:13b");
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_HOST", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_DATABASE", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_USERNAME", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_POSTGRES_PASSWORD", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_HOST", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_PORT", null);
-            Environment.SetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL", null);
-        }
     }
 
     #endregion

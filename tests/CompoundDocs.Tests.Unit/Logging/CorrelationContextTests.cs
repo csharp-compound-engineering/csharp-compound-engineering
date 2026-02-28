@@ -80,4 +80,35 @@ public class CorrelationContextTests
         // Assert
         context1.CorrelationId.ShouldNotBe(context2.CorrelationId);
     }
+
+    [Fact]
+    public void Current_ReturnsActiveCorrelationId()
+    {
+        // Arrange & Act
+        using var context = new CorrelationContext("test-id");
+
+        // Assert
+        CorrelationContext.Current.ShouldBe("test-id");
+    }
+
+    [Fact]
+    public void Current_WhenNoContext_ReturnsNull()
+    {
+        CorrelationContext.Current.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Dispose_RestoresPreviousValue()
+    {
+        // Arrange
+        using var outer = new CorrelationContext("outer-id");
+
+        // Act
+        var inner = new CorrelationContext("inner-id");
+        CorrelationContext.Current.ShouldBe("inner-id");
+        inner.Dispose();
+
+        // Assert
+        CorrelationContext.Current.ShouldBe("outer-id");
+    }
 }

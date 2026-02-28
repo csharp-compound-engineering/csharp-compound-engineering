@@ -44,9 +44,6 @@ public sealed class ConfigurationLoader
             }
         }
 
-        // Apply environment variable overrides
-        ApplyEnvironmentOverrides(config);
-
         return config;
     }
 
@@ -89,8 +86,6 @@ public sealed class ConfigurationLoader
     public void EnsureGlobalConfigDirectory(GlobalConfig config)
     {
         Directory.CreateDirectory(config.ConfigDirectory);
-        Directory.CreateDirectory(Path.Combine(config.ConfigDirectory, "data", "pgdata"));
-        Directory.CreateDirectory(Path.Combine(config.ConfigDirectory, "ollama", "models"));
 
         var globalConfigFile = Path.Combine(config.ConfigDirectory, "global-config.json");
         if (!File.Exists(globalConfigFile))
@@ -126,26 +121,4 @@ public sealed class ConfigurationLoader
         };
     }
 
-    private static void ApplyEnvironmentOverrides(GlobalConfig config)
-    {
-        // PostgreSQL overrides
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_POSTGRES_HOST") is { } pgHost)
-            config.Postgres.Host = pgHost;
-        if (int.TryParse(Environment.GetEnvironmentVariable("COMPOUNDING_POSTGRES_PORT"), out var pgPort))
-            config.Postgres.Port = pgPort;
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_POSTGRES_DATABASE") is { } pgDb)
-            config.Postgres.Database = pgDb;
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_POSTGRES_USERNAME") is { } pgUser)
-            config.Postgres.Username = pgUser;
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_POSTGRES_PASSWORD") is { } pgPass)
-            config.Postgres.Password = pgPass;
-
-        // Ollama overrides
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_OLLAMA_HOST") is { } ollamaHost)
-            config.Ollama.Host = ollamaHost;
-        if (int.TryParse(Environment.GetEnvironmentVariable("COMPOUNDING_OLLAMA_PORT"), out var ollamaPort))
-            config.Ollama.Port = ollamaPort;
-        if (Environment.GetEnvironmentVariable("COMPOUNDING_OLLAMA_MODEL") is { } ollamaModel)
-            config.Ollama.GenerationModel = ollamaModel;
-    }
 }

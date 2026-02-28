@@ -64,8 +64,7 @@ Configure which git repositories to monitor for documentation changes.
       "Url": "https://github.com/org/my-repo.git",
       "Name": "my-repo",
       "Branch": "main",
-      "MonitoredPaths": ["docs/", "src/"],
-      "PollIntervalMinutes": 5
+      "MonitoredPaths": ["docs/", "src/"]
     }
   ]
 }
@@ -77,7 +76,15 @@ Configure which git repositories to monitor for documentation changes.
 | `Repositories[].Name` | string | *(required)* | Display name for the repository |
 | `Repositories[].Branch` | string | `main` | Branch to monitor |
 | `Repositories[].MonitoredPaths` | string[] | `[]` | Paths within the repo to watch (empty = all) |
-| `Repositories[].PollIntervalMinutes` | integer | `5` | How often to check for changes |
+
+### Git Sync Settings
+
+The sync interval is configured globally via `GitSync.IntervalSeconds` (default: 21600 = 6 hours).
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `GitSync.CloneBaseDirectory` | string | `/tmp/compound-docs-repos` | Directory for cloned repositories |
+| `GitSync.IntervalSeconds` | integer | `21600` | How often to sync repositories (seconds) |
 
 ### Authentication Settings
 
@@ -120,8 +127,7 @@ Configure which git repositories to monitor for documentation changes.
       "Url": "https://github.com/org/my-project.git",
       "Name": "my-project",
       "Branch": "main",
-      "MonitoredPaths": ["docs/", "src/"],
-      "PollIntervalMinutes": 5
+      "MonitoredPaths": ["docs/", "src/"]
     }
   ],
   "Auth": {
@@ -187,13 +193,13 @@ Project configuration is stored at `<project-root>/.csharp-compounding-docs/conf
 
 ### Claude Code Integration
 
-The MCP server uses HTTP transport on port 3000. Add it to your Claude Code configuration:
+The MCP server uses HTTP transport on port 8080. Add it to your Claude Code configuration:
 
 ```json
 {
   "mcpServers": {
     "csharp-compounding-docs": {
-      "url": "http://localhost:3000/mcp"
+      "url": "http://localhost:8080/"
     }
   }
 }
@@ -243,15 +249,13 @@ All other settings use sensible defaults (Bedrock model IDs, GraphRAG parameters
       "Url": "https://github.com/org/backend.git",
       "Name": "backend",
       "Branch": "main",
-      "MonitoredPaths": ["src/", "docs/"],
-      "PollIntervalMinutes": 5
+      "MonitoredPaths": ["src/", "docs/"]
     },
     {
       "Url": "https://github.com/org/frontend.git",
       "Name": "frontend",
       "Branch": "develop",
-      "MonitoredPaths": ["src/components/"],
-      "PollIntervalMinutes": 10
+      "MonitoredPaths": ["src/components/"]
     }
   ],
   "GraphRag": {
@@ -322,4 +326,4 @@ For exploratory queries needing more context:
 
 1. Check JSON syntax is valid
 2. Verify file permissions
-3. Check Serilog stderr output for configuration errors at startup
+3. Check stderr output for configuration errors at startup

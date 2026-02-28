@@ -15,4 +15,6 @@ public interface IGitSyncService
         string repoPath,
         string relativePath,
         CancellationToken ct = default);
+
+    Task<string> GetHeadCommitHashAsync(string repoPath, CancellationToken ct = default);
 }

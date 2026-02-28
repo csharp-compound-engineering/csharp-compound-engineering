@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using CompoundDocs.Bedrock;
 using CompoundDocs.Graph;
 using CompoundDocs.GraphRag;
+using CompoundDocs.McpServer.Observability;
 using CompoundDocs.Vector;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
@@ -14,13 +16,30 @@ namespace CompoundDocs.McpServer.Tools;
 /// Uses GraphRAG pipeline: embed → search OpenSearch → enrich with graph → synthesize via Bedrock.
 /// </summary>
 [McpServerToolType]
-public sealed class RagQueryTool
+public sealed partial class RagQueryTool
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information,
+        Message = "RAG query: '{Query}', maxResults={MaxResults}")]
+    private partial void LogRagQueryStarted(string query, int maxResults);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Information,
+        Message = "RAG query completed: {SourceCount} sources, confidence={Confidence:F2}")]
+    private partial void LogRagQueryCompleted(int sourceCount, double confidence);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
+        Message = "RAG query cancelled")]
+    private partial void LogRagQueryCancelled();
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Error,
+        Message = "Unexpected error during RAG query")]
+    private partial void LogRagQueryError(Exception exception);
+
     private readonly IVectorStore _vectorStore;
     private readonly IGraphRepository _graphRepository;
     private readonly IBedrockEmbeddingService _embeddingService;
     private readonly IBedrockLlmService _llmService;
     private readonly IGraphRagPipeline _graphRagPipeline;
+    private readonly MetricsCollector _metrics;
     private readonly ILogger<RagQueryTool> _logger;
 
     public RagQueryTool(
@@ -29,6 +48,7 @@ public sealed class RagQueryTool
         IBedrockEmbeddingService embeddingService,
         IBedrockLlmService llmService,
         IGraphRagPipeline graphRagPipeline,
+        MetricsCollector metrics,
         ILogger<RagQueryTool> logger)
     {
         _vectorStore = vectorStore ?? throw new ArgumentNullException(nameof(vectorStore));
@@ -36,6 +56,7 @@ public sealed class RagQueryTool
         _embeddingService = embeddingService ?? throw new ArgumentNullException(nameof(embeddingService));
         _llmService = llmService ?? throw new ArgumentNullException(nameof(llmService));
         _graphRagPipeline = graphRagPipeline ?? throw new ArgumentNullException(nameof(graphRagPipeline));
+        _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -59,7 +80,8 @@ public sealed class RagQueryTool
         else if (maxResults > 20)
             maxResults = 20;
 
-        _logger.LogInformation("RAG query: '{Query}', maxResults={MaxResults}", query, maxResults);
+        LogRagQueryStarted(query, maxResults);
+        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -76,9 +98,10 @@ public sealed class RagQueryTool
                 RelevanceScore = (float)s.RelevanceScore
             }).ToList();
 
-            _logger.LogInformation(
-                "RAG query completed: {SourceCount} sources, confidence={Confidence:F2}",
-                sources.Count, result.Confidence);
+            stopwatch.Stop();
+            _metrics.RecordQuery(stopwatch.Elapsed.TotalMilliseconds, sources.Count);
+
+            LogRagQueryCompleted(sources.Count, result.Confidence);
 
             return ToolResponse<RagQueryResult>.Ok(new RagQueryResult
             {
@@ -91,12 +114,14 @@ public sealed class RagQueryTool
         }
         catch (OperationCanceledException)
         {
-            _logger.LogDebug("RAG query cancelled");
+            LogRagQueryCancelled();
+            _metrics.RecordError("OperationCancelled");
             return ToolResponse<RagQueryResult>.Fail(ToolErrors.OperationCancelled);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error during RAG query");
+            LogRagQueryError(ex);
+            _metrics.RecordError(ex.GetType().Name);
             return ToolResponse<RagQueryResult>.Fail(ToolErrors.RagSynthesisFailed(ex.Message));
         }
     }

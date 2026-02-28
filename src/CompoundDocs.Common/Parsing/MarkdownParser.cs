@@ -83,6 +83,23 @@ public sealed class MarkdownParser
     }
 
     /// <summary>
+    /// Extracts all fenced code blocks from a markdown document.
+    /// </summary>
+    public IReadOnlyList<ParsedCodeBlock> ExtractCodeBlocks(MarkdownDocument document)
+    {
+        var codeBlocks = new List<ParsedCodeBlock>();
+
+        foreach (var block in document.Descendants<FencedCodeBlock>())
+        {
+            var language = block.Info ?? string.Empty;
+            var code = block.Lines.ToString();
+            codeBlocks.Add(new ParsedCodeBlock(language, code, block.Line, block.Span.Start));
+        }
+
+        return codeBlocks;
+    }
+
+    /// <summary>
     /// Chunks a document at header boundaries (H2 and H3).
     /// </summary>
     public IReadOnlyList<ChunkInfo> ChunkByHeaders(string markdown, int maxLinesPerChunk = 500)
@@ -166,3 +183,9 @@ public sealed record ChunkInfo(
     int StartLine,
     int EndLine,
     string Content);
+
+public sealed record ParsedCodeBlock(
+    string Language,
+    string Code,
+    int Line,
+    int SpanStart);

@@ -2,6 +2,7 @@ using System.Net;
 using CompoundDocs.Bedrock;
 using CompoundDocs.Graph;
 using CompoundDocs.GraphRag;
+using CompoundDocs.McpServer.Background;
 using CompoundDocs.McpServer.Options;
 using CompoundDocs.Vector;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +13,7 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Moq;
+using OpenSearch.Client;
 
 namespace CompoundDocs.Tests.E2E;
 
@@ -203,9 +205,26 @@ public class McpE2ETests
         public Mock<IGraphRepository> GraphRepositoryMock { get; } = new();
         public Mock<IBedrockEmbeddingService> EmbeddingServiceMock { get; } = new();
         public Mock<IBedrockLlmService> LlmServiceMock { get; } = new();
+        public Mock<INeptuneClient> NeptuneClientMock { get; } = new();
+        public Mock<IOpenSearchClient> OpenSearchClientMock { get; } = new();
+        public Mock<IGitSyncStatus> GitSyncStatusMock { get; } = new();
 
         public McpTestServer()
         {
+            // Set up healthy defaults for health check dependencies
+            NeptuneClientMock
+                .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+            EmbeddingServiceMock
+                .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+                .ReturnsAsync([0.1f, 0.2f]);
+            GitSyncStatusMock
+                .Setup(s => s.LastRunFailed).Returns(false);
+            GitSyncStatusMock
+                .Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+            GitSyncStatusMock
+                .Setup(s => s.IntervalSeconds).Returns(21600);
+
             _factory = new WebApplicationFactory<Program>()
                 .WithWebHostBuilder(builder =>
                 {
@@ -224,6 +243,9 @@ public class McpE2ETests
                         services.AddSingleton(GraphRepositoryMock.Object);
                         services.AddSingleton(EmbeddingServiceMock.Object);
                         services.AddSingleton(LlmServiceMock.Object);
+                        services.AddSingleton(NeptuneClientMock.Object);
+                        services.AddSingleton(OpenSearchClientMock.Object);
+                        services.AddSingleton(GitSyncStatusMock.Object);
                     });
                 });
         }

@@ -7,7 +7,53 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: {{ .Values.syncWaves.application | quote }}
 data:
-  aws-region: {{ .Values.aws.region | quote }}
-  bedrock-embedding-model-id: {{ .Values.bedrock.embeddingModelId | quote }}
-  bedrock-llm-model-id: {{ .Values.bedrock.llmModelId | quote }}
-  log-level: {{ .Values.logging.level | quote }}
+  appsettings.json: |
+    {
+      "CompoundDocs": {
+        "Aws": {
+          "Region": {{ .Values.aws.region | quote }}
+        },
+        "Neptune": {
+          "Port": {{ .Values.neptune.port }}
+        },
+        "OpenSearch": {
+          "IndexName": "compound-docs"
+        },
+        "Bedrock": {
+          "EmbeddingModelId": {{ .Values.bedrock.embeddingModelId | quote }},
+          "SonnetModelId": {{ .Values.bedrock.sonnetModelId | quote }},
+          "HaikuModelId": {{ .Values.bedrock.haikuModelId | quote }},
+          "OpusModelId": {{ .Values.bedrock.opusModelId | quote }}
+        },
+        "GraphRag": {
+          "MaxTraversalSteps": {{ .Values.graphRag.maxTraversalSteps }},
+          "MaxChunksPerQuery": {{ .Values.graphRag.maxChunksPerQuery }},
+          "MinRelevanceScore": {{ .Values.graphRag.minRelevanceScore }},
+          "UseCrossRepoLinks": {{ .Values.graphRag.useCrossRepoLinks }}
+        },
+        "GitSync": {
+          "CloneBaseDirectory": {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" | quote }},
+          "IntervalSeconds": {{ .Values.gitSync.intervalSeconds | default 21600 }}
+        },
+        "Repositories": [
+          {{- $repos := list }}
+          {{- range $name, $cfg := .Values.gitSync.repositories }}
+          {{- $repos = append $repos (dict "Name" $name "Url" ($cfg.url | default "") "Branch" ($cfg.branch | default "main") "MonitoredPaths" ($cfg.monitoredPaths | default list)) }}
+          {{- end }}
+          {{- range $i, $repo := $repos }}
+          {{- if $i }},{{ end }}
+          {
+            "Name": {{ $repo.Name | quote }},
+            "Url": {{ $repo.Url | quote }},
+            "Branch": {{ $repo.Branch | quote }},
+            "MonitoredPaths": {{ $repo.MonitoredPaths | toJson }}
+          }
+          {{- end }}
+        ]
+      },
+      "Logging": {
+        "LogLevel": {
+          "Default": {{ .Values.logging.level | quote }}
+        }
+      }
+    }

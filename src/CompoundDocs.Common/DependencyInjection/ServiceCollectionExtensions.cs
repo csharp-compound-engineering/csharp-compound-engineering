@@ -2,7 +2,6 @@ using CompoundDocs.Common.Configuration;
 using CompoundDocs.Common.Logging;
 using CompoundDocs.Common.Parsing;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
 
 namespace CompoundDocs.Common.DependencyInjection;
 
@@ -34,15 +33,5 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<CorrelationContext>();
         return services;
-    }
-
-    /// <summary>
-    /// Configures Serilog with sensitive data masking.
-    /// </summary>
-    public static LoggerConfiguration WithSensitiveDataMasking(this LoggerConfiguration config)
-    {
-        return config
-            .Enrich.With<SensitiveDataMasker>()
-            .Destructure.With<SensitiveDataDestructuringPolicy>();
     }
 }

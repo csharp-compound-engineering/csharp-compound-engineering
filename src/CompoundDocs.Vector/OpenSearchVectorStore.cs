@@ -9,8 +9,20 @@ using Polly.Retry;
 
 namespace CompoundDocs.Vector;
 
-public sealed class OpenSearchVectorStore : IVectorStore
+public sealed partial class OpenSearchVectorStore : IVectorStore
 {
+    [LoggerMessage(EventId = 1, Level = Microsoft.Extensions.Logging.LogLevel.Debug,
+        Message = "Indexing chunk {ChunkId}")]
+    private partial void LogIndexingChunk(string chunkId);
+
+    [LoggerMessage(EventId = 2, Level = Microsoft.Extensions.Logging.LogLevel.Debug,
+        Message = "Deleting vectors for document {DocumentId}")]
+    private partial void LogDeletingVectors(string documentId);
+
+    [LoggerMessage(EventId = 3, Level = Microsoft.Extensions.Logging.LogLevel.Debug,
+        Message = "Searching vectors, topK={TopK}")]
+    private partial void LogSearchingVectors(int topK);
+
     private readonly IOpenSearchClient _client;
     private readonly OpenSearchConfig _config;
     private readonly ILogger<OpenSearchVectorStore> _logger;
@@ -59,7 +71,7 @@ public sealed class OpenSearchVectorStore : IVectorStore
     {
         await _retryPipeline.ExecuteAsync(async token =>
         {
-            _logger.LogDebug("Indexing chunk {ChunkId}", chunkId);
+            LogIndexingChunk(chunkId);
 
             var document = new Dictionary<string, object>
             {
@@ -85,7 +97,7 @@ public sealed class OpenSearchVectorStore : IVectorStore
     {
         await _retryPipeline.ExecuteAsync(async token =>
         {
-            _logger.LogDebug("Deleting vectors for document {DocumentId}", documentId);
+            LogDeletingVectors(documentId);
 
             var query = new
             {
@@ -117,7 +129,7 @@ public sealed class OpenSearchVectorStore : IVectorStore
     {
         return await _retryPipeline.ExecuteAsync(async token =>
         {
-            _logger.LogDebug("Searching vectors, topK={TopK}", topK);
+            LogSearchingVectors(topK);
 
             var knnQuery = new Dictionary<string, object>
             {

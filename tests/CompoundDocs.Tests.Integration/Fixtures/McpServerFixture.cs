@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using OpenSearch.Client;
 
 namespace CompoundDocs.Tests.Integration.Fixtures;
 
@@ -21,6 +22,8 @@ public class McpServerFixture : WebApplicationFactory<Program>
     public Mock<IBedrockEmbeddingService> EmbeddingServiceMock { get; } = new();
     public Mock<IBedrockLlmService> LlmServiceMock { get; } = new();
     public Mock<IGraphRagPipeline> GraphRagPipelineMock { get; } = new();
+    public Mock<INeptuneClient> NeptuneClientMock { get; } = new();
+    public Mock<IOpenSearchClient> OpenSearchClientMock { get; } = new();
 
     public IVectorStore VectorStore => VectorStoreMock.Object;
     public IGraphRepository GraphRepository => GraphRepositoryMock.Object;
@@ -30,6 +33,18 @@ public class McpServerFixture : WebApplicationFactory<Program>
 
     public const string ValidApiKey1 = "test-key-1";
     public const string ValidApiKey2 = "test-key-2";
+
+    public McpServerFixture()
+    {
+        // Set up healthy defaults for health check dependencies
+        NeptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        EmbeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -47,6 +62,8 @@ public class McpServerFixture : WebApplicationFactory<Program>
             services.AddSingleton(EmbeddingService);
             services.AddSingleton(LlmService);
             services.AddSingleton(GraphRagPipeline);
+            services.AddSingleton(NeptuneClientMock.Object);
+            services.AddSingleton(OpenSearchClientMock.Object);
         });
     }
 }

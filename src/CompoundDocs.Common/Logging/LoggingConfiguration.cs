@@ -1,59 +1,41 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Serilog;
-using Serilog.Events;
-using Serilog.Formatting.Compact;
+using Microsoft.Extensions.Logging;
 
 namespace CompoundDocs.Common.Logging;
 
 /// <summary>
-/// Configures Serilog for MCP server (stderr only per MCP protocol constraints).
+/// Configures logging for MCP server and worker processes.
 /// </summary>
-[ExcludeFromCodeCoverage(Justification = "Serilog host builder configuration; side-effect heavy, requires real IHostBuilder")]
+[ExcludeFromCodeCoverage(Justification = "Logging builder configuration; side-effect heavy")]
 public static class LoggingConfiguration
 {
     /// <summary>
-    /// Configures Serilog to write to stderr for MCP server compatibility.
+    /// Configures simple console logging for MCP server compatibility.
     /// </summary>
-    public static IHostBuilder UseMcpServerLogging(this IHostBuilder hostBuilder)
+    public static ILoggingBuilder ConfigureMcpServerLogging(this ILoggingBuilder builder)
     {
-        return hostBuilder.UseSerilog((context, services, configuration) =>
+        builder.ClearProviders();
+        builder.SetMinimumLevel(LogLevel.Information);
+        builder.AddFilter("Microsoft", LogLevel.Warning);
+        builder.AddFilter("System", LogLevel.Warning);
+        builder.AddSimpleConsole(options =>
         {
-            configuration
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .Enrich.FromLogContext()
-                .Enrich.WithMachineName()
-                .Enrich.WithEnvironmentName()
-                .Enrich.With<SensitiveDataMasker>()
-                .Destructure.With<SensitiveDataDestructuringPolicy>()
-                .WriteTo.Console(
-                    standardErrorFromLevel: LogEventLevel.Verbose,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {CorrelationId} {Message:lj}{NewLine}{Exception}");
+            options.TimestampFormat = "HH:mm:ss ";
+            options.SingleLine = true;
         });
+        return builder;
     }
 
     /// <summary>
-    /// Configures structured JSON logging to stderr.
+    /// Configures structured JSON logging.
     /// </summary>
-    public static IHostBuilder UseStructuredLogging(this IHostBuilder hostBuilder)
+    public static ILoggingBuilder ConfigureStructuredLogging(this ILoggingBuilder builder)
     {
-        return hostBuilder.UseSerilog((context, services, configuration) =>
-        {
-            configuration
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .Enrich.FromLogContext()
-                .Enrich.WithMachineName()
-                .Enrich.WithEnvironmentName()
-                .Enrich.With<SensitiveDataMasker>()
-                .Destructure.With<SensitiveDataDestructuringPolicy>()
-                .WriteTo.Console(
-                    new CompactJsonFormatter(),
-                    standardErrorFromLevel: LogEventLevel.Verbose);
-        });
+        builder.ClearProviders();
+        builder.SetMinimumLevel(LogLevel.Information);
+        builder.AddFilter("Microsoft", LogLevel.Warning);
+        builder.AddFilter("System", LogLevel.Warning);
+        builder.AddJsonConsole();
+        return builder;
     }
 }

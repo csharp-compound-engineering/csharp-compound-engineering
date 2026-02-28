@@ -11,4 +11,5 @@ public record ResolvedEntity
     public required string Name { get; init; }
     public required string Repository { get; init; }
     public List<string> RelatedConceptIds { get; init; } = [];
+    public List<string> RelatedConceptNames { get; init; } = [];
 }

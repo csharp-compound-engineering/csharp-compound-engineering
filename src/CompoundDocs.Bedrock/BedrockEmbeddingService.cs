@@ -9,8 +9,12 @@ using Polly.Retry;
 
 namespace CompoundDocs.Bedrock;
 
-public sealed class BedrockEmbeddingService : IBedrockEmbeddingService
+public sealed partial class BedrockEmbeddingService : IBedrockEmbeddingService
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Generating embedding for text of length {Length}")]
+    private partial void LogGeneratingEmbedding(int length);
+
     private readonly IAmazonBedrockRuntime _client;
     private readonly BedrockConfig _config;
     private readonly ILogger<BedrockEmbeddingService> _logger;
@@ -55,7 +59,7 @@ public sealed class BedrockEmbeddingService : IBedrockEmbeddingService
     {
         return await _retryPipeline.ExecuteAsync(async token =>
         {
-            _logger.LogDebug("Generating embedding for text of length {Length}", text.Length);
+            LogGeneratingEmbedding(text.Length);
 
             var requestBody = JsonSerializer.Serialize(new
             {

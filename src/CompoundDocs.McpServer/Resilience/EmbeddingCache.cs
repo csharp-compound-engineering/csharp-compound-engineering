@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using CompoundDocs.McpServer.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -30,16 +31,6 @@ public sealed class EmbeddingCacheOptions
     /// Cache entry expiration in hours.
     /// </summary>
     public int ExpirationHours { get; set; } = 24;
-
-    /// <summary>
-    /// Whether to persist cache to disk.
-    /// </summary>
-    public bool PersistToDisk { get; set; } = false;
-
-    /// <summary>
-    /// Path for cache persistence (if enabled).
-    /// </summary>
-    public string? CachePath { get; set; }
 }
 
 /// <summary>
@@ -74,13 +65,34 @@ public sealed record CachedEmbedding
 }
 
 /// <summary>
-/// In-memory cache for embeddings to support graceful degradation
-/// when Ollama is unavailable.
+/// In-memory cache for embeddings to reduce redundant Bedrock calls
+/// and support graceful degradation.
 /// </summary>
-public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
+public sealed partial class EmbeddingCache : IEmbeddingCache, IDisposable
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Cache hit for content hash {Hash}. Access count: {AccessCount}")]
+    private partial void LogCacheHit(string hash, int accessCount);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Debug,
+        Message = "Cached embedding for content hash {Hash}. Cache size: {CacheSize}")]
+    private partial void LogCachedEmbedding(string hash, int cacheSize);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information,
+        Message = "Embedding cache cleared")]
+    private partial void LogCacheCleared();
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
+        Message = "Evicted LRU cache entry {Hash}. Last accessed: {LastAccess}")]
+    private partial void LogEvictedLruEntry(string hash, DateTime lastAccess);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information,
+        Message = "Cleaned up {ExpiredCount} expired cache entries. Remaining: {RemainingCount}")]
+    private partial void LogCleanedUpExpiredEntries(int expiredCount, int remainingCount);
+
     private readonly ILogger<EmbeddingCache> _logger;
     private readonly EmbeddingCacheOptions _options;
+    private readonly MetricsCollector? _metrics;
     private readonly ConcurrentDictionary<string, CachedEmbedding> _cache = new();
     private readonly Timer _cleanupTimer;
     private bool _disposed;
@@ -90,12 +102,15 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
     /// </summary>
     /// <param name="options">Cache options.</param>
     /// <param name="logger">Logger instance.</param>
+    /// <param name="metrics">Optional metrics collector.</param>
     public EmbeddingCache(
         IOptions<EmbeddingCacheOptions> options,
-        ILogger<EmbeddingCache> logger)
+        ILogger<EmbeddingCache> logger,
+        MetricsCollector? metrics = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _metrics = metrics;
 
         // Clean up expired entries every hour
         _cleanupTimer = new Timer(CleanupExpiredEntries, null, TimeSpan.FromHours(1), TimeSpan.FromHours(1));
@@ -134,14 +149,13 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
 
             embedding = cached.Embedding;
 
-            _logger.LogDebug(
-                "Cache hit for content hash {Hash}. Access count: {AccessCount}",
-                hash[..8],
-                cached.AccessCount);
+            LogCacheHit(hash[..8], cached.AccessCount);
+            _metrics?.RecordCacheHit();
 
             return true;
         }
 
+        _metrics?.RecordCacheMiss();
         return false;
     }
 
@@ -172,10 +186,7 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
 
         _cache.AddOrUpdate(hash, cached, (_, _) => cached);
 
-        _logger.LogDebug(
-            "Cached embedding for content hash {Hash}. Cache size: {CacheSize}",
-            hash[..8],
-            _cache.Count);
+        LogCachedEmbedding(hash[..8], _cache.Count);
     }
 
     /// <inheritdoc />
@@ -189,7 +200,7 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
     public void Clear()
     {
         _cache.Clear();
-        _logger.LogInformation("Embedding cache cleared");
+        LogCacheCleared();
     }
 
     /// <inheritdoc />
@@ -228,10 +239,7 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
         if (lru != null)
         {
             _cache.TryRemove(lru.ContentHash, out _);
-            _logger.LogDebug(
-                "Evicted LRU cache entry {Hash}. Last accessed: {LastAccess}",
-                lru.ContentHash[..8],
-                lru.LastAccessedAt);
+            LogEvictedLruEntry(lru.ContentHash[..8], lru.LastAccessedAt);
         }
     }
 
@@ -255,10 +263,7 @@ public sealed class EmbeddingCache : IEmbeddingCache, IDisposable
 
         if (expiredCount > 0)
         {
-            _logger.LogInformation(
-                "Cleaned up {ExpiredCount} expired cache entries. Remaining: {RemainingCount}",
-                expiredCount,
-                _cache.Count);
+            LogCleanedUpExpiredEntries(expiredCount, _cache.Count);
         }
     }
 

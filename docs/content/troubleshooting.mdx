@@ -113,7 +113,7 @@ Ensure `Aws.Region` in configuration matches the region where your Neptune clust
 
 **Solutions**:
 - Check Neptune engine version supports openCypher
-- Review the Serilog output for the exact query that failed
+- Review the log output for the exact query that failed
 - Verify the graph schema has been initialized (nodes and relationships created)
 
 ## OpenSearch Serverless Issues
@@ -324,9 +324,9 @@ Ensure `Aws.Region` in configuration matches the region where your Neptune clust
 
 **Solutions**:
 
-1. **Check polling interval**
-   - Default is 5 minutes (`PollIntervalMinutes`)
-   - Wait for the next poll cycle
+1. **Check sync interval**
+   - Default is 6 hours (`GitSync.IntervalSeconds`)
+   - Wait for the next sync cycle
 
 2. **Check monitored paths**
    - If `MonitoredPaths` is set, only files under those paths trigger re-processing
@@ -358,8 +358,8 @@ Ensure `Aws.Region` in configuration matches the region where your Neptune clust
 
 **Solutions**:
 
-1. **Reduce polling frequency**
-   - Increase `PollIntervalMinutes` for less frequent repository checks
+1. **Reduce sync frequency**
+   - Increase `GitSync.IntervalSeconds` for less frequent repository checks
 
 2. **Use Haiku for more tasks**
    - Haiku is the cheapest Claude model tier
@@ -371,19 +371,17 @@ Ensure `Aws.Region` in configuration matches the region where your Neptune clust
 
 ### Log Output
 
-All MCP server and Worker logs go to stderr using Serilog structured logging.
+All MCP server and Worker logs go to stderr using Microsoft.Extensions.Logging (Console provider).
 
 ### Enabling Debug Logging
 
 ```json
 {
-  "Serilog": {
-    "MinimumLevel": {
+  "Logging": {
+    "LogLevel": {
       "Default": "Debug",
-      "Override": {
-        "Microsoft": "Warning",
-        "System": "Warning"
-      }
+      "Microsoft": "Warning",
+      "System": "Warning"
     }
   }
 }
@@ -391,7 +389,7 @@ All MCP server and Worker logs go to stderr using Serilog structured logging.
 
 Or via environment variable:
 ```bash
-export SERILOG_LOGGING_LEVEL=Debug
+export Logging__LogLevel__Default=Debug
 ```
 
 ### Log Levels

@@ -83,3 +83,4 @@ Secrets Manager path for a service: <prefix>/<service>
 {{- define "compound-docs.smSecretPath" -}}
 {{- printf "%s/%s" .prefix .service }}
 {{- end }}
+

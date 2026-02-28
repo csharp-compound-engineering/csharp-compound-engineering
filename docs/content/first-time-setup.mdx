@@ -39,14 +39,13 @@ Tell the system which git repositories to monitor for documentation:
       "Url": "https://github.com/org/my-project.git",
       "Name": "my-project",
       "Branch": "main",
-      "MonitoredPaths": ["docs/", "src/"],
-      "PollIntervalMinutes": 5
+      "MonitoredPaths": ["docs/", "src/"]
     }
   ]
 }
 ```
 
-The Worker service uses LibGit2Sharp to clone and monitor these repositories, detecting changes via git diff on each polling interval.
+The MCP server's built-in git sync service uses LibGit2Sharp to clone and monitor these repositories, detecting changes via git diff on each sync interval (default: every 6 hours, configurable via `GitSync.IntervalSeconds`).
 
 ## Step 3: Verify the MCP Server
 
