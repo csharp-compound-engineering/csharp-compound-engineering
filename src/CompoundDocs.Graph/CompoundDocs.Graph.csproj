@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.Neptunedata" />
-    <PackageReference Include="Gremlin.Net" />
     <PackageReference Include="Polly" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options" />

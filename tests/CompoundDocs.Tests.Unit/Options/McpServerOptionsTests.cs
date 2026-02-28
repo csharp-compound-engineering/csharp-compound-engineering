@@ -26,10 +26,10 @@ public class CompoundDocsServerOptionsTests
     }
 
     [Fact]
-    public void DefaultPort_ShouldBe_3000()
+    public void DefaultPort_ShouldBe_8080()
     {
         var options = new CompoundDocsServerOptions();
-        options.Port.ShouldBe(3000);
+        options.Port.ShouldBe(8080);
     }
 
     [Fact]

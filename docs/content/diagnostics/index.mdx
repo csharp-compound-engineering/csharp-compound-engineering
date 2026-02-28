@@ -16,7 +16,7 @@ Debug logging can be enabled in two ways:
 
 ```bash
 # Enable debug logging for the entire application
-export SERILOG_LOGGING_LEVEL=Debug
+export Logging__LogLevel__Default=Debug
 
 # Run the MCP server with debug logging
 dotnet run --project src/CompoundDocs.McpServer
@@ -28,22 +28,12 @@ Update the `appsettings.json` configuration:
 
 ```json
 {
-  "Serilog": {
-    "MinimumLevel": {
+  "Logging": {
+    "LogLevel": {
       "Default": "Debug",
-      "Override": {
-        "Microsoft": "Warning",
-        "System": "Warning"
-      }
-    },
-    "WriteTo": [
-      {
-        "Name": "Console",
-        "Args": {
-          "outputTemplate": "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}"
-        }
-      }
-    ]
+      "Microsoft": "Warning",
+      "System": "Warning"
+    }
   }
 }
 ```
@@ -239,7 +229,7 @@ dotnet --version
 
 ### Structured Logging Properties
 
-CompoundDocs uses Serilog structured logging with these common properties:
+CompoundDocs uses Microsoft.Extensions.Logging structured logging with these common properties:
 
 | Property | Purpose | Example |
 |----------|---------|---------|

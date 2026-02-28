@@ -4,8 +4,48 @@ using Microsoft.Extensions.Logging;
 
 namespace CompoundDocs.Graph;
 
-public sealed class NeptuneGraphRepository : IGraphRepository
+public sealed partial class NeptuneGraphRepository : IGraphRepository
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Upserted document {DocumentId}")]
+    private partial void LogUpsertedDocument(string documentId);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Debug,
+        Message = "Upserted section {SectionId}")]
+    private partial void LogUpsertedSection(string sectionId);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Debug,
+        Message = "Upserted chunk {ChunkId}")]
+    private partial void LogUpsertedChunk(string chunkId);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Debug,
+        Message = "Upserted concept {ConceptId}")]
+    private partial void LogUpsertedConcept(string conceptId);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Debug,
+        Message = "Created relationship {Type} from {Source} to {Target}")]
+    private partial void LogCreatedRelationship(string type, string source, string target);
+
+    [LoggerMessage(EventId = 6, Level = LogLevel.Information,
+        Message = "Cascade deleted document {DocumentId}")]
+    private partial void LogCascadeDeletedDocument(string documentId);
+
+    [LoggerMessage(EventId = 7, Level = LogLevel.Debug,
+        Message = "Upserted code example {CodeExampleId}")]
+    private partial void LogUpsertedCodeExample(string codeExampleId);
+
+    [LoggerMessage(EventId = 8, Level = LogLevel.Debug,
+        Message = "Retrieved sync state for {RepoName}: {CommitHash}")]
+    private partial void LogRetrievedSyncState(string repoName, string? commitHash);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Debug,
+        Message = "Found {Count} concepts matching name {Name}")]
+    private partial void LogFoundConceptsByName(int count, string name);
+
+    [LoggerMessage(EventId = 9, Level = LogLevel.Debug,
+        Message = "Set sync state for {RepoName} to {CommitHash}")]
+    private partial void LogSetSyncState(string repoName, string commitHash);
+
     private readonly INeptuneClient _client;
     private readonly ILogger<NeptuneGraphRepository> _logger;
 
@@ -42,7 +82,7 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogDebug("Upserted document {DocumentId}", document.Id);
+        LogUpsertedDocument(document.Id);
     }
 
     public async Task UpsertSectionAsync(SectionNode section, CancellationToken ct = default)
@@ -69,7 +109,7 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogDebug("Upserted section {SectionId}", section.Id);
+        LogUpsertedSection(section.Id);
     }
 
     public async Task UpsertChunkAsync(ChunkNode chunk, CancellationToken ct = default)
@@ -98,7 +138,7 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogDebug("Upserted chunk {ChunkId}", chunk.Id);
+        LogUpsertedChunk(chunk.Id);
     }
 
     public async Task UpsertConceptAsync(ConceptNode concept, CancellationToken ct = default)
@@ -122,7 +162,7 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogDebug("Upserted concept {ConceptId}", concept.Id);
+        LogUpsertedConcept(concept.Id);
     }
 
     public async Task CreateRelationshipAsync(GraphRelationship relationship, CancellationToken ct = default)
@@ -143,8 +183,7 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogDebug("Created relationship {Type} from {Source} to {Target}",
-            relationship.Type, relationship.SourceId, relationship.TargetId);
+        LogCreatedRelationship(relationship.Type, relationship.SourceId, relationship.TargetId);
     }
 
     public async Task DeleteDocumentCascadeAsync(string documentId, CancellationToken ct = default)
@@ -161,7 +200,30 @@ public sealed class NeptuneGraphRepository : IGraphRepository
         };
 
         await _client.ExecuteOpenCypherAsync(query, parameters, ct);
-        _logger.LogInformation("Cascade deleted document {DocumentId}", documentId);
+        LogCascadeDeletedDocument(documentId);
+    }
+
+    public async Task<List<ConceptNode>> FindConceptsByNameAsync(
+        string name,
+        CancellationToken ct = default)
+    {
+        var query = """
+            MATCH (c:Concept)
+            WHERE c.name = $name
+            RETURN c.id AS id, c.name AS name,
+                   c.description AS description, c.category AS category,
+                   c.aliases AS aliases
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["name"] = name
+        };
+
+        var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+        var concepts = ParseConceptNodes(result);
+        LogFoundConceptsByName(concepts.Count, name);
+        return concepts;
     }
 
     public async Task<List<ConceptNode>> GetRelatedConceptsAsync(
@@ -224,6 +286,135 @@ public sealed class NeptuneGraphRepository : IGraphRepository
 
         var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
         return ParseDocumentNodes(result);
+    }
+
+    public async Task<List<ChunkNode>> GetChunksByIdsAsync(
+        IReadOnlyList<string> chunkIds,
+        CancellationToken ct = default)
+    {
+        if (chunkIds.Count == 0)
+        {
+            return [];
+        }
+
+        var query = """
+            MATCH (c:Chunk)
+            WHERE c.id IN $ids
+            RETURN c.id AS id, c.sectionId AS sectionId,
+                   c.documentId AS documentId, c.content AS content,
+                   c.order AS order, c.tokenCount AS tokenCount
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["ids"] = chunkIds.ToList()
+        };
+
+        var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+        return ParseChunkNodes(result);
+    }
+
+    public async Task<List<ConceptNode>> GetConceptsByChunkIdsAsync(
+        IReadOnlyList<string> chunkIds,
+        CancellationToken ct = default)
+    {
+        if (chunkIds.Count == 0)
+        {
+            return [];
+        }
+
+        var query = """
+            MATCH (c:Chunk)-[:MENTIONS]->(concept:Concept)
+            WHERE c.id IN $ids
+            RETURN DISTINCT concept.id AS id, concept.name AS name,
+                   concept.description AS description, concept.category AS category,
+                   concept.aliases AS aliases
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["ids"] = chunkIds.ToList()
+        };
+
+        var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+        return ParseConceptNodes(result);
+    }
+
+    public async Task UpsertCodeExampleAsync(CodeExampleNode codeExample, string chunkId, CancellationToken ct = default)
+    {
+        var query = """
+            MERGE (ce:CodeExample {id: $id})
+            SET ce.chunkId = $chunkId,
+                ce.language = $language,
+                ce.code = $code,
+                ce.description = $description
+            WITH ce
+            MATCH (c:Chunk {id: $chunkId})
+            MERGE (c)-[:HAS_CODE_EXAMPLE]->(ce)
+            RETURN ce
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["id"] = codeExample.Id,
+            ["chunkId"] = chunkId,
+            ["language"] = codeExample.Language,
+            ["code"] = codeExample.Code,
+            ["description"] = codeExample.Description ?? string.Empty
+        };
+
+        await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+        LogUpsertedCodeExample(codeExample.Id);
+    }
+
+    public async Task<string?> GetSyncStateAsync(string repoName, CancellationToken ct = default)
+    {
+        var query = """
+            MATCH (s:SyncState {repoName: $repoName})
+            RETURN s.commitHash AS commitHash
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["repoName"] = repoName
+        };
+
+        var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+
+        string? commitHash = null;
+        if (result.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in result.EnumerateArray())
+            {
+                if (item.TryGetProperty("commitHash", out var hashProp))
+                {
+                    commitHash = hashProp.GetString();
+                }
+            }
+        }
+
+        LogRetrievedSyncState(repoName, commitHash);
+        return commitHash;
+    }
+
+    public async Task SetSyncStateAsync(string repoName, string commitHash, CancellationToken ct = default)
+    {
+        var query = """
+            MERGE (s:SyncState {repoName: $repoName})
+            SET s.commitHash = $commitHash,
+                s.updatedAt = $updatedAt
+            RETURN s
+            """;
+
+        var parameters = new Dictionary<string, object>
+        {
+            ["repoName"] = repoName,
+            ["commitHash"] = commitHash,
+            ["updatedAt"] = DateTime.UtcNow.ToString("O")
+        };
+
+        await _client.ExecuteOpenCypherAsync(query, parameters, ct);
+        LogSetSyncState(repoName, commitHash);
     }
 
     private static List<ConceptNode> ParseConceptNodes(JsonElement result)

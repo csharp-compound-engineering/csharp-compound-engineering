@@ -23,7 +23,7 @@ public sealed class CompoundDocsServerOptions
     /// <summary>
     /// Port for HTTP transport.
     /// </summary>
-    public int Port { get; set; } = 3000;
+    public int Port { get; set; } = 8080;
 }
 
 /// <summary>

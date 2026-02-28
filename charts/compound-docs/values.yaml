@@ -96,7 +96,16 @@ iam:
 # --- Bedrock ---
 bedrock:
   embeddingModelId: "amazon.titan-embed-text-v2:0"
-  llmModelId: "anthropic.claude-3-5-sonnet-20241022-v2:0"
+  sonnetModelId: "anthropic.claude-sonnet-4-5-v1:0"
+  haikuModelId: "anthropic.claude-haiku-4-5-v1:0"
+  opusModelId: "anthropic.claude-opus-4-5-v1:0"
+
+# --- GraphRAG Pipeline ---
+graphRag:
+  maxTraversalSteps: 5
+  maxChunksPerQuery: 10
+  minRelevanceScore: 0.7
+  useCrossRepoLinks: true
 
 # --- Application ---
 serviceAccount:
@@ -132,10 +141,10 @@ ingress:
 resources:
   limits:
     cpu: "1"
-    memory: 512Mi
+    memory: 1Gi
   requests:
     cpu: 250m
-    memory: 256Mi
+    memory: 512Mi
 
 autoscaling:
   enabled: false
@@ -155,6 +164,19 @@ auth:
 
 logging:
   level: Information
+
+# --- Git Sync ---
+gitSync:
+  intervalSeconds: 21600        # 6 hours
+  cloneBaseDirectory: /data/repos
+  sizeLimit: 2Gi                # emptyDir size limit
+  # Map of repositories to sync. Key = repo name.
+  # repositories:
+  #   my-docs-repo:
+  #     url: https://github.com/org/my-docs-repo.git
+  #     branch: main
+  #     monitoredPaths: ["docs/"]
+  repositories: {}
 
 # =============================================================================
 # Configuration Mode Examples

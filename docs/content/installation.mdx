@@ -378,7 +378,7 @@ The plugin uses HTTP transport. Add the MCP server to your Claude Code configura
 {
   "mcpServers": {
     "csharp-compounding-docs": {
-      "url": "http://localhost:3000/mcp"
+      "url": "http://localhost:8080/"
     }
   }
 }
@@ -412,8 +412,8 @@ Configure the AWS service endpoints in `appsettings.json` or `appsettings.Develo
     "SonnetModelId": "anthropic.claude-sonnet-4-5-v1:0",
     "HaikuModelId": "anthropic.claude-haiku-4-5-v1:0"
   },
-  "Serilog": {
-    "MinimumLevel": {
+  "Logging": {
+    "LogLevel": {
       "Default": "Information"
     }
   }

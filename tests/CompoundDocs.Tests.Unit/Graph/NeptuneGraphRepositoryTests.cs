@@ -303,6 +303,91 @@ public class NeptuneGraphRepositoryTests
 
     #endregion
 
+    #region FindConceptsByNameAsync
+
+    [Fact]
+    public async Task FindConceptsByNameAsync_ParsesArrayResult_IntoConceptNodeList()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("""
+            [
+                {"id": "c1", "name": "Dependency Injection", "description": "DI pattern", "category": "patterns"}
+            ]
+            """).RootElement.Clone();
+
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.FindConceptsByNameAsync("Dependency Injection");
+
+        // Assert
+        result.Count.ShouldBe(1);
+        result[0].Id.ShouldBe("c1");
+        result[0].Name.ShouldBe("Dependency Injection");
+        result[0].Description.ShouldBe("DI pattern");
+        result[0].Category.ShouldBe("patterns");
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q =>
+                q.Contains("MATCH (c:Concept)") &&
+                q.Contains("WHERE c.name = $name")),
+            It.Is<Dictionary<string, object>?>(p =>
+                p != null &&
+                (string)p["name"] == "Dependency Injection"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task FindConceptsByNameAsync_NoMatches_ReturnsEmptyList()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("[]").RootElement.Clone();
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.FindConceptsByNameAsync("NonExistent");
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FindConceptsByNameAsync_NonArrayResult_ReturnsEmptyList()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("{}").RootElement.Clone();
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.FindConceptsByNameAsync("Test");
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FindConceptsByNameAsync_ForwardsCancellationToken()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("[]").RootElement.Clone();
+        SetupExecuteReturns(json);
+        using var cts = new CancellationTokenSource();
+        var token = cts.Token;
+
+        // Act
+        await _sut.FindConceptsByNameAsync("Test", token);
+
+        // Assert
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object>?>(),
+            token),
+            Times.Once);
+    }
+
+    #endregion
+
     #region GetRelatedConceptsAsync
 
     [Fact]
@@ -549,6 +634,273 @@ public class NeptuneGraphRepositoryTests
         result[0].PromotionLevel.ShouldBe("draft");
         result[0].DocType.ShouldBeNull();
         result[0].CommitHash.ShouldBeNull();
+    }
+
+    #endregion
+
+    #region GetChunksByIdsAsync
+
+    [Fact]
+    public async Task GetChunksByIdsAsync_ReturnsMatchingChunks()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("""
+            [
+                {
+                    "id": "chunk-1",
+                    "sectionId": "sec-1",
+                    "documentId": "doc-1",
+                    "content": "First chunk content",
+                    "order": 0,
+                    "tokenCount": 50
+                },
+                {
+                    "id": "chunk-2",
+                    "sectionId": "sec-1",
+                    "documentId": "doc-1",
+                    "content": "Second chunk content",
+                    "order": 1,
+                    "tokenCount": 60
+                }
+            ]
+            """).RootElement.Clone();
+
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.GetChunksByIdsAsync(["chunk-1", "chunk-2"]);
+
+        // Assert
+        result.Count.ShouldBe(2);
+        result[0].Id.ShouldBe("chunk-1");
+        result[0].Content.ShouldBe("First chunk content");
+        result[1].Id.ShouldBe("chunk-2");
+        result[1].Content.ShouldBe("Second chunk content");
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q => q.Contains("MATCH (c:Chunk)") && q.Contains("WHERE c.id IN $ids")),
+            It.Is<Dictionary<string, object>?>(p => p != null && p.ContainsKey("ids")),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetChunksByIdsAsync_EmptyInput_ReturnsEmptyList()
+    {
+        // Act
+        var result = await _sut.GetChunksByIdsAsync([]);
+
+        // Assert
+        result.ShouldBeEmpty();
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object>?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    #endregion
+
+    #region GetConceptsByChunkIdsAsync
+
+    [Fact]
+    public async Task GetConceptsByChunkIdsAsync_ReturnsDistinctConcepts()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("""
+            [
+                {"id": "c1", "name": "Dependency Injection", "description": "DI pattern", "category": "patterns"},
+                {"id": "c2", "name": "GraphRAG", "description": "Graph RAG pipeline", "category": "architecture"}
+            ]
+            """).RootElement.Clone();
+
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.GetConceptsByChunkIdsAsync(["chunk-1", "chunk-2"]);
+
+        // Assert
+        result.Count.ShouldBe(2);
+        result[0].Id.ShouldBe("c1");
+        result[0].Name.ShouldBe("Dependency Injection");
+        result[1].Id.ShouldBe("c2");
+        result[1].Name.ShouldBe("GraphRAG");
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q =>
+                q.Contains("MATCH (c:Chunk)-[:MENTIONS]->(concept:Concept)") &&
+                q.Contains("WHERE c.id IN $ids") &&
+                q.Contains("RETURN DISTINCT")),
+            It.Is<Dictionary<string, object>?>(p => p != null && p.ContainsKey("ids")),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetConceptsByChunkIdsAsync_EmptyInput_ReturnsEmptyList()
+    {
+        // Act
+        var result = await _sut.GetConceptsByChunkIdsAsync([]);
+
+        // Assert
+        result.ShouldBeEmpty();
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.IsAny<string>(),
+            It.IsAny<Dictionary<string, object>?>(),
+            It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    #endregion
+
+    #region UpsertCodeExampleAsync
+
+    [Fact]
+    public async Task UpsertCodeExampleAsync_CallsExecuteOpenCypherAsync_WithCorrectParameters()
+    {
+        // Arrange
+        SetupExecuteReturns(EmptyJsonElement());
+
+        var codeExample = new CodeExampleNode
+        {
+            Id = "code-1",
+            ChunkId = "chunk-1",
+            Language = "csharp",
+            Code = "var x = 1;",
+            Description = "A simple assignment"
+        };
+
+        // Act
+        await _sut.UpsertCodeExampleAsync(codeExample, "chunk-1");
+
+        // Assert
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q =>
+                q.Contains("MERGE (ce:CodeExample {id: $id})") &&
+                q.Contains("MERGE (c)-[:HAS_CODE_EXAMPLE]->(ce)")),
+            It.Is<Dictionary<string, object>?>(p =>
+                p != null &&
+                (string)p["id"] == "code-1" &&
+                (string)p["chunkId"] == "chunk-1" &&
+                (string)p["language"] == "csharp" &&
+                (string)p["code"] == "var x = 1;" &&
+                (string)p["description"] == "A simple assignment"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpsertCodeExampleAsync_NullDescription_PassesEmptyString()
+    {
+        // Arrange
+        SetupExecuteReturns(EmptyJsonElement());
+
+        var codeExample = new CodeExampleNode
+        {
+            Id = "code-2",
+            ChunkId = "chunk-1",
+            Language = "python",
+            Code = "print('hi')",
+            Description = null
+        };
+
+        // Act
+        await _sut.UpsertCodeExampleAsync(codeExample, "chunk-1");
+
+        // Assert
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.IsAny<string>(),
+            It.Is<Dictionary<string, object>?>(p =>
+                p != null &&
+                (string)p["description"] == string.Empty),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    #endregion
+
+    #region GetSyncStateAsync
+
+    [Fact]
+    public async Task GetSyncStateAsync_ReturnsCommitHash_WhenFound()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("""
+            [{"commitHash": "abc123def456"}]
+            """).RootElement.Clone();
+
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.GetSyncStateAsync("my-repo");
+
+        // Assert
+        result.ShouldBe("abc123def456");
+
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q => q.Contains("MATCH (s:SyncState {repoName: $repoName})")),
+            It.Is<Dictionary<string, object>?>(p =>
+                p != null &&
+                (string)p["repoName"] == "my-repo"),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetSyncStateAsync_ReturnsNull_WhenEmptyArray()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("[]").RootElement.Clone();
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.GetSyncStateAsync("my-repo");
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetSyncStateAsync_ReturnsNull_WhenNonArrayResult()
+    {
+        // Arrange
+        var json = JsonDocument.Parse("{}").RootElement.Clone();
+        SetupExecuteReturns(json);
+
+        // Act
+        var result = await _sut.GetSyncStateAsync("my-repo");
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    #endregion
+
+    #region SetSyncStateAsync
+
+    [Fact]
+    public async Task SetSyncStateAsync_CallsExecuteOpenCypherAsync_WithCorrectParameters()
+    {
+        // Arrange
+        SetupExecuteReturns(EmptyJsonElement());
+
+        // Act
+        await _sut.SetSyncStateAsync("my-repo", "abc123");
+
+        // Assert
+        _mockClient.Verify(c => c.ExecuteOpenCypherAsync(
+            It.Is<string>(q =>
+                q.Contains("MERGE (s:SyncState {repoName: $repoName})") &&
+                q.Contains("SET s.commitHash = $commitHash")),
+            It.Is<Dictionary<string, object>?>(p =>
+                p != null &&
+                (string)p["repoName"] == "my-repo" &&
+                (string)p["commitHash"] == "abc123" &&
+                p.ContainsKey("updatedAt")),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     #endregion

@@ -90,7 +90,6 @@ public sealed class CloudConfigTests
         var config = new RepositoryConfig();
 
         config.Branch.ShouldBe("main");
-        config.PollIntervalMinutes.ShouldBe(5);
         config.MonitoredPaths.ShouldNotBeNull();
         config.MonitoredPaths.ShouldBeEmpty();
         config.Url.ShouldBe(string.Empty);

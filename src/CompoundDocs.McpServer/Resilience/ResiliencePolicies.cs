@@ -11,8 +11,28 @@ namespace CompoundDocs.McpServer.Resilience;
 /// Provides resilience policies for MCP tool handlers using Polly.
 /// Implements retry with exponential backoff, circuit breaker, and timeout patterns.
 /// </summary>
-public sealed class ResiliencePolicies : IResiliencePolicies
+public sealed partial class ResiliencePolicies : IResiliencePolicies
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "{OperationType} operation timed out after {TimeoutSeconds}s")]
+    private partial void LogOperationTimedOut(string operationType, int timeoutSeconds);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Retry attempt {AttemptNumber} for {Context} after {Delay}ms due to {ExceptionType}: {Message}")]
+    private partial void LogRetryAttempt(int attemptNumber, string context, double delay, string exceptionType, string message);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error,
+        Message = "Circuit breaker OPENED for {Context}. Break duration: {BreakDuration}s. Reason: {ExceptionType}")]
+    private partial void LogCircuitBreakerOpened(string context, int breakDuration, string exceptionType);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information,
+        Message = "Circuit breaker CLOSED for {Context}. Service recovered.")]
+    private partial void LogCircuitBreakerClosed(string context);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information,
+        Message = "Circuit breaker HALF-OPEN for {Context}. Testing service availability.")]
+    private partial void LogCircuitBreakerHalfOpen(string context);
+
     private readonly ILogger<ResiliencePolicies> _logger;
     private readonly ResilienceOptions _options;
 
@@ -84,9 +104,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
                 Timeout = TimeSpan.FromSeconds(_options.Timeout.EmbeddingTimeoutSeconds),
                 OnTimeout = args =>
                 {
-                    _logger.LogWarning(
-                        "Ollama operation timed out after {TimeoutSeconds}s",
-                        _options.Timeout.EmbeddingTimeoutSeconds);
+                    LogOperationTimedOut("Ollama", _options.Timeout.EmbeddingTimeoutSeconds);
                     return default;
                 }
             })
@@ -103,9 +121,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
                 Timeout = TimeSpan.FromSeconds(_options.Timeout.DatabaseTimeoutSeconds),
                 OnTimeout = args =>
                 {
-                    _logger.LogWarning(
-                        "Database operation timed out after {TimeoutSeconds}s",
-                        _options.Timeout.DatabaseTimeoutSeconds);
+                    LogOperationTimedOut("Database", _options.Timeout.DatabaseTimeoutSeconds);
                     return default;
                 }
             })
@@ -122,9 +138,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
                 Timeout = TimeSpan.FromSeconds(_options.Timeout.DefaultTimeoutSeconds),
                 OnTimeout = args =>
                 {
-                    _logger.LogWarning(
-                        "Operation timed out after {TimeoutSeconds}s",
-                        _options.Timeout.DefaultTimeoutSeconds);
+                    LogOperationTimedOut("Default", _options.Timeout.DefaultTimeoutSeconds);
                     return default;
                 }
             })
@@ -154,8 +168,7 @@ public sealed class ResiliencePolicies : IResiliencePolicies
                 .Handle<InvalidOperationException>(ex => IsTransientError(ex)),
             OnRetry = args =>
             {
-                _logger.LogWarning(
-                    "Retry attempt {AttemptNumber} for {Context} after {Delay}ms due to {ExceptionType}: {Message}",
+                LogRetryAttempt(
                     args.AttemptNumber,
                     context,
                     args.RetryDelay.TotalMilliseconds,
@@ -183,25 +196,18 @@ public sealed class ResiliencePolicies : IResiliencePolicies
                 .Handle<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested),
             OnOpened = args =>
             {
-                _logger.LogError(
-                    "Circuit breaker OPENED for {Context}. Break duration: {BreakDuration}s. Reason: {ExceptionType}",
-                    context,
-                    cbOptions.BreakDurationSeconds,
+                LogCircuitBreakerOpened(context, cbOptions.BreakDurationSeconds,
                     args.Outcome.Exception?.GetType().Name ?? "unknown");
                 return default;
             },
             OnClosed = args =>
             {
-                _logger.LogInformation(
-                    "Circuit breaker CLOSED for {Context}. Service recovered.",
-                    context);
+                LogCircuitBreakerClosed(context);
                 return default;
             },
             OnHalfOpened = args =>
             {
-                _logger.LogInformation(
-                    "Circuit breaker HALF-OPEN for {Context}. Testing service availability.",
-                    context);
+                LogCircuitBreakerHalfOpen(context);
                 return default;
             }
         };

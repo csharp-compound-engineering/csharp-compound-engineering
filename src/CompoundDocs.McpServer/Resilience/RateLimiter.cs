@@ -111,8 +111,16 @@ public sealed record RateLimitResult
 /// Token bucket rate limiter implementation for per-tool rate limiting.
 /// Supports configurable limits per minute and per hour with burst capacity.
 /// </summary>
-public sealed class RateLimiter : IRateLimiter, IDisposable
+public sealed partial class RateLimiter : IRateLimiter, IDisposable
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Warning,
+        Message = "Rate limit exceeded for tool {ToolName} (per-minute). Retry after {RetryAfterMs}ms")]
+    private partial void LogRateLimitExceededPerMinute(string toolName, double retryAfterMs);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Rate limit exceeded for tool {ToolName} (per-hour). Retry after {RetryAfterMs}ms")]
+    private partial void LogRateLimitExceededPerHour(string toolName, double retryAfterMs);
+
     private readonly ILogger<RateLimiter> _logger;
     private readonly RateLimitOptions _options;
     private readonly ConcurrentDictionary<string, TokenBucket> _minuteBuckets = new();
@@ -162,10 +170,7 @@ public sealed class RateLimiter : IRateLimiter, IDisposable
         // Check minute limit first
         if (!minuteBucket.TryConsume(out var minuteRetryAfter))
         {
-            _logger.LogWarning(
-                "Rate limit exceeded for tool {ToolName} (per-minute). Retry after {RetryAfterMs}ms",
-                toolName,
-                minuteRetryAfter.TotalMilliseconds);
+            LogRateLimitExceededPerMinute(toolName, minuteRetryAfter.TotalMilliseconds);
 
             return RateLimitResult.Rejected(minuteRetryAfter, "Per-minute rate limit exceeded");
         }
@@ -176,10 +181,7 @@ public sealed class RateLimiter : IRateLimiter, IDisposable
             // Refund the minute token since we're rejecting
             minuteBucket.Refund();
 
-            _logger.LogWarning(
-                "Rate limit exceeded for tool {ToolName} (per-hour). Retry after {RetryAfterMs}ms",
-                toolName,
-                hourRetryAfter.TotalMilliseconds);
+            LogRateLimitExceededPerHour(toolName, hourRetryAfter.TotalMilliseconds);
 
             return RateLimitResult.Rejected(hourRetryAfter, "Per-hour rate limit exceeded");
         }

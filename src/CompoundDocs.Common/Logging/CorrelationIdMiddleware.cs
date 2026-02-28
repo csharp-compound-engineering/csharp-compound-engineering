@@ -1,5 +1,3 @@
-using Serilog.Context;
-
 namespace CompoundDocs.Common.Logging;
 
 /// <summary>
@@ -7,23 +5,23 @@ namespace CompoundDocs.Common.Logging;
 /// </summary>
 public sealed class CorrelationContext : IDisposable
 {
-    private readonly IDisposable _logContext;
+    private static readonly AsyncLocal<string?> _currentValue = new();
+    private readonly string? _previousId;
 
     public string CorrelationId { get; }
+
+    public static string? Current => _currentValue.Value;
 
     public CorrelationContext(string? correlationId = null)
     {
         CorrelationId = correlationId ?? Guid.NewGuid().ToString("N")[..8];
-        _logContext = LogContext.PushProperty("CorrelationId", CorrelationId);
+        _previousId = _currentValue.Value;
+        _currentValue.Value = CorrelationId;
     }
 
-    public static CorrelationContext Create(string? correlationId = null)
-    {
-        return new CorrelationContext(correlationId);
-    }
+    public static CorrelationContext Create(string? correlationId = null) =>
+        new(correlationId);
 
-    public void Dispose()
-    {
-        _logContext.Dispose();
-    }
+    public void Dispose() =>
+        _currentValue.Value = _previousId;
 }

@@ -42,7 +42,6 @@ public class RepositoryConfig
     public string Name { get; set; } = string.Empty;
     public string Branch { get; set; } = "main";
     public string[] MonitoredPaths { get; set; } = [];
-    public int PollIntervalMinutes { get; set; } = 5;
 }
 
 public class AuthConfig

@@ -1,15 +1,13 @@
-using Serilog.Core;
-using Serilog.Events;
 using System.Text.RegularExpressions;
 
 namespace CompoundDocs.Common.Logging;
 
 /// <summary>
-/// Masks sensitive data in log messages.
+/// Utility for detecting and masking sensitive data in log output.
 /// </summary>
-public sealed partial class SensitiveDataMasker : ILogEventEnricher
+public static partial class SensitiveDataMaskingService
 {
-    private static readonly string[] SensitivePropertyNames =
+    private static readonly string[] _sensitivePropertyNames =
     [
         "password",
         "secret",
@@ -22,56 +20,13 @@ public sealed partial class SensitiveDataMasker : ILogEventEnricher
         "auth"
     ];
 
-    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+    public static bool IsSensitivePropertyName(string name) =>
+        _sensitivePropertyNames.Any(s => name.Contains(s, StringComparison.OrdinalIgnoreCase));
+
+    public static string MaskSensitiveValues(string value)
     {
-        var propertiesToMask = logEvent.Properties
-            .Where(p => SensitivePropertyNames.Any(s =>
-                p.Key.Contains(s, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        foreach (var prop in propertiesToMask)
-        {
-            logEvent.AddOrUpdateProperty(
-                propertyFactory.CreateProperty(prop.Key, "***MASKED***"));
-        }
-    }
-}
-
-/// <summary>
-/// Destructuring policy that masks sensitive data.
-/// </summary>
-public sealed partial class SensitiveDataDestructuringPolicy : IDestructuringPolicy
-{
-    private static readonly Regex PasswordRegex = PasswordPattern();
-    private static readonly Regex ConnectionStringRegex = ConnectionStringPattern();
-
-    public bool TryDestructure(
-        object value,
-        ILogEventPropertyValueFactory propertyValueFactory,
-        out LogEventPropertyValue result)
-    {
-        if (value is string str)
-        {
-            var masked = MaskSensitiveData(str);
-            if (masked != str)
-            {
-                result = propertyValueFactory.CreatePropertyValue(masked);
-                return true;
-            }
-        }
-
-        result = null!;
-        return false;
-    }
-
-    private static string MaskSensitiveData(string value)
-    {
-        // Mask password patterns
-        value = PasswordRegex.Replace(value, "$1***MASKED***$3");
-
-        // Mask connection string passwords
-        value = ConnectionStringRegex.Replace(value, "$1***MASKED***$3");
-
+        value = PasswordPattern().Replace(value, "$1***MASKED***$3");
+        value = ConnectionStringPattern().Replace(value, "$1***MASKED***$3");
         return value;
     }
 

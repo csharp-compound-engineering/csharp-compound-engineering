@@ -1,4 +1,5 @@
 using CompoundDocs.Common.Parsing;
+using Markdig.Helpers;
 using Markdig.Syntax;
 
 namespace CompoundDocs.Tests.Unit.Parsing;
@@ -461,6 +462,94 @@ public sealed class MarkdownParserTests
         headers.Count.ShouldBe(1);
         headers[0].Text.ShouldBe(string.Empty);
         headers[0].Level.ShouldBe(2);
+    }
+
+    #endregion
+
+    #region ExtractCodeBlocks Tests
+
+    [Fact]
+    public void ExtractCodeBlocks_SingleFencedCodeBlock_ExtractsCorrectly()
+    {
+        // Arrange
+        var markdown = "## Section\n\n```csharp\nvar x = 1;\n```";
+        var document = _sut.Parse(markdown);
+
+        // Act
+        var codeBlocks = _sut.ExtractCodeBlocks(document);
+
+        // Assert
+        codeBlocks.Count.ShouldBe(1);
+        codeBlocks[0].Language.ShouldBe("csharp");
+        codeBlocks[0].Code.ShouldContain("var x = 1;");
+    }
+
+    [Fact]
+    public void ExtractCodeBlocks_MultipleCodeBlocks_ExtractsAll()
+    {
+        // Arrange
+        var markdown = "```python\nprint('hello')\n```\n\nSome text.\n\n```json\n{\"key\": \"value\"}\n```";
+        var document = _sut.Parse(markdown);
+
+        // Act
+        var codeBlocks = _sut.ExtractCodeBlocks(document);
+
+        // Assert
+        codeBlocks.Count.ShouldBe(2);
+        codeBlocks[0].Language.ShouldBe("python");
+        codeBlocks[0].Code.ShouldContain("print('hello')");
+        codeBlocks[1].Language.ShouldBe("json");
+        codeBlocks[1].Code.ShouldContain("\"key\"");
+    }
+
+    [Fact]
+    public void ExtractCodeBlocks_NoLanguage_ReturnsEmptyString()
+    {
+        // Arrange
+        var markdown = "```\nsome code\n```";
+        var document = _sut.Parse(markdown);
+
+        // Act
+        var codeBlocks = _sut.ExtractCodeBlocks(document);
+
+        // Assert
+        codeBlocks.Count.ShouldBe(1);
+        codeBlocks[0].Language.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void ExtractCodeBlocks_NoCodeBlocks_ReturnsEmptyList()
+    {
+        // Arrange
+        var markdown = "## Section\n\nJust plain text, no code blocks.";
+        var document = _sut.Parse(markdown);
+
+        // Act
+        var codeBlocks = _sut.ExtractCodeBlocks(document);
+
+        // Assert
+        codeBlocks.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void ExtractCodeBlocks_WithNullInfo_ReturnsEmptyLanguage()
+    {
+        // Arrange - Markdig sets Info="" for no-language blocks, so we must construct one
+        // with Info=null directly to cover the null-coalescing branch.
+        var document = new MarkdownDocument();
+        var codeBlock = new FencedCodeBlock(null!)
+        {
+            Info = null,
+            Lines = new StringLineGroup("var x = 1;")
+        };
+        document.Add(codeBlock);
+
+        // Act
+        var codeBlocks = _sut.ExtractCodeBlocks(document);
+
+        // Assert
+        codeBlocks.Count.ShouldBe(1);
+        codeBlocks[0].Language.ShouldBe(string.Empty);
     }
 
     #endregion

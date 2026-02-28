@@ -1,3 +1,4 @@
+using CompoundDocs.McpServer.Observability;
 using CompoundDocs.McpServer.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -341,9 +342,46 @@ public sealed class EmbeddingCacheTests
         options.Enabled.ShouldBeTrue();
         options.MaxCachedItems.ShouldBe(10000);
         options.ExpirationHours.ShouldBe(24);
-        options.PersistToDisk.ShouldBeFalse();
-        options.CachePath.ShouldBeNull();
         EmbeddingCacheOptions.SectionName.ShouldBe("EmbeddingCache");
+    }
+
+    #endregion
+
+    #region MetricsCollector Integration Tests
+
+    [Fact]
+    public void TryGet_CacheHit_RecordsCacheHitMetric()
+    {
+        using var metrics = new MetricsCollector();
+        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metrics);
+        cache.Set("test content", SampleEmbedding);
+
+        cache.TryGet("test content", out _);
+
+        var snapshot = metrics.GetSnapshot();
+        snapshot.CacheHitRate.ShouldBe(1.0);
+    }
+
+    [Fact]
+    public void TryGet_CacheMiss_RecordsCacheMissMetric()
+    {
+        using var metrics = new MetricsCollector();
+        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metrics);
+
+        cache.TryGet("nonexistent", out _);
+
+        var snapshot = metrics.GetSnapshot();
+        snapshot.CacheHitRate.ShouldBe(0.0);
+    }
+
+    [Fact]
+    public void TryGet_WithoutMetrics_DoesNotThrow()
+    {
+        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        cache.Set("test content", SampleEmbedding);
+
+        Should.NotThrow(() => cache.TryGet("test content", out _));
+        Should.NotThrow(() => cache.TryGet("nonexistent", out _));
     }
 
     #endregion

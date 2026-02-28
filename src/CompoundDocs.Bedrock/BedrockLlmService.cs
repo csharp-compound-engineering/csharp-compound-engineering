@@ -9,8 +9,16 @@ using Polly.Retry;
 
 namespace CompoundDocs.Bedrock;
 
-public sealed class BedrockLlmService : IBedrockLlmService
+public sealed partial class BedrockLlmService : IBedrockLlmService
 {
+    [LoggerMessage(EventId = 1, Level = LogLevel.Debug,
+        Message = "Generating with model {ModelId}, tier {Tier}")]
+    private partial void LogGenerating(string modelId, ModelTier tier);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
+        Message = "Failed to parse entity extraction response")]
+    private partial void LogEntityExtractionParseFailed(Exception exception);
+
     private readonly IAmazonBedrockRuntime _client;
     private readonly BedrockConfig _config;
     private readonly ILogger<BedrockLlmService> _logger;
@@ -60,7 +68,7 @@ public sealed class BedrockLlmService : IBedrockLlmService
         return await _retryPipeline.ExecuteAsync(async token =>
         {
             var modelId = GetModelId(tier);
-            _logger.LogDebug("Generating with model {ModelId}, tier {Tier}", modelId, tier);
+            LogGenerating(modelId, tier);
 
             var converseMessages = messages.Select(m => new Message
             {
@@ -112,7 +120,7 @@ public sealed class BedrockLlmService : IBedrockLlmService
         }
         catch (JsonException ex)
         {
-            _logger.LogWarning(ex, "Failed to parse entity extraction response");
+            LogEntityExtractionParseFailed(ex);
             return [];
         }
     }

@@ -30,7 +30,7 @@ CSharp Compound Docs is a Claude Code plugin that implements the "compound-engin
 |                      Claude Code / Claude Desktop                  |
 +------------------------------------------------------------------+
                                 |
-                     HTTP transport (port 3000)
+                     HTTP transport (port 8080)
                                 |
                                 v
 +------------------------------------------------------------------+
@@ -73,35 +73,27 @@ CSharp Compound Docs is a Claude Code plugin that implements the "compound-engin
                   MCP Protocol (HTTP)
                              |
                              v
-                    +-------------------+
-                    |    MCP Server     |
-                    | (.NET 9 Host)     |
-                    +--------+----------+
-                             |
-                    +--------+---------+
-                    |                  |
-                    v                  v
-          +-----------------+  +------------------+
-          |  RagQueryTool   |  |  Worker Service  |
-          |  (MCP endpoint) |  |  (background)    |
-          +---------+-------+  +--------+---------+
-                    |                   |
-                    v                   v
-          +-----------------+  +------------------+
-          | GraphRag        |  |  GitSync         |
-          | Pipeline        |  |  (LibGit2Sharp)  |
-          +---------+-------+  +------------------+
-                    |
-         +----------+----------+
-         |          |          |
-         v          v          v
-   +---------+ +--------+ +----------+
-   | Vector  | | Graph  | | Bedrock  |
-   | Store   | | Repo   | | Services |
-   +---------+ +--------+ +----------+
-   |OpenSearch| |Neptune | |Titan Emb |
-   |Serverless| |openCyph| |Claude LLM|
-   +---------+ +--------+ +----------+
+                    +-------------------+      +-------------------+
+                    |    MCP Server     |      |    Worker         |
+                    | (.NET 9 Host)     |      | (K8s CronJob)    |
+                    +--------+----------+      +--------+----------+
+                             |                          |
+                             v                          v
+                    +-----------------+        +------------------+
+                    |  RagQueryTool   |        |  GitSyncRunner   |
+                    |  (MCP endpoint) |        |  + Ingestion     |
+                    +---------+-------+        +--------+---------+
+                              |                         |
+                    +---------+---------+      +--------+---------+
+                    |         |         |      |        |         |
+                    v         v         v      v        v         v
+              +---------+ +--------+ +----------+ +----------+
+              | Vector  | | Graph  | | Bedrock  | | GitSync  |
+              | Store   | | Repo   | | Services | |(Lib2Sharp|
+              +---------+ +--------+ +----------+ +----------+
+              |OpenSearch| |Neptune | |Titan Emb |
+              |Serverless| |openCyph| |Claude LLM|
+              +---------+ +--------+ +----------+
 ```
 
 ## Data Flow
@@ -213,7 +205,7 @@ User Query: "How do we handle connection pool exhaustion?"
 | NJsonSchema | Schema validation |
 | YamlDotNet | YAML configuration parsing |
 | Polly | Resilience (retry, circuit breaker) for all AWS calls |
-| Serilog | Structured logging (stderr for MCP compliance) |
+| Microsoft.Extensions.Logging | Structured logging (Console provider) |
 | AWSSDK.Neptunedata | Neptune openCypher query client |
 
 ### AWS Services
@@ -234,7 +226,7 @@ User Query: "How do we handle connection pool exhaustion?"
 |   (trusted)       |
 +--------+----------+
          |
-         | HTTP (port 3000, API key auth)
+         | HTTP (port 8080, API key auth)
          v
 +-------------------+
 |    MCP Server     |
@@ -274,7 +266,7 @@ User Query: "How do we handle connection pool exhaustion?"
 
 ```
 src/
-  CompoundDocs.McpServer/      # MCP server with rag_query tool (HTTP transport, port 3000)
+  CompoundDocs.McpServer/      # MCP server with rag_query tool (HTTP transport, port 8080)
   CompoundDocs.Worker/         # Background worker (GitSync + ingestion)
   CompoundDocs.Common/         # Shared configuration and models
   CompoundDocs.Vector/         # OpenSearch Serverless client

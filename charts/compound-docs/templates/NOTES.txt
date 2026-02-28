@@ -42,4 +42,16 @@ Application:
   Service: {{ include "compound-docs.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
 
   To port-forward locally:
-    kubectl port-forward svc/{{ include "compound-docs.fullname" . }} 3000:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+    kubectl port-forward svc/{{ include "compound-docs.fullname" . }} 8080:{{ .Values.service.port }} -n {{ .Release.Namespace }}
+
+Git Sync:
+  Interval: {{ .Values.gitSync.intervalSeconds | default 21600 }}s
+  Clone directory: {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" }}
+  {{- if .Values.gitSync.repositories }}
+  Repositories:
+  {{- range $name, $repo := .Values.gitSync.repositories }}
+    - {{ $name }}
+  {{- end }}
+  {{- else }}
+  No repositories configured.
+  {{- end }}
