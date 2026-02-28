@@ -93,3 +93,13 @@ variable "argocd_server_secret_key" {
   default     = ""
   sensitive   = true
 }
+
+# ------------------------------------------------------------------------------
+# EFS
+# ------------------------------------------------------------------------------
+
+variable "efs_enabled" {
+  description = "Whether to create EFS CSI driver IAM resources"
+  type        = bool
+  default     = true
+}

@@ -46,6 +46,9 @@ module "eks" {
       most_recent    = true
       before_compute = true
     }
+    aws-efs-csi-driver = var.efs_enabled ? {
+      most_recent = true
+    } : null
   }
 
   # --------------------------------------------------------------------------
@@ -121,4 +124,12 @@ resource "aws_eks_pod_identity_association" "crossplane_provider_aws" {
   namespace       = "crossplane-system"
   service_account = "provider-opentofu"
   role_arn        = data.terraform_remote_state.prereqs.outputs.crossplane_provider_aws_role_arn
+}
+
+resource "aws_eks_pod_identity_association" "efs_csi_driver" {
+  count           = var.efs_enabled ? 1 : 0
+  cluster_name    = module.eks.cluster_name
+  namespace       = "kube-system"
+  service_account = "efs-csi-controller-sa"
+  role_arn        = data.terraform_remote_state.prereqs.outputs.efs_csi_driver_role_arn
 }

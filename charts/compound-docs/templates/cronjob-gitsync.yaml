@@ -1,0 +1,48 @@
+{{- if .Values.gitSync.job.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-gitsync
+spec:
+  schedule: {{ .Values.gitSync.job.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: {{ include "compound-docs.serviceAccountName" . }}
+          nodeSelector:
+            kubernetes.io/arch: arm64
+          containers:
+            - name: gitsync
+              image: "{{ .Values.gitSync.job.image.repository }}:{{ .Values.gitSync.job.image.tag | default .Chart.AppVersion }}"
+              volumeMounts:
+                - name: git-repos
+                  mountPath: {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" }}
+                - name: config
+                  mountPath: /app/appsettings.json
+                  subPath: appsettings.json
+                  readOnly: true
+              env:
+                - name: CompoundDocs__Neptune__Endpoint
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.neptune.connectionSecretName }}
+                      key: endpoint
+                - name: CompoundDocs__OpenSearch__CollectionEndpoint
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.opensearch.connectionSecretName }}
+                      key: endpoint
+              resources: {{- toYaml .Values.gitSync.job.resources | nindent 16 }}
+          volumes:
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: {{ include "compound-docs.fullname" . }}-gitsync-pvc
+            - name: config
+              configMap:
+                name: {{ include "compound-docs.fullname" . }}
+{{- end }}

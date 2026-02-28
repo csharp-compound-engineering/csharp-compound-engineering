@@ -42,3 +42,12 @@ output "argocd_secret_id" {
   description = "ID of the ArgoCD Secrets Manager secret"
   value       = var.argocd_enabled && var.external_secrets_enabled ? aws_secretsmanager_secret.argocd_main[0].id : null
 }
+
+# ------------------------------------------------------------------------------
+# EFS CSI Driver
+# ------------------------------------------------------------------------------
+
+output "efs_csi_driver_role_arn" {
+  description = "IAM role ARN for EFS CSI driver (Pod Identity)"
+  value       = var.efs_enabled ? aws_iam_role.efs_csi_driver[0].arn : ""
+}

@@ -26,8 +26,9 @@ public sealed class McpServerBuilder
     /// <summary>
     /// Configures the MCP server with HTTP transport.
     /// </summary>
-    [ExcludeFromCodeCoverage(Justification = "Calls MCP SDK extensions (AddMcpServer, WithAllTools, WithHttpTransport)")]
-    public McpServerBuilder ConfigureServer()
+    /// <param name="stateless">When true, configures stateless HTTP transport for Lambda deployment.</param>
+    [ExcludeFromCodeCoverage(Justification = "Calls MCP SDK extensions (AddMcpServer, WithToolsFromAssembly, WithHttpTransport)")]
+    public McpServerBuilder ConfigureServer(bool stateless = false)
     {
         var version = GetAssemblyVersion();
 
@@ -39,8 +40,11 @@ public sealed class McpServerBuilder
                 Version = version
             };
         })
-        .WithAllTools()
-        .WithHttpTransport();
+        .WithToolsFromAssembly()
+        .WithHttpTransport(httpOptions =>
+        {
+            httpOptions.Stateless = stateless;
+        });
 
         return this;
     }

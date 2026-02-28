@@ -1,4 +1,4 @@
-namespace CompoundDocs.McpServer.Background;
+namespace CompoundDocs.GitSync.Job;
 
 /// <summary>
 /// Runs git sync operations for a specific repository.

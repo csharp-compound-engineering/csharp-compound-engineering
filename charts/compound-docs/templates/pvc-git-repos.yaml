@@ -1,0 +1,14 @@
+{{- if .Values.efs.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-git-repos-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  resources:
+    requests:
+      storage: {{ .Values.efs.storageCapacity }}
+  volumeName: {{ include "compound-docs.fullname" . }}-git-repos-pv
+{{- end }}

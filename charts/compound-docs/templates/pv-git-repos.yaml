@@ -1,0 +1,15 @@
+{{- if .Values.efs.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "compound-docs.fullname" . }}-git-repos-pv
+spec:
+  capacity:
+    storage: {{ .Values.efs.storageCapacity }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: {{ .Values.efs.fileSystemId }}::{{ .Values.efs.accessPointId }}
+{{- end }}
