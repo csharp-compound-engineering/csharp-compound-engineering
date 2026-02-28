@@ -1,6 +1,6 @@
-using System.Reflection;
 using CompoundDocs.Common.Parsing;
 using CompoundDocs.McpServer.Processing;
+using Moq;
 
 namespace CompoundDocs.Tests.Unit.Processing;
 
@@ -9,20 +9,19 @@ namespace CompoundDocs.Tests.Unit.Processing;
 /// </summary>
 public sealed class DocumentParserTests
 {
-    private readonly DocumentParser _sut;
-
-    public DocumentParserTests()
-    {
-        _sut = new DocumentParser();
-    }
+    private static DocumentParser CreateParser() =>
+        new(new FrontmatterParser(), new MarkdownParser());
 
     #region Parse - Null and Empty Input
 
     [Fact]
     public void Parse_WithNullContent_ReturnsEmpty()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.Parse(null!);
+        var result = sut.Parse(null!);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -36,8 +35,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void Parse_WithEmptyString_ReturnsEmpty()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.Parse(string.Empty);
+        var result = sut.Parse(string.Empty);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -54,10 +56,11 @@ public sealed class DocumentParserTests
     public void Parse_WithPlainMarkdown_ReturnsSuccessWithoutFrontmatter()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Hello World\n\nSome content here.";
 
         // Act
-        var result = _sut.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -71,10 +74,11 @@ public sealed class DocumentParserTests
     public void Parse_WithDashesInMiddleOfContent_DoesNotParseFrontmatter()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Title\n\nSome content\n---\nMore content";
 
         // Act
-        var result = _sut.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -86,10 +90,11 @@ public sealed class DocumentParserTests
     public void Parse_WithUnclosedFrontmatter_TreatsEntireContentAsBody()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle: Unclosed\n\n# Content without closing frontmatter";
 
         // Act
-        var result = _sut.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -104,10 +109,11 @@ public sealed class DocumentParserTests
     public void Parse_WithValidFrontmatter_ExtractsFrontmatterAndBody()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle: My Doc\ntags:\n  - csharp\n---\n\n# My Doc\n\nBody text.";
 
         // Act
-        var result = _sut.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -123,10 +129,11 @@ public sealed class DocumentParserTests
     public void Parse_WithFrontmatterOnly_ReturnsEmptyBody()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle: No Body\n---\n";
 
         // Act
-        var result = _sut.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -190,8 +197,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void ExtractCodeBlocks_WithNull_ReturnsEmptyList()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.ExtractCodeBlocks(null!);
+        var result = sut.ExtractCodeBlocks(null!);
 
         // Assert
         result.ShouldBeEmpty();
@@ -200,8 +210,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void ExtractCodeBlocks_WithEmptyString_ReturnsEmptyList()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.ExtractCodeBlocks(string.Empty);
+        var result = sut.ExtractCodeBlocks(string.Empty);
 
         // Assert
         result.ShouldBeEmpty();
@@ -211,10 +224,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithNoCodeBlocks_ReturnsEmptyList()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "# Title\n\nJust some plain text, no code blocks at all.";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.ShouldBeEmpty();
@@ -228,10 +242,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithSingleCodeBlock_ExtractsLanguageAndCode()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "Some text\n\n```csharp\nvar x = 1;\n```\n\nMore text";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -244,10 +259,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithSingleCodeBlock_CalculatesStartLine()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "Line 0\nLine 1\n```csharp\nvar x = 1;\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -262,10 +278,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithMultipleCodeBlocks_ExtractsAllWithSequentialIndices()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "Text\n\n```python\nprint('hello')\n```\n\nMiddle\n\n```javascript\nconsole.log('hi');\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(2);
@@ -285,10 +302,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithNoLanguageSpecified_SetsLanguageToNull()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "Text\n\n```\nsome code\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -300,10 +318,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithVariousLanguages_ParsesAllCorrectly()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "```rust\nfn main() {}\n```\n\n```go\nfunc main() {}\n```\n\n```yaml\nkey: value\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(3);
@@ -320,10 +339,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithMultilineCode_CalculatesEndLineCorrectly()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "```csharp\nline1\nline2\nline3\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -335,10 +355,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_AtStartOfBody_StartsAtLineZero()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "```csharp\nvar x = 1;\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result[0].StartLine.ShouldBe(0);
@@ -352,10 +373,11 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_CodeIsTrimmedAtEnd()
     {
         // Arrange
+        var sut = CreateParser();
         var body = "```csharp\nvar x = 1;\n\n```";
 
         // Act
-        var result = _sut.ExtractCodeBlocks(body);
+        var result = sut.ExtractCodeBlocks(body);
 
         // Assert
         result.Count.ShouldBe(1);
@@ -369,8 +391,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void IsValidDocument_WithNull_ReturnsFalse()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.IsValidDocument(null!);
+        var result = sut.IsValidDocument(null!);
 
         // Assert
         result.ShouldBeFalse();
@@ -379,8 +404,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void IsValidDocument_WithEmptyString_ReturnsFalse()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.IsValidDocument(string.Empty);
+        var result = sut.IsValidDocument(string.Empty);
 
         // Assert
         result.ShouldBeFalse();
@@ -389,8 +417,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void IsValidDocument_WithValidPlainMarkdown_ReturnsTrue()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.IsValidDocument("# Title\n\nSome content.");
+        var result = sut.IsValidDocument("# Title\n\nSome content.");
 
         // Assert
         result.ShouldBeTrue();
@@ -399,8 +430,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void IsValidDocument_WithValidFrontmatter_ReturnsTrue()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.IsValidDocument("---\ntitle: Test\n---\n\n# Title");
+        var result = sut.IsValidDocument("---\ntitle: Test\n---\n\n# Title");
 
         // Assert
         result.ShouldBeTrue();
@@ -409,8 +443,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void IsValidDocument_WithWhitespaceOnly_ReturnsTrue()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Whitespace is not null or empty, so Parse succeeds
-        var result = _sut.IsValidDocument("   \n\n  ");
+        var result = sut.IsValidDocument("   \n\n  ");
 
         // Assert
         result.ShouldBeTrue();
@@ -423,8 +460,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void ParseDetailed_WithEmptyContent_ReturnsSuccessWithEmptyCollections()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.ParseDetailed(string.Empty);
+        var result = sut.ParseDetailed(string.Empty);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -439,10 +479,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithHeaders_ExtractsHeaders()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Main Title\n\n## Section One\n\nContent.\n\n## Section Two\n\nMore content.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -460,10 +501,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithInternalLinks_ExtractsLinks()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Title\n\nSee [other doc](./other.md) and [another](../docs/another.md).";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -476,10 +518,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_ExternalLinksAreNotIncluded()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Title\n\n[internal](./local.md) and [external](https://example.com).";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -495,10 +538,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithCodeBlocks_ExtractsCodeBlocks()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Title\n\n```csharp\nvar x = 1;\n```\n\n```python\nprint('hi')\n```";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -515,10 +559,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithTitleInFrontmatter_ExtractsTitleFromFrontmatter()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle: Frontmatter Title\n---\n\n# Header Title\n\nBody.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -529,10 +574,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithNoFrontmatterTitle_FallsBackToFirstH1()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# First H1 Header\n\n## Section\n\nBody.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -543,10 +589,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithNoTitleAnywhere_ReturnsEmptyTitle()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "## Only H2\n\nSome body without an H1.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -561,10 +608,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatter_PreservesFrontmatterFields()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle: Doc\ntags:\n  - api\n---\n\n# Doc\n\nBody.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -578,10 +626,11 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithoutFrontmatter_SetsHasFrontmatterFalse()
     {
         // Arrange
+        var sut = CreateParser();
         var content = "# Just a heading\n\nBody content.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -675,43 +724,17 @@ public sealed class DocumentParserTests
 
     #endregion
 
-    #region Constructor Tests
-
-    [Fact]
-    public void Constructor_WithNullParameters_CreatesWorkingParser()
-    {
-        // Act
-        var parser = new DocumentParser(null, null);
-
-        // Assert - verify it works by parsing a document
-        var result = parser.Parse("# Test");
-        result.IsSuccess.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void Constructor_WithDefaultParameters_CreatesWorkingParser()
-    {
-        // Act
-        var parser = new DocumentParser();
-
-        // Assert
-        var result = parser.Parse("---\ntitle: Test\n---\n\nBody");
-        result.IsSuccess.ShouldBeTrue();
-        result.HasFrontmatter.ShouldBeTrue();
-    }
-
-    #endregion
-
-    #region ExtractTitle - Frontmatter Without Title Key (Line 195)
+    #region ExtractTitle - Frontmatter Without Title Key
 
     [Fact]
     public void ParseDetailed_WithFrontmatterMissingTitleKey_FallsBackToFirstH1()
     {
-        // Arrange - frontmatter has keys but no "title" key
+        // Arrange
+        var sut = CreateParser();
         var content = "---\nauthor: Jane Doe\ntags:\n  - guide\n---\n\n# Fallback Header\n\nBody content.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -724,32 +747,32 @@ public sealed class DocumentParserTests
     [Fact]
     public void ParseDetailed_WithFrontmatterNonStringTitle_FallsBackToFirstH1()
     {
-        // Arrange - frontmatter has a "title" key but its value is not a string (it's a list)
+        // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle:\n  - part one\n  - part two\n---\n\n# Real Title\n\nBody.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
         result.HasFrontmatter.ShouldBeTrue();
-        // Title from frontmatter is not a simple string, so it should fall back to H1
         result.Title.ShouldBe("Real Title");
     }
 
     [Fact]
     public void ParseDetailed_WithFrontmatterNullTitle_FallsBackToFirstH1()
     {
-        // Arrange - frontmatter has title key with null/empty value
+        // Arrange
+        var sut = CreateParser();
         var content = "---\ntitle:\ndescription: A doc\n---\n\n# Header Title\n\nBody.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
         result.HasFrontmatter.ShouldBeTrue();
-        // null title value should fall back to H1
         result.Title.ShouldBe("Header Title");
     }
 
@@ -760,11 +783,12 @@ public sealed class DocumentParserTests
     [Fact]
     public void ParseDetailed_WithFrontmatterNoTitleAndNoH1_ReturnsEmptyTitle()
     {
-        // Arrange - frontmatter present but no title key, and body has no H1
+        // Arrange
+        var sut = CreateParser();
         var content = "---\nauthor: Someone\n---\n\n## Only H2 Here\n\nBody content.";
 
         // Act
-        var result = _sut.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -774,21 +798,20 @@ public sealed class DocumentParserTests
 
     #endregion
 
-    #region Parse - Catch Block (Lines 75-77)
+    #region Parse - Error Path via Mock
 
     [Fact]
-    public void Parse_WhenFrontmatterParserIsNull_ReturnsFailureWithErrorMessage()
+    public void Parse_WhenFrontmatterParserThrows_ReturnsFailureWithErrorMessage()
     {
-        // Arrange - Use reflection to set _frontmatterParser to null,
-        // causing a NullReferenceException that triggers the catch block.
-        var parser = new DocumentParser();
-        var field = typeof(DocumentParser).GetField("_frontmatterParser", BindingFlags.NonPublic | BindingFlags.Instance);
-        field!.SetValue(parser, null);
-
+        // Arrange
+        var frontmatterParserMock = new Mock<IFrontmatterParser>();
+        frontmatterParserMock.Setup(p => p.Parse(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("Parser failure"));
+        var sut = new DocumentParser(frontmatterParserMock.Object, new MarkdownParser());
         var content = "---\ntitle: Test\n---\n\nBody content.";
 
         // Act
-        var result = parser.Parse(content);
+        var result = sut.Parse(content);
 
         // Assert
         result.IsSuccess.ShouldBeFalse();
@@ -800,23 +823,22 @@ public sealed class DocumentParserTests
 
     #endregion
 
-    #region ParseDetailed - Failure Path (Lines 91-99) and Catch Block (Lines 125-135)
+    #region ParseDetailed - Failure Path and Catch Block via Mock
 
     [Fact]
     public void ParseDetailed_WhenParseReturnsFailure_ReturnsDetailedFailureWithError()
     {
-        // Arrange - Use reflection to null out _frontmatterParser,
-        // causing Parse() to return a Failure, then ParseDetailed hits the !IsSuccess branch.
-        var parser = new DocumentParser();
-        var field = typeof(DocumentParser).GetField("_frontmatterParser", BindingFlags.NonPublic | BindingFlags.Instance);
-        field!.SetValue(parser, null);
-
+        // Arrange
+        var frontmatterParserMock = new Mock<IFrontmatterParser>();
+        frontmatterParserMock.Setup(p => p.Parse(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("Parser failure"));
+        var sut = new DocumentParser(frontmatterParserMock.Object, new MarkdownParser());
         var content = "---\ntitle: Test\n---\n\nBody content.";
 
         // Act
-        var result = parser.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
-        // Assert - should hit the !basicResult.IsSuccess branch (lines 90-100)
+        // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Error.ShouldNotBeNull();
         result.Error!.ShouldContain("Failed to parse document");
@@ -826,20 +848,19 @@ public sealed class DocumentParserTests
     }
 
     [Fact]
-    public void ParseDetailed_WhenMarkdownParserIsNull_ReturnsCatchBlockFailure()
+    public void ParseDetailed_WhenMarkdownParserThrows_ReturnsCatchBlockFailure()
     {
-        // Arrange - Use reflection to null out _markdownParser,
-        // causing a NullReferenceException in ParseDetailed's try block (line 104).
-        var parser = new DocumentParser();
-        var field = typeof(DocumentParser).GetField("_markdownParser", BindingFlags.NonPublic | BindingFlags.Instance);
-        field!.SetValue(parser, null);
-
+        // Arrange
+        var markdownParserMock = new Mock<IMarkdownParser>();
+        markdownParserMock.Setup(p => p.Parse(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("Markdown parser failure"));
+        var sut = new DocumentParser(new FrontmatterParser(), markdownParserMock.Object);
         var content = "# Hello\n\nSome body content.";
 
         // Act
-        var result = parser.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
-        // Assert - should hit the catch block (lines 125-135)
+        // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Error.ShouldNotBeNull();
         result.Error!.ShouldContain("Failed to parse document structure");
@@ -849,20 +870,19 @@ public sealed class DocumentParserTests
     }
 
     [Fact]
-    public void ParseDetailed_WhenMarkdownParserIsNullOnFrontmatterDoc_PreservesFrontmatter()
+    public void ParseDetailed_WhenMarkdownParserThrowsOnFrontmatterDoc_PreservesFrontmatter()
     {
-        // Arrange - Null out _markdownParser, but frontmatter parsing still succeeds
-        // because _frontmatterParser is intact.
-        var parser = new DocumentParser();
-        var field = typeof(DocumentParser).GetField("_markdownParser", BindingFlags.NonPublic | BindingFlags.Instance);
-        field!.SetValue(parser, null);
-
+        // Arrange
+        var markdownParserMock = new Mock<IMarkdownParser>();
+        markdownParserMock.Setup(p => p.Parse(It.IsAny<string>()))
+            .Throws(new InvalidOperationException("Markdown parser failure"));
+        var sut = new DocumentParser(new FrontmatterParser(), markdownParserMock.Object);
         var content = "---\ntitle: My Title\n---\n\n# Content";
 
         // Act
-        var result = parser.ParseDetailed(content);
+        var result = sut.ParseDetailed(content);
 
-        // Assert - catch block should preserve frontmatter from basicResult
+        // Assert
         result.IsSuccess.ShouldBeFalse();
         result.Error.ShouldNotBeNull();
         result.Error!.ShouldContain("Failed to parse document structure");
@@ -878,8 +898,11 @@ public sealed class DocumentParserTests
     [Fact]
     public void ParseDetailed_WithNullContent_ReturnsSuccessWithEmptyCollections()
     {
+        // Arrange
+        var sut = CreateParser();
+
         // Act
-        var result = _sut.ParseDetailed(null!);
+        var result = sut.ParseDetailed(null!);
 
         // Assert
         result.IsSuccess.ShouldBeTrue();

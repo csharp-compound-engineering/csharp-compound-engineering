@@ -39,7 +39,7 @@ public sealed partial class RagQueryTool
     private readonly IBedrockEmbeddingService _embeddingService;
     private readonly IBedrockLlmService _llmService;
     private readonly IGraphRagPipeline _graphRagPipeline;
-    private readonly MetricsCollector _metrics;
+    private readonly IMetricsCollector _metrics;
     private readonly ILogger<RagQueryTool> _logger;
 
     public RagQueryTool(
@@ -48,7 +48,7 @@ public sealed partial class RagQueryTool
         IBedrockEmbeddingService embeddingService,
         IBedrockLlmService llmService,
         IGraphRagPipeline graphRagPipeline,
-        MetricsCollector metrics,
+        IMetricsCollector metrics,
         ILogger<RagQueryTool> logger)
     {
         _vectorStore = vectorStore ?? throw new ArgumentNullException(nameof(vectorStore));

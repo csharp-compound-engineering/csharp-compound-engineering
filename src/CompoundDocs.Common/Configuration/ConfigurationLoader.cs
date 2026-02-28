@@ -6,7 +6,7 @@ namespace CompoundDocs.Common.Configuration;
 /// <summary>
 /// Loads and manages configuration from files and environment variables.
 /// </summary>
-public sealed class ConfigurationLoader
+public sealed class ConfigurationLoader : IConfigurationLoader
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

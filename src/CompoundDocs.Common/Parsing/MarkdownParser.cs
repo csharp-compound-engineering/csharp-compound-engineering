@@ -7,7 +7,7 @@ namespace CompoundDocs.Common.Parsing;
 /// <summary>
 /// Parses markdown documents using Markdig, extracting structure and links.
 /// </summary>
-public sealed class MarkdownParser
+public sealed class MarkdownParser : IMarkdownParser
 {
     private readonly MarkdownPipeline _pipeline;
 

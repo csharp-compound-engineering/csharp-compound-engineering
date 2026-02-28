@@ -40,7 +40,7 @@ try
     builder.Services.AddOpenSearchVector(config);
     builder.Services.AddGraphRag();
     builder.Services.AddGitSync(config);
-    builder.Services.AddSingleton<GitSyncRunner>();
+    builder.Services.AddSingleton<IGitSyncRunner, GitSyncRunner>();
     builder.Services.AddSingleton<GitSyncBackgroundService>();
     builder.Services.AddSingleton<IGitSyncStatus>(sp => sp.GetRequiredService<GitSyncBackgroundService>());
     builder.Services.AddHostedService(sp => sp.GetRequiredService<GitSyncBackgroundService>());

@@ -16,12 +16,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddCompoundDocsCommon(this IServiceCollection services)
     {
         // Configuration
-        services.AddSingleton<ConfigurationLoader>();
+        services.AddSingleton<IConfigurationLoader, ConfigurationLoader>();
 
         // Parsing services
-        services.AddSingleton<MarkdownParser>();
-        services.AddSingleton<FrontmatterParser>();
-        services.AddSingleton<SchemaValidator>();
+        services.AddSingleton<IMarkdownParser, MarkdownParser>();
+        services.AddSingleton<IFrontmatterParser, FrontmatterParser>();
+        services.AddSingleton<ISchemaValidator, SchemaValidator>();
 
         return services;
     }

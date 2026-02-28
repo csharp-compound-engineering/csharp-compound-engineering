@@ -1,16 +1,14 @@
-using CompoundDocs.McpServer.Processing;
+using CompoundDocs.Common.Parsing;
 
 namespace CompoundDocs.Tests.Unit.Processing;
 
 /// <summary>
-/// Unit tests for <see cref="FrontmatterParser"/> and <see cref="FrontmatterParseResult"/>
-/// from the McpServer.Processing namespace.
+/// Unit tests for <see cref="FrontmatterParser"/> validation, normalization,
+/// and static helper methods.
 /// </summary>
 public sealed class McpFrontmatterParserTests
 {
-    private readonly FrontmatterParser _sut = new();
-
-    #region FrontmatterParseResult Factory Methods
+    #region FrontmatterResult Factory Methods
 
     [Fact]
     public void Success_SetsAllPropertiesCorrectly()
@@ -20,7 +18,7 @@ public sealed class McpFrontmatterParserTests
         var body = "# Hello";
 
         // Act
-        var result = FrontmatterParseResult.Success(frontmatter, body);
+        var result = FrontmatterResult.Success(frontmatter, body);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
@@ -37,7 +35,7 @@ public sealed class McpFrontmatterParserTests
         var content = "# Just markdown";
 
         // Act
-        var result = FrontmatterParseResult.NoFrontmatter(content);
+        var result = FrontmatterResult.NoFrontmatter(content);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -55,7 +53,7 @@ public sealed class McpFrontmatterParserTests
         var error = "Invalid YAML";
 
         // Act
-        var result = FrontmatterParseResult.ParseError(content, error);
+        var result = FrontmatterResult.ParseError(content, error);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -70,7 +68,7 @@ public sealed class McpFrontmatterParserTests
     public void ValidationError_WithoutFrontmatter_SetsHasFrontmatterFalse()
     {
         // Act
-        var result = FrontmatterParseResult.ValidationError(
+        var result = FrontmatterResult.ValidationError(
             "body",
             new List<string> { "Required field 'title' is missing" });
 
@@ -89,7 +87,7 @@ public sealed class McpFrontmatterParserTests
         var fm = new Dictionary<string, object?> { ["title"] = "Test" };
 
         // Act
-        var result = FrontmatterParseResult.ValidationError("body", ["Field missing"], fm);
+        var result = FrontmatterResult.ValidationError("body", ["Field missing"], fm);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
@@ -105,7 +103,9 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_NullInput_ReturnsNoFrontmatter()
     {
-        var result = _sut.Parse(null!);
+        var sut = new FrontmatterParser();
+
+        var result = sut.Parse(null!);
 
         result.HasFrontmatter.ShouldBeFalse();
         result.IsSuccess.ShouldBeTrue();
@@ -114,7 +114,9 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_EmptyString_ReturnsNoFrontmatter()
     {
-        var result = _sut.Parse(string.Empty);
+        var sut = new FrontmatterParser();
+
+        var result = sut.Parse(string.Empty);
 
         result.HasFrontmatter.ShouldBeFalse();
         result.IsSuccess.ShouldBeTrue();
@@ -124,9 +126,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_DoesNotStartWithTripleDash_ReturnsNoFrontmatter()
     {
+        var sut = new FrontmatterParser();
         var markdown = "# No frontmatter here\n\nJust content.";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeFalse();
         result.Body.ShouldBe(markdown);
@@ -136,9 +139,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_NoClosingTripleDash_ReturnsNoFrontmatter()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: No closing delimiter";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeFalse();
         result.Body.ShouldBe(markdown);
@@ -148,7 +152,9 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_OnlyOpeningDashes_ReturnsNoFrontmatter()
     {
-        var result = _sut.Parse("---");
+        var sut = new FrontmatterParser();
+
+        var result = sut.Parse("---");
 
         result.HasFrontmatter.ShouldBeFalse();
         result.IsSuccess.ShouldBeTrue();
@@ -161,9 +167,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_ValidFrontmatter_ReturnsSuccessWithDictAndBody()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Hello World\nauthor: Test\n---\n\n# Content\n\nBody text.";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeTrue();
         result.IsSuccess.ShouldBeTrue();
@@ -176,13 +183,13 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_ValidFrontmatter_NormalizesCaseInsensitiveKeys()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\nTitle: CaseTest\n---\n\nBody";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter.ShouldNotBeNull();
-        // The normalized dictionary uses OrdinalIgnoreCase comparer
         result.Frontmatter!.ContainsKey("title").ShouldBeTrue();
         result.Frontmatter.ContainsKey("TITLE").ShouldBeTrue();
     }
@@ -190,9 +197,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_FrontmatterWithList_ReturnsNormalizedList()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntags:\n  - alpha\n  - beta\n---\n\nBody";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter!["tags"].ShouldBeOfType<List<object?>>();
@@ -205,9 +213,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_FrontmatterWithNestedMap_ReturnsNormalizedDictionary()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\nmeta:\n  version: 2\n  draft: true\n---\n\nBody";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeTrue();
         var meta = result.Frontmatter!["meta"].ShouldBeOfType<Dictionary<string, object?>>();
@@ -218,9 +227,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_StripsLeadingNewlinesFromBody()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\n---\n\n\n\nActual body";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.Body.ShouldBe("Actual body");
     }
@@ -228,9 +238,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_NoBodyAfterFrontmatter_ReturnsEmptyBody()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\n---";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeTrue();
         result.Body.ShouldBe(string.Empty);
@@ -243,10 +254,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_EmptyYamlContent_ReturnsNoFrontmatter()
     {
-        // "---\n\n---" has yamlContent that is just whitespace, YamlDotNet deserializes to null
+        var sut = new FrontmatterParser();
         var markdown = "---\n\n---\n\nBody";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         result.HasFrontmatter.ShouldBeFalse();
         result.IsSuccess.ShouldBeTrue();
@@ -255,10 +266,10 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_InvalidYaml_ReturnsParseError()
     {
-        // Use YAML that actually causes a deserialization exception
+        var sut = new FrontmatterParser();
         var markdown = "---\n- item1\n- item2\n---\n\nBody";
 
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // YamlDotNet may throw when trying to deserialize a sequence as Dictionary
         // or it may return null. Either way, it should not be a successful frontmatter parse.
@@ -280,10 +291,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void ParseAndValidate_NoFrontmatterWithRequiredFields_ReturnsValidationError()
     {
+        var sut = new FrontmatterParser();
         var markdown = "# No frontmatter";
         var required = new List<string> { "title", "doc_type" };
 
-        var result = _sut.ParseAndValidate(markdown, required);
+        var result = sut.ParseAndValidate(markdown, required);
 
         result.IsSuccess.ShouldBeFalse();
         result.Errors.Count.ShouldBe(2);
@@ -294,10 +306,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void ParseAndValidate_NoFrontmatterNoRequiredFields_ReturnsOriginalResult()
     {
+        var sut = new FrontmatterParser();
         var markdown = "# No frontmatter";
         var required = new List<string>();
 
-        var result = _sut.ParseAndValidate(markdown, required);
+        var result = sut.ParseAndValidate(markdown, required);
 
         result.IsSuccess.ShouldBeTrue();
         result.HasFrontmatter.ShouldBeFalse();
@@ -306,10 +319,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void ParseAndValidate_AllRequiredFieldsPresent_ReturnsSuccess()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\ndoc_type: spec\n---\n\nBody";
         var required = new List<string> { "title", "doc_type" };
 
-        var result = _sut.ParseAndValidate(markdown, required);
+        var result = sut.ParseAndValidate(markdown, required);
 
         result.IsSuccess.ShouldBeTrue();
         result.HasFrontmatter.ShouldBeTrue();
@@ -319,10 +333,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void ParseAndValidate_MissingRequiredField_ReturnsValidationError()
     {
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\n---\n\nBody";
         var required = new List<string> { "title", "doc_type" };
 
-        var result = _sut.ParseAndValidate(markdown, required);
+        var result = sut.ParseAndValidate(markdown, required);
 
         result.IsSuccess.ShouldBeFalse();
         result.Errors.Count.ShouldBe(1);
@@ -333,11 +348,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void ParseAndValidate_RequiredFieldPresentButNull_ReturnsValidationError()
     {
-        // YAML "key:" with no value deserializes as null
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle:\n---\n\nBody";
         var required = new List<string> { "title" };
 
-        var result = _sut.ParseAndValidate(markdown, required);
+        var result = sut.ParseAndValidate(markdown, required);
 
         result.IsSuccess.ShouldBeFalse();
         result.Errors.Count.ShouldBe(1);
@@ -461,30 +476,24 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithIntegerValue_NormalizesToInt()
     {
-        // Arrange - YAML integer values
+        var sut = new FrontmatterParser();
         var markdown = "---\ncount: 42\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter!["count"].ShouldNotBeNull();
-        // YamlDotNet may parse as string; NormalizeValue handles int/long/etc.
-        // The important thing is the value is preserved through normalization.
         result.Frontmatter["count"]!.ToString().ShouldBe("42");
     }
 
     [Fact]
     public void Parse_WithFloatValue_NormalizesCorrectly()
     {
-        // Arrange - YAML float values
+        var sut = new FrontmatterParser();
         var markdown = "---\nweight: 3.14\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter!["weight"].ShouldNotBeNull();
         result.Frontmatter["weight"]!.ToString()!.ShouldContain("3.14");
@@ -493,17 +502,14 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithBooleanValues_NormalizesCorrectly()
     {
-        // Arrange - YAML boolean values
+        var sut = new FrontmatterParser();
         var markdown = "---\ndraft: true\npublished: false\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter!["draft"].ShouldNotBeNull();
         result.Frontmatter["published"].ShouldNotBeNull();
-        // Boolean values should be preserved
         result.Frontmatter["draft"]!.ToString()!.ToLower().ShouldBe("true");
         result.Frontmatter["published"]!.ToString()!.ToLower().ShouldBe("false");
     }
@@ -511,13 +517,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithNestedDictionary_NormalizesToStringKeyedDict()
     {
-        // Arrange - nested YAML map
+        var sut = new FrontmatterParser();
         var markdown = "---\nmeta:\n  version: 3\n  author: Jane\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         var meta = result.Frontmatter!["meta"].ShouldBeOfType<Dictionary<string, object?>>();
         meta.ShouldContainKey("version");
@@ -528,13 +532,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithListOfMixedTypes_NormalizesListElements()
     {
-        // Arrange - YAML list with mixed types triggers List<object?> branch in NormalizeValue
+        var sut = new FrontmatterParser();
         var markdown = "---\nitems:\n  - hello\n  - 42\n  - true\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         var items = result.Frontmatter!["items"].ShouldBeOfType<List<object?>>();
         items.Count.ShouldBe(3);
@@ -543,13 +545,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithNullFrontmatterValue_NormalizesToNull()
     {
-        // Arrange - YAML key with null value
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\nempty_field:\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter.ShouldNotBeNull();
         result.Frontmatter!.ShouldContainKey("empty_field");
@@ -559,13 +559,11 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void Parse_WithDeeplyNestedStructure_NormalizesRecursively()
     {
-        // Arrange - nested map within a list
+        var sut = new FrontmatterParser();
         var markdown = "---\ndata:\n  nested:\n    deep: value\n---\n\nBody";
 
-        // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
-        // Assert
         result.HasFrontmatter.ShouldBeTrue();
         var data = result.Frontmatter!["data"].ShouldBeOfType<Dictionary<string, object?>>();
         var nested = data["nested"].ShouldBeOfType<Dictionary<string, object?>>();
@@ -579,17 +577,14 @@ public sealed class McpFrontmatterParserTests
     [Fact]
     public void GetStringList_WithIEnumerableOfObject_FiltersAndConverts()
     {
-        // Arrange - Use an IEnumerable<object> that is NOT a List<object?> to hit that branch
         var items = new object[] { "alpha", "beta", "gamma" };
         var dict = new Dictionary<string, object?>
         {
-            ["tags"] = items  // object[] implements IEnumerable<object> but is not List<object?>
+            ["tags"] = items
         };
 
-        // Act
         var result = FrontmatterParser.GetStringList(dict, "tags");
 
-        // Assert
         result.Count.ShouldBe(3);
         result[0].ShouldBe("alpha");
         result[1].ShouldBe("beta");

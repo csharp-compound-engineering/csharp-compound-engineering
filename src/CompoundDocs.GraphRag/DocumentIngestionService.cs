@@ -56,8 +56,8 @@ internal sealed partial class DocumentIngestionService : IDocumentIngestionServi
     private readonly IVectorStore _vectorStore;
     private readonly IBedrockEmbeddingService _embeddingService;
     private readonly IEntityExtractor _entityExtractor;
-    private readonly MarkdownParser _markdownParser;
-    private readonly FrontmatterParser _frontmatterParser;
+    private readonly IMarkdownParser _markdownParser;
+    private readonly IFrontmatterParser _frontmatterParser;
     private readonly ILogger<DocumentIngestionService> _logger;
 
     public DocumentIngestionService(
@@ -65,8 +65,8 @@ internal sealed partial class DocumentIngestionService : IDocumentIngestionServi
         IVectorStore vectorStore,
         IBedrockEmbeddingService embeddingService,
         IEntityExtractor entityExtractor,
-        MarkdownParser markdownParser,
-        FrontmatterParser frontmatterParser,
+        IMarkdownParser markdownParser,
+        IFrontmatterParser frontmatterParser,
         ILogger<DocumentIngestionService> logger)
     {
         _graphRepository = graphRepository;

@@ -7,19 +7,13 @@ namespace CompoundDocs.Tests.Unit.Parsing;
 /// </summary>
 public sealed class FrontmatterParserTests
 {
-    private readonly FrontmatterParser _sut;
-
-    public FrontmatterParserTests()
-    {
-        _sut = new FrontmatterParser();
-    }
-
     #region ParseFrontmatter Tests
 
     [Fact]
     public void Parse_WithValidFrontmatter_ExtractsFrontmatterAndBody()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             title: Test Document
@@ -35,7 +29,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
@@ -51,6 +45,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithComplexFrontmatter_ParsesNestedStructures()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             title: Complex Doc
@@ -63,12 +58,12 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter.ShouldNotBeNull();
-        result.Frontmatter!.ShouldContainKey("title");
+        result.Frontmatter.ShouldContainKey("title");
         result.Frontmatter.ShouldContainKey("metadata");
     }
 
@@ -76,6 +71,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithNumericValues_ParsesCorrectTypes()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             count: 42
@@ -87,12 +83,12 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
         result.Frontmatter.ShouldNotBeNull();
-        result.Frontmatter!.ShouldContainKey("count");
+        result.Frontmatter.ShouldContainKey("count");
         result.Frontmatter.ShouldContainKey("ratio");
         result.Frontmatter.ShouldContainKey("enabled");
     }
@@ -105,6 +101,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithNoFrontmatter_ReturnsEntireContentAsBody()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             # Document Without Frontmatter
 
@@ -112,7 +109,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -124,6 +121,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithDashesInContent_DoesNotMistakenlyParseFrontmatter()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             # Document
 
@@ -135,7 +133,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -146,10 +144,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithEmptyDocument_ReturnsEmptyBody()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = string.Empty;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -161,10 +160,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithOnlyDashes_ReturnsNoFrontmatter()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = "---";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -174,6 +174,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithUnclosedFrontmatter_ReturnsNoFrontmatter()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             title: Unclosed
@@ -183,7 +184,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -198,6 +199,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithInvalidYaml_ReturnsNoFrontmatter()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             invalid: [unclosed bracket
@@ -208,7 +210,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeFalse();
@@ -219,6 +221,7 @@ public sealed class FrontmatterParserTests
     public void Parse_WithMalformedYaml_HandlesGracefully()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             : value without key
@@ -228,7 +231,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         // Should not throw, may or may not have frontmatter depending on YAML parser tolerance
@@ -239,10 +242,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithTabIndentation_ParsesSuccessfully()
     {
         // Arrange - YAML allows both spaces and tabs
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Test\n\tindented: value\n---\n\nBody.";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -256,6 +260,7 @@ public sealed class FrontmatterParserTests
         // Note: The parser currently has an edge case where empty frontmatter
         // (---\n---) causes an issue because the YAML content calculation
         // results in a negative substring length. This test documents the behavior.
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             ---
@@ -265,7 +270,7 @@ public sealed class FrontmatterParserTests
 
         // Act & Assert - Document current behavior
         // The parser should ideally handle this gracefully, but currently throws
-        Should.Throw<ArgumentOutOfRangeException>(() => _sut.Parse(markdown));
+        Should.Throw<ArgumentOutOfRangeException>(() => sut.Parse(markdown));
     }
 
     #endregion
@@ -276,6 +281,7 @@ public sealed class FrontmatterParserTests
     public void ParseAs_WithValidFrontmatter_DeserializesToType()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             title: Typed Document
@@ -287,7 +293,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.ParseAs<TestFrontmatter>(markdown);
+        var result = sut.ParseAs<TestFrontmatter>(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -300,10 +306,11 @@ public sealed class FrontmatterParserTests
     public void ParseAs_WithMissingFrontmatter_ReturnsNull()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = "# No frontmatter\n\nJust content.";
 
         // Act
-        var result = _sut.ParseAs<TestFrontmatter>(markdown);
+        var result = sut.ParseAs<TestFrontmatter>(markdown);
 
         // Assert
         result.ShouldBeNull();
@@ -313,6 +320,7 @@ public sealed class FrontmatterParserTests
     public void ParseAs_WithPartialMatch_PopulatesMatchingProperties()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = """
             ---
             title: Partial Match
@@ -323,7 +331,7 @@ public sealed class FrontmatterParserTests
             """;
 
         // Act
-        var result = _sut.ParseAs<TestFrontmatter>(markdown);
+        var result = sut.ParseAs<TestFrontmatter>(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -336,13 +344,34 @@ public sealed class FrontmatterParserTests
     #region Extended Branch Coverage
 
     [Fact]
+    public void ParseAs_WithNullInput_ReturnsNull()
+    {
+        var sut = new FrontmatterParser();
+
+        var result = sut.ParseAs<TestFrontmatter>(null!);
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ParseAs_WithEmptyInput_ReturnsNull()
+    {
+        var sut = new FrontmatterParser();
+
+        var result = sut.ParseAs<TestFrontmatter>(string.Empty);
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
     public void ParseAs_WithUnclosedFrontmatter_ReturnsNull()
     {
         // Arrange - starts with --- but no closing ---
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Unclosed\ndoc_type: spec\n\n# Content without closing frontmatter";
 
         // Act
-        var result = _sut.ParseAs<TestFrontmatter>(markdown);
+        var result = sut.ParseAs<TestFrontmatter>(markdown);
 
         // Assert
         result.ShouldBeNull();
@@ -352,10 +381,11 @@ public sealed class FrontmatterParserTests
     public void ParseAs_WithInvalidYaml_ReturnsNull()
     {
         // Arrange - valid frontmatter delimiters but invalid YAML content
+        var sut = new FrontmatterParser();
         var markdown = "---\ninvalid: [unclosed bracket\nalso: bad : indentation\n---\n\nBody content.";
 
         // Act
-        var result = _sut.ParseAs<TestFrontmatter>(markdown);
+        var result = sut.ParseAs<TestFrontmatter>(markdown);
 
         // Assert
         result.ShouldBeNull();
@@ -365,10 +395,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithCarriageReturnLineEndings_StripsCorrectly()
     {
         // Arrange - CRLF line endings
+        var sut = new FrontmatterParser();
         var markdown = "---\r\ntitle: CRLF Test\r\n---\r\n\r\nBody content.";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
@@ -379,10 +410,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithMultipleNewlinesAfterFrontmatter_StripsAll()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: Newlines Test\n---\n\n\n\nBody after multiple newlines.";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
@@ -393,10 +425,11 @@ public sealed class FrontmatterParserTests
     public void Parse_WithNoBodyAfterFrontmatter_ReturnsEmptyBody()
     {
         // Arrange
+        var sut = new FrontmatterParser();
         var markdown = "---\ntitle: No Body\n---\n";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.HasFrontmatter.ShouldBeTrue();
