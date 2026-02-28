@@ -1,38 +1,60 @@
 # Project Overview
 
 ## Purpose
-CSharp Compound Engineering - A C# implementation of a documentation compounding system with an MCP (Model Context Protocol) server for managing compound documents with RAG (Retrieval-Augmented Generation) capabilities.
+A Claude Code MCP plugin (`cd`) implementing a GraphRAG knowledge base for C#/.NET projects. Combines graph traversal (Amazon Neptune), vector search (AWS OpenSearch Serverless), and LLM synthesis (Amazon Bedrock) for semantic Q&A over documentation with source attribution.
 
 ## Tech Stack
-- **.NET 9** - Target framework
-- **C# 12** - Language version with file-scoped namespaces
-- **Model Context Protocol (MCP)** - For AI tool integration via `ModelContextProtocol.Server`
-- **Semantic Kernel** - For embeddings and vector store operations
-- **PostgreSQL + pgvector** - Vector database for document storage
-- **Entity Framework Core** - ORM for data access
-- **YamlDotNet** - YAML frontmatter parsing
-- **Markdig** - Markdown parsing
-- **Serilog** - Structured logging
+- **.NET 10.0 LTS** (SDK 10.0.101, `rollForward: disable`)
+- **C# latest** with nullable reference types, `TreatWarningsAsErrors=true`, `EnforceCodeStyleInBuild=true`
+- **MCP SDK**: `ModelContextProtocol` v1.0.0 GA (HTTP transport, not stdio; stateless mode for Lambda)
+- **AWS**: Neptune provisioned `db.t4g.medium` (openCypher via `AWSSDK.Neptunedata`), OpenSearch Serverless, Bedrock (Titan Embed v2, Claude), Lambda (`Amazon.Lambda.AspNetCoreServer.Hosting`)
+- **Polly** for resilience patterns
+- **LibGit2Sharp** for Git operations
+- **Markdig** for Markdown parsing, **YamlDotNet** for YAML, **NJsonSchema** for validation
+- **pnpm** for JS tooling (semantic-release, docs site). **Not npm.**
+- Central package management via `Directory.Packages.props`
+- Global build settings in `Directory.Build.props`
 
-## Project Structure
-- `src/CompoundDocs.McpServer/` - Main MCP server implementation
-  - `Tools/` - MCP tool implementations
-  - `Services/` - Document processing, file watching services
-  - `Session/` - Session and tenant management
-  - `Models/` - Domain models (CompoundDocument, DocumentTypes)
-  - `Data/` - Repository pattern for data access
-  - `SemanticKernel/` - Embedding service integration
-- `src/CompoundDocs.Common/` - Shared utilities
-  - `Parsing/` - Frontmatter and markdown parsing
-  - `Configuration/` - Configuration management
-  - `Graph/` - Document link graph
-- `src/CompoundDocs.Cleanup/` - Cleanup utility
+## Solution Structure
+Solution file: `csharp-compounding-docs.sln` — 9 source projects, 3 test projects (+TestFixtures).
 
-## Document Types
-The system supports 9 built-in document types:
-- spec, adr, research, doc, problem, insight, codebase, tool, style
+### Source Projects (`src/`)
+| Project | Purpose |
+|---------|---------|
+| `CompoundDocs.McpServer` | Main MCP server app (HTTP, port 8080). Dual-mode: K8s (Kestrel) or Lambda (stateless). RagQueryTool, document processing, resilience (Polly), health checks (K8s only), auth, observability. |
+| `CompoundDocs.Common` | Shared models (DocumentNode, ChunkNode, ConceptNode), graph relationships, config loading, Markdown/YAML parsing, logging with correlation IDs. |
+| `CompoundDocs.GraphRag` | Full RAG pipeline orchestration: embed → vector search → graph traversal → LLM synthesis. Entity extraction, cross-repo entity resolution, document ingestion. |
+| `CompoundDocs.Vector` | `IVectorStore` over AWS OpenSearch Serverless for KNN search. |
+| `CompoundDocs.Graph` | `IGraphRepository` over Amazon Neptune (openCypher). `NeptuneClient` wraps AWS SDK. |
+| `CompoundDocs.Bedrock` | `IBedrockEmbeddingService` (Titan Embed v2, 1024-dim), `IBedrockLlmService` (Claude). Model tier abstraction. |
+| `CompoundDocs.GitSync` | Git repository monitoring library via LibGit2Sharp; clone/update, change detection, file reading. |
+| `CompoundDocs.GitSync.Job` | Standalone run-once console app for K8s CronJob / Fargate. Iterates configured repos and runs `GitSyncRunner`. |
+| `CompoundDocs.Worker` | CLI tool for async document processing. Takes repo name as arg. |
 
-## Promotion Levels
-- standard (1.0x boost)
-- promoted (1.5x boost)
-- pinned (2.0x boost)
+### Test Projects (`tests/`)
+| Project | Purpose |
+|---------|---------|
+| `CompoundDocs.Tests.Unit` | xUnit + Moq + Shouldly. Extensive coverage across all source projects. |
+| `CompoundDocs.Tests.Integration` | Service integration tests. AWS tests skipped, mock equivalents runnable. |
+| `CompoundDocs.Tests.E2E` | MCP protocol compliance. `McpE2ETests` (mocked), `McpE2EAwsTests` (skipped, real AWS). |
+| `TestFixtures` | Shared test fixture data. |
+
+## Key Patterns
+- **Dependency injection** via per-project `ServiceCollectionExtensions` classes
+- **Repository/service abstractions** with interfaces (e.g., `IGraphRepository`, `IVectorStore`, `IBedrockEmbeddingService`)
+- **Pipeline pattern** for RAG (`IGraphRagPipeline`)
+- **MCP tool registration** via `[McpServerToolType]`/`[McpServerTool]` attributes
+- **HTTP transport** for MCP: `.WithHttpTransport()`, `MapMcp()` on ASP.NET Core. Stateless mode for Lambda via `HttpServerTransportOptions.Stateless`.
+- **Lambda dual-mode**: `AddAWSLambdaHosting(LambdaEventSource.HttpApi)` conditional on `AWS_LAMBDA_FUNCTION_NAME` env var. Auth via existing `ApiKeyAuthenticationHandler` (Function URL with `auth_type=NONE`).
+- **openCypher** for Neptune queries (not Gremlin), via `AWSSDK.Neptunedata`
+- **GitSync as CronJob**: `CompoundDocs.GitSync.Job` runs as K8s CronJob with EFS PVC for shared git repo storage
+- **Pre-commit hooks**: gitleaks for secret scanning
+
+## CI/CD
+- Single GitHub Actions workflow: `.github/workflows/ci.yml` ("Release")
+- PR: semantic-release dry-run; Push to main/master: full semantic-release
+- Docker (GHCR), Helm chart (GHCR), docs (gh-pages), changelog, GitHub release
+- Conventional Commits enforced by CI (`pr-title.yml`)
+
+## Versioning
+Current version: **3.0.0** (managed by semantic-release, set in `Directory.Build.props`) — 3.0.0 due to BREAKING CHANGE in Neptune config + GitSync separation
