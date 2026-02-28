@@ -8,7 +8,6 @@ using CompoundDocs.Vector;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -22,8 +21,41 @@ public class McpE2ETests
     [Fact]
     public async Task HealthEndpoint_ReturnsOk()
     {
-        await using var server = new McpTestServer();
-        using var httpClient = server.CreateHttpClient();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
 
         var response = await httpClient.GetAsync("/health");
 
@@ -35,8 +67,41 @@ public class McpE2ETests
     [Fact]
     public async Task McpEndpoint_WithoutAuth_Returns401()
     {
-        await using var server = new McpTestServer();
-        using var httpClient = server.CreateHttpClient();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
 
         // POST to the root MCP endpoint without an API key
         var request = new HttpRequestMessage(HttpMethod.Post, "/")
@@ -52,10 +117,63 @@ public class McpE2ETests
     [Fact]
     public async Task McpClient_Connects_Successfully()
     {
-        await using var server = new McpTestServer();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         client.ShouldNotBeNull();
         client.ServerInfo.ShouldNotBeNull();
@@ -65,9 +183,63 @@ public class McpE2ETests
     [Fact]
     public async Task ListTools_Returns_RagQueryTool()
     {
-        await using var server = new McpTestServer();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         var tools = await client.ListToolsAsync(cancellationToken: cts.Token);
 
@@ -80,8 +252,8 @@ public class McpE2ETests
     [Fact]
     public async Task CallTool_RagQuery_ReturnsAnswer()
     {
-        await using var server = new McpTestServer();
-        server.PipelineMock
+        var pipelineMock = new Mock<IGraphRagPipeline>();
+        pipelineMock
             .Setup(p => p.QueryAsync(
                 It.IsAny<string>(),
                 It.IsAny<GraphRagOptions?>(),
@@ -104,8 +276,63 @@ public class McpE2ETests
                 Confidence = 0.92
             });
 
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(pipelineMock.Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         var result = await client.CallToolAsync(
             "rag_query",
@@ -122,9 +349,63 @@ public class McpE2ETests
     [Fact]
     public async Task CallTool_RagQuery_EmptyQuery_ReturnsError()
     {
-        await using var server = new McpTestServer();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         var result = await client.CallToolAsync(
             "rag_query",
@@ -142,9 +423,63 @@ public class McpE2ETests
     [Fact]
     public async Task CallTool_NonexistentTool_ThrowsMcpProtocolException()
     {
-        await using var server = new McpTestServer();
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(new Mock<IGraphRagPipeline>().Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         var ex = await Should.ThrowAsync<McpProtocolException>(async () =>
             await client.CallToolAsync(
@@ -159,10 +494,10 @@ public class McpE2ETests
     [Fact]
     public async Task CallTool_RagQuery_PassesMaxResultsOption()
     {
-        await using var server = new McpTestServer();
+        var pipelineMock = new Mock<IGraphRagPipeline>();
         GraphRagOptions? capturedOptions = null;
 
-        server.PipelineMock
+        pipelineMock
             .Setup(p => p.QueryAsync(
                 It.IsAny<string>(),
                 It.IsAny<GraphRagOptions?>(),
@@ -177,8 +512,63 @@ public class McpE2ETests
                 Confidence = 0.8
             });
 
+        var neptuneClientMock = new Mock<INeptuneClient>();
+        neptuneClientMock
+            .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var embeddingServiceMock = new Mock<IBedrockEmbeddingService>();
+        embeddingServiceMock
+            .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([0.1f, 0.2f]);
+        var gitSyncStatusMock = new Mock<IGitSyncStatus>();
+        gitSyncStatusMock.Setup(s => s.LastRunFailed).Returns(false);
+        gitSyncStatusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        gitSyncStatusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+
+        await using var factory = new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseEnvironment("Testing");
+                builder.ConfigureServices(services =>
+                {
+                    services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
+                    {
+                        opts.ApiKeys = "e2e-test-key";
+                        opts.Enabled = true;
+                    });
+                    services.AddSingleton(pipelineMock.Object);
+                    services.AddSingleton(new Mock<IVectorStore>().Object);
+                    services.AddSingleton(new Mock<IGraphRepository>().Object);
+                    services.AddSingleton(embeddingServiceMock.Object);
+                    services.AddSingleton(new Mock<IBedrockLlmService>().Object);
+                    services.AddSingleton(neptuneClientMock.Object);
+                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(gitSyncStatusMock.Object);
+                });
+            });
+        using var httpClient = factory.CreateClient();
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        var client = await server.ConnectMcpClientAsync(cts.Token);
+
+        var transport = new HttpClientTransport(
+            new HttpClientTransportOptions
+            {
+                Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+                AdditionalHeaders = new Dictionary<string, string>
+                {
+                    ["X-API-Key"] = "e2e-test-key"
+                },
+                TransportMode = HttpTransportMode.StreamableHttp
+            },
+            httpClient,
+            ownsHttpClient: false);
+
+        await using var client = await McpClient.CreateAsync(
+            transport,
+            new McpClientOptions
+            {
+                ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
+            },
+            cancellationToken: cts.Token);
 
         await client.CallToolAsync(
             "rag_query",
@@ -191,102 +581,5 @@ public class McpE2ETests
 
         capturedOptions.ShouldNotBeNull();
         capturedOptions.MaxChunks.ShouldBe(3);
-    }
-
-    private sealed class McpTestServer : IAsyncDisposable
-    {
-        private const string TestApiKey = "e2e-test-key";
-        private readonly WebApplicationFactory<Program> _factory;
-        private McpClient? _client;
-        private HttpClient? _httpClient;
-
-        public Mock<IGraphRagPipeline> PipelineMock { get; } = new();
-        public Mock<IVectorStore> VectorStoreMock { get; } = new();
-        public Mock<IGraphRepository> GraphRepositoryMock { get; } = new();
-        public Mock<IBedrockEmbeddingService> EmbeddingServiceMock { get; } = new();
-        public Mock<IBedrockLlmService> LlmServiceMock { get; } = new();
-        public Mock<INeptuneClient> NeptuneClientMock { get; } = new();
-        public Mock<IOpenSearchClient> OpenSearchClientMock { get; } = new();
-        public Mock<IGitSyncStatus> GitSyncStatusMock { get; } = new();
-
-        public McpTestServer()
-        {
-            // Set up healthy defaults for health check dependencies
-            NeptuneClientMock
-                .Setup(c => c.TestConnectionAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(true);
-            EmbeddingServiceMock
-                .Setup(s => s.GenerateEmbeddingAsync("health", It.IsAny<CancellationToken>()))
-                .ReturnsAsync([0.1f, 0.2f]);
-            GitSyncStatusMock
-                .Setup(s => s.LastRunFailed).Returns(false);
-            GitSyncStatusMock
-                .Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-            GitSyncStatusMock
-                .Setup(s => s.IntervalSeconds).Returns(21600);
-
-            _factory = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(builder =>
-                {
-                    builder.UseEnvironment("Testing");
-                    builder.ConfigureServices(services =>
-                    {
-                        // Override API key auth options to use our test key
-                        services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
-                        {
-                            opts.ApiKeys = TestApiKey;
-                            opts.Enabled = true;
-                        });
-
-                        services.AddSingleton(PipelineMock.Object);
-                        services.AddSingleton(VectorStoreMock.Object);
-                        services.AddSingleton(GraphRepositoryMock.Object);
-                        services.AddSingleton(EmbeddingServiceMock.Object);
-                        services.AddSingleton(LlmServiceMock.Object);
-                        services.AddSingleton(NeptuneClientMock.Object);
-                        services.AddSingleton(OpenSearchClientMock.Object);
-                        services.AddSingleton(GitSyncStatusMock.Object);
-                    });
-                });
-        }
-
-        public HttpClient CreateHttpClient()
-        {
-            _httpClient = _factory.CreateClient();
-            return _httpClient;
-        }
-
-        public async Task<McpClient> ConnectMcpClientAsync(CancellationToken ct = default)
-        {
-            _httpClient = _factory.CreateClient();
-            var transport = new HttpClientTransport(
-                new HttpClientTransportOptions
-                {
-                    Endpoint = new Uri(_httpClient.BaseAddress!, "/"),
-                    AdditionalHeaders = new Dictionary<string, string>
-                    {
-                        ["X-API-Key"] = TestApiKey
-                    },
-                    TransportMode = HttpTransportMode.StreamableHttp
-                },
-                _httpClient,
-                ownsHttpClient: false);
-
-            _client = await McpClient.CreateAsync(
-                transport,
-                new McpClientOptions
-                {
-                    ClientInfo = new() { Name = "e2e-test", Version = "1.0.0" }
-                },
-                cancellationToken: ct);
-            return _client;
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            if (_client is not null) await _client.DisposeAsync();
-            _httpClient?.Dispose();
-            await _factory.DisposeAsync();
-        }
     }
 }

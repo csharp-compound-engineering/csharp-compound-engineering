@@ -96,15 +96,8 @@ public sealed class LatencyTrackerTests
     }
 }
 
-public sealed class MetricsCollectorTests : IDisposable
+public sealed class MetricsCollectorTests
 {
-    private readonly MetricsCollector _collector;
-
-    public MetricsCollectorTests()
-    {
-        _collector = new MetricsCollector();
-    }
-
     [Fact]
     public void MeterName_HasExpectedValue()
     {
@@ -120,17 +113,20 @@ public sealed class MetricsCollectorTests : IDisposable
     [Fact]
     public void ActivitySource_IsNotNull()
     {
-        _collector.ActivitySource.ShouldNotBeNull();
+        using var collector = new MetricsCollector();
+
+        collector.ActivitySource.ShouldNotBeNull();
     }
 
     [Fact]
     public void RecordDocumentIndexed_IncrementsTotalDocumentsAndTotalChunksInSnapshot()
     {
         // Arrange & Act
-        _collector.RecordDocumentIndexed(chunkCount: 5, durationMs: 100.0);
-        _collector.RecordDocumentIndexed(chunkCount: 3, durationMs: 200.0);
+        using var collector = new MetricsCollector();
+        collector.RecordDocumentIndexed(chunkCount: 5, durationMs: 100.0);
+        collector.RecordDocumentIndexed(chunkCount: 3, durationMs: 200.0);
 
-        var snapshot = _collector.GetSnapshot();
+        var snapshot = collector.GetSnapshot();
 
         // Assert
         snapshot.TotalDocuments.ShouldBe(2);
@@ -141,10 +137,11 @@ public sealed class MetricsCollectorTests : IDisposable
     public void RecordQuery_IncrementsTotalQueriesAndRecordsLatency()
     {
         // Arrange & Act
-        _collector.RecordQuery(durationMs: 50.0, resultCount: 10);
-        _collector.RecordQuery(durationMs: 150.0, resultCount: 5);
+        using var collector = new MetricsCollector();
+        collector.RecordQuery(durationMs: 50.0, resultCount: 10);
+        collector.RecordQuery(durationMs: 150.0, resultCount: 5);
 
-        var snapshot = _collector.GetSnapshot();
+        var snapshot = collector.GetSnapshot();
 
         // Assert
         snapshot.TotalQueries.ShouldBe(2);
@@ -157,10 +154,11 @@ public sealed class MetricsCollectorTests : IDisposable
     public void RecordEmbeddingGeneration_RecordsLatencyInSnapshot()
     {
         // Arrange & Act
-        _collector.RecordEmbeddingGeneration(durationMs: 25.0, contentLength: 1000);
-        _collector.RecordEmbeddingGeneration(durationMs: 75.0, contentLength: 2000);
+        using var collector = new MetricsCollector();
+        collector.RecordEmbeddingGeneration(durationMs: 25.0, contentLength: 1000);
+        collector.RecordEmbeddingGeneration(durationMs: 75.0, contentLength: 2000);
 
-        var snapshot = _collector.GetSnapshot();
+        var snapshot = collector.GetSnapshot();
 
         // Assert
         snapshot.EmbeddingLatency.SampleCount.ShouldBe(2);
@@ -172,12 +170,13 @@ public sealed class MetricsCollectorTests : IDisposable
     public void RecordCacheHitAndMiss_CalculatesCacheHitRateCorrectly()
     {
         // Arrange & Act - 3 hits, 1 miss = 0.75 hit rate
-        _collector.RecordCacheHit();
-        _collector.RecordCacheHit();
-        _collector.RecordCacheHit();
-        _collector.RecordCacheMiss();
+        using var collector = new MetricsCollector();
+        collector.RecordCacheHit();
+        collector.RecordCacheHit();
+        collector.RecordCacheHit();
+        collector.RecordCacheMiss();
 
-        var snapshot = _collector.GetSnapshot();
+        var snapshot = collector.GetSnapshot();
 
         // Assert
         snapshot.CacheHitRate.ShouldBe(0.75);
@@ -187,7 +186,8 @@ public sealed class MetricsCollectorTests : IDisposable
     public void CacheHitRate_ReturnsZero_WhenNoCacheOperations()
     {
         // Arrange & Act
-        var snapshot = _collector.GetSnapshot();
+        using var collector = new MetricsCollector();
+        var snapshot = collector.GetSnapshot();
 
         // Assert
         snapshot.CacheHitRate.ShouldBe(0.0);
@@ -197,15 +197,17 @@ public sealed class MetricsCollectorTests : IDisposable
     public void RecordError_DoesNotThrow()
     {
         // Act & Assert
-        Should.NotThrow(() => _collector.RecordError("TestError"));
-        Should.NotThrow(() => _collector.RecordError("AnotherError"));
+        using var collector = new MetricsCollector();
+        Should.NotThrow(() => collector.RecordError("TestError"));
+        Should.NotThrow(() => collector.RecordError("AnotherError"));
     }
 
     [Fact]
     public void StartActivity_ReturnsNull_WhenNoListenersRegistered()
     {
         // Act
-        var activity = _collector.StartActivity("test-operation");
+        using var collector = new MetricsCollector();
+        var activity = collector.StartActivity("test-operation");
 
         // Assert
         activity.ShouldBeNull();
@@ -215,10 +217,11 @@ public sealed class MetricsCollectorTests : IDisposable
     public void GetSnapshot_HasReasonableGeneratedAtTimestamp()
     {
         // Arrange
+        using var collector = new MetricsCollector();
         var before = DateTimeOffset.UtcNow;
 
         // Act
-        var snapshot = _collector.GetSnapshot();
+        var snapshot = collector.GetSnapshot();
 
         var after = DateTimeOffset.UtcNow;
 
@@ -250,10 +253,5 @@ public sealed class MetricsCollectorTests : IDisposable
             collector.Dispose();
             collector.Dispose();
         });
-    }
-
-    public void Dispose()
-    {
-        _collector.Dispose();
     }
 }

@@ -10,17 +10,12 @@ namespace CompoundDocs.Tests.Integration.Graph;
 /// </summary>
 public class GraphTraversalMockTests
 {
-    private readonly Mock<IGraphRepository> _graphRepoMock;
-
-    public GraphTraversalMockTests()
-    {
-        _graphRepoMock = new Mock<IGraphRepository>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task MultiHopTraversal_WithMockedGraph_ReturnsDocuments()
     {
         // Arrange
+        var graphRepoMock = new Mock<IGraphRepository>(MockBehavior.Strict);
+
         var rootConceptId = "concept-graphrag";
         var relatedConceptId = "concept-vector-search";
 
@@ -78,7 +73,7 @@ public class GraphTraversalMockTests
         };
 
         // Setup: first hop retrieves related concepts
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.GetRelatedConceptsAsync(
                 rootConceptId,
                 It.IsAny<int>(),
@@ -87,7 +82,7 @@ public class GraphTraversalMockTests
             .Verifiable();
 
         // Setup: retrieve chunks for the root concept
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.GetChunksByConceptAsync(
                 rootConceptId,
                 It.IsAny<CancellationToken>()))
@@ -95,7 +90,7 @@ public class GraphTraversalMockTests
             .Verifiable();
 
         // Setup: retrieve chunks for a related concept (second hop)
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.GetChunksByConceptAsync(
                 relatedConceptId,
                 It.IsAny<CancellationToken>()))
@@ -103,14 +98,14 @@ public class GraphTraversalMockTests
             .Verifiable();
 
         // Setup: retrieve chunks for the other related concept
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.GetChunksByConceptAsync(
                 "concept-knowledge-graph",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<ChunkNode>())
             .Verifiable();
 
-        var repo = _graphRepoMock.Object;
+        var repo = graphRepoMock.Object;
 
         // Act - simulate multi-hop traversal pattern
         var concepts = await repo.GetRelatedConceptsAsync(rootConceptId, hops: 2);
@@ -147,19 +142,19 @@ public class GraphTraversalMockTests
         allChunks[2].Order.ShouldBe(1);
 
         // Verify traversal pattern: concepts queried once, chunks queried per concept
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.GetRelatedConceptsAsync(rootConceptId, 2, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.GetChunksByConceptAsync(rootConceptId, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.GetChunksByConceptAsync(relatedConceptId, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.GetChunksByConceptAsync("concept-knowledge-graph", It.IsAny<CancellationToken>()),
             Times.Once);
     }

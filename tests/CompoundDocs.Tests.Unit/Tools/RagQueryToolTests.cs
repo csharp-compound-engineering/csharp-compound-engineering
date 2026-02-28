@@ -10,26 +10,17 @@ namespace CompoundDocs.Tests.Unit.Tools;
 
 public class RagQueryToolTests
 {
-    private static RagQueryTool CreateSut(
-        Mock<IGraphRagPipeline>? graphRagPipeline = null,
-        Mock<IMetricsCollector>? metrics = null,
-        Mock<IVectorStore>? vectorStore = null,
-        Mock<IGraphRepository>? graphRepository = null,
-        Mock<IBedrockEmbeddingService>? embeddingService = null,
-        Mock<IBedrockLlmService>? llmService = null) =>
-        new(
-            (vectorStore ?? new Mock<IVectorStore>()).Object,
-            (graphRepository ?? new Mock<IGraphRepository>()).Object,
-            (embeddingService ?? new Mock<IBedrockEmbeddingService>()).Object,
-            (llmService ?? new Mock<IBedrockLlmService>()).Object,
-            (graphRagPipeline ?? new Mock<IGraphRagPipeline>()).Object,
-            (metrics ?? new Mock<IMetricsCollector>()).Object,
-            NullLogger<RagQueryTool>.Instance);
-
     [Fact]
     public async Task QueryAsync_EmptyQuery_ReturnsEmptyQueryError()
     {
-        var sut = CreateSut();
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            new Mock<IGraphRagPipeline>().Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
 
         var result = await sut.QueryAsync("", 5, CancellationToken.None);
 
@@ -40,7 +31,14 @@ public class RagQueryToolTests
     [Fact]
     public async Task QueryAsync_WhitespaceQuery_ReturnsEmptyQueryError()
     {
-        var sut = CreateSut();
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            new Mock<IGraphRagPipeline>().Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
 
         var result = await sut.QueryAsync("   ", 5, CancellationToken.None);
 
@@ -73,7 +71,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(graphRagResult);
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
         var result = await sut.QueryAsync("test query", 5, CancellationToken.None);
 
         result.Success.ShouldBeTrue();
@@ -97,7 +102,14 @@ public class RagQueryToolTests
                 Sources = [new GraphRagSource { DocumentId = "d1", ChunkId = "c1", Repository = "r1", FilePath = "f.md", RelevanceScore = 0.9 }]
             });
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline, metrics: metricsMock);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            metricsMock.Object,
+            NullLogger<RagQueryTool>.Instance);
         await sut.QueryAsync("test query", 5, CancellationToken.None);
 
         metricsMock.Verify(m => m.RecordQuery(It.Is<double>(d => d >= 0), It.IsAny<int>()), Times.Once);
@@ -110,7 +122,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult { Answer = "answer" });
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
         await sut.QueryAsync("query", -1, CancellationToken.None);
 
         graphRagPipeline.Verify(m => m.QueryAsync(
@@ -126,7 +145,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult { Answer = "answer" });
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
         await sut.QueryAsync("query", 50, CancellationToken.None);
 
         graphRagPipeline.Verify(m => m.QueryAsync(
@@ -142,7 +168,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
         var result = await sut.QueryAsync("query", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
@@ -156,7 +189,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline failure"));
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            new Mock<IMetricsCollector>().Object,
+            NullLogger<RagQueryTool>.Instance);
         var result = await sut.QueryAsync("query", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
@@ -172,7 +212,14 @@ public class RagQueryToolTests
         graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline failure"));
 
-        var sut = CreateSut(graphRagPipeline: graphRagPipeline, metrics: metricsMock);
+        var sut = new RagQueryTool(
+            new Mock<IVectorStore>().Object,
+            new Mock<IGraphRepository>().Object,
+            new Mock<IBedrockEmbeddingService>().Object,
+            new Mock<IBedrockLlmService>().Object,
+            graphRagPipeline.Object,
+            metricsMock.Object,
+            NullLogger<RagQueryTool>.Instance);
         await sut.QueryAsync("query", 5, CancellationToken.None);
 
         metricsMock.Verify(m => m.RecordError("InvalidOperationException"), Times.Once);

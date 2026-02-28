@@ -10,17 +10,12 @@ namespace CompoundDocs.Tests.Integration.Graph;
 /// </summary>
 public class GraphRepositoryMockTests
 {
-    private readonly Mock<IGraphRepository> _graphRepoMock;
-
-    public GraphRepositoryMockTests()
-    {
-        _graphRepoMock = new Mock<IGraphRepository>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task CreateDocumentNode_WithMockedNeptune_Succeeds()
     {
         // Arrange
+        var graphRepoMock = new Mock<IGraphRepository>(MockBehavior.Strict);
+
         var document = new DocumentNode
         {
             Id = "doc-graph-001",
@@ -32,20 +27,20 @@ public class GraphRepositoryMockTests
             CommitHash = "abc123def456"
         };
 
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.UpsertDocumentAsync(
                 It.IsAny<DocumentNode>(),
                 It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        var repo = _graphRepoMock.Object;
+        var repo = graphRepoMock.Object;
 
         // Act
         await repo.UpsertDocumentAsync(document);
 
         // Assert
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.UpsertDocumentAsync(
                 It.Is<DocumentNode>(d =>
                     d.Id == "doc-graph-001" &&
@@ -62,6 +57,8 @@ public class GraphRepositoryMockTests
     public async Task GetRelatedConcepts_WithMockedNeptune_ReturnsNodes()
     {
         // Arrange
+        var graphRepoMock = new Mock<IGraphRepository>(MockBehavior.Strict);
+
         var conceptId = "concept-di";
         var expectedConcepts = new List<ConceptNode>
         {
@@ -91,7 +88,7 @@ public class GraphRepositoryMockTests
             }
         };
 
-        _graphRepoMock
+        graphRepoMock
             .Setup(g => g.GetRelatedConceptsAsync(
                 It.IsAny<string>(),
                 It.IsAny<int>(),
@@ -99,7 +96,7 @@ public class GraphRepositoryMockTests
             .ReturnsAsync(expectedConcepts)
             .Verifiable();
 
-        var repo = _graphRepoMock.Object;
+        var repo = graphRepoMock.Object;
 
         // Act
         var results = await repo.GetRelatedConceptsAsync(conceptId, hops: 2);
@@ -122,7 +119,7 @@ public class GraphRepositoryMockTests
         results[2].Category.ShouldBe("Architecture");
         results[2].Aliases.ShouldBeEmpty();
 
-        _graphRepoMock.Verify(
+        graphRepoMock.Verify(
             g => g.GetRelatedConceptsAsync(conceptId, 2, It.IsAny<CancellationToken>()),
             Times.Once);
     }

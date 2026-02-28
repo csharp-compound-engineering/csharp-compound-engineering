@@ -8,15 +8,14 @@ namespace CompoundDocs.Tests.Unit.Health;
 
 public sealed class GitSyncHealthCheckTests
 {
-    private readonly Mock<IGitSyncStatus> _statusMock = new();
-
     [Fact]
     public async Task CheckHealthAsync_NoRunYet_ReturnsDegraded()
     {
-        _statusMock.Setup(s => s.LastRunFailed).Returns(false);
-        _statusMock.Setup(s => s.LastSuccessfulRun).Returns((DateTimeOffset?)null);
+        var statusMock = new Mock<IGitSyncStatus>();
+        statusMock.Setup(s => s.LastRunFailed).Returns(false);
+        statusMock.Setup(s => s.LastSuccessfulRun).Returns((DateTimeOffset?)null);
 
-        var sut = new GitSyncHealthCheck(_statusMock.Object);
+        var sut = new GitSyncHealthCheck(statusMock.Object);
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 
         result.Status.ShouldBe(HealthStatus.Degraded);
@@ -27,11 +26,12 @@ public sealed class GitSyncHealthCheckTests
     [Fact]
     public async Task CheckHealthAsync_RecentSuccessfulRun_ReturnsHealthy()
     {
-        _statusMock.Setup(s => s.LastRunFailed).Returns(false);
-        _statusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
-        _statusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+        var statusMock = new Mock<IGitSyncStatus>();
+        statusMock.Setup(s => s.LastRunFailed).Returns(false);
+        statusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow);
+        statusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
-        var sut = new GitSyncHealthCheck(_statusMock.Object);
+        var sut = new GitSyncHealthCheck(statusMock.Object);
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 
         result.Status.ShouldBe(HealthStatus.Healthy);
@@ -40,9 +40,10 @@ public sealed class GitSyncHealthCheckTests
     [Fact]
     public async Task CheckHealthAsync_LastRunFailed_ReturnsUnhealthy()
     {
-        _statusMock.Setup(s => s.LastRunFailed).Returns(true);
+        var statusMock = new Mock<IGitSyncStatus>();
+        statusMock.Setup(s => s.LastRunFailed).Returns(true);
 
-        var sut = new GitSyncHealthCheck(_statusMock.Object);
+        var sut = new GitSyncHealthCheck(statusMock.Object);
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 
         result.Status.ShouldBe(HealthStatus.Unhealthy);
@@ -53,12 +54,13 @@ public sealed class GitSyncHealthCheckTests
     [Fact]
     public async Task CheckHealthAsync_OverdueRun_ReturnsDegraded()
     {
-        _statusMock.Setup(s => s.LastRunFailed).Returns(false);
+        var statusMock = new Mock<IGitSyncStatus>();
+        statusMock.Setup(s => s.LastRunFailed).Returns(false);
         // Last run was 13 hours ago, interval is 6 hours (21600s), threshold is 2x = 12 hours
-        _statusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow.AddHours(-13));
-        _statusMock.Setup(s => s.IntervalSeconds).Returns(21600);
+        statusMock.Setup(s => s.LastSuccessfulRun).Returns(DateTimeOffset.UtcNow.AddHours(-13));
+        statusMock.Setup(s => s.IntervalSeconds).Returns(21600);
 
-        var sut = new GitSyncHealthCheck(_statusMock.Object);
+        var sut = new GitSyncHealthCheck(statusMock.Object);
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 
         result.Status.ShouldBe(HealthStatus.Degraded);

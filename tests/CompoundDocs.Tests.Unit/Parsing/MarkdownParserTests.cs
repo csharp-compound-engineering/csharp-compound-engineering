@@ -9,23 +9,17 @@ namespace CompoundDocs.Tests.Unit.Parsing;
 /// </summary>
 public sealed class MarkdownParserTests
 {
-    private readonly MarkdownParser _sut;
-
-    public MarkdownParserTests()
-    {
-        _sut = new MarkdownParser();
-    }
-
     #region Parse Tests
 
     [Fact]
     public void Parse_WithValidMarkdown_ReturnsMarkdownDocument()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "# Hello World\n\nThis is a paragraph.";
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -36,10 +30,11 @@ public sealed class MarkdownParserTests
     public void Parse_WithEmptyString_ReturnsEmptyDocument()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = string.Empty;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -50,6 +45,7 @@ public sealed class MarkdownParserTests
     public void Parse_WithYamlFrontmatter_ParsesSuccessfully()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             ---
             title: Test Document
@@ -62,7 +58,7 @@ public sealed class MarkdownParserTests
             """;
 
         // Act
-        var result = _sut.Parse(markdown);
+        var result = sut.Parse(markdown);
 
         // Assert
         result.ShouldNotBeNull();
@@ -77,11 +73,12 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_WithSingleHeader_ReturnsSingleHeader()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "# Main Title\n\nSome content.";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.ShouldNotBeNull();
@@ -94,6 +91,7 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_WithNestedHeaders_ReturnsHierarchicalPaths()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Document Title
 
@@ -109,10 +107,10 @@ public sealed class MarkdownParserTests
 
             Content in section two.
             """;
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.ShouldNotBeNull();
@@ -139,11 +137,12 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_WithNoHeaders_ReturnsEmptyList()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "Just some plain text without any headers.";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.ShouldNotBeNull();
@@ -154,11 +153,12 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_RecordsLineNumbers()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "# Header on Line 0\n\n## Header on Line 2";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.Count.ShouldBe(2);
@@ -174,16 +174,17 @@ public sealed class MarkdownParserTests
     public void ExtractLinks_WithInternalLinks_ReturnsRelativeLinks()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Document
 
             See [related doc](./related.md) for more info.
             Also check [another doc](../other/doc.md).
             """;
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var links = _sut.ExtractLinks(document);
+        var links = sut.ExtractLinks(document);
 
         // Assert
         links.ShouldNotBeNull();
@@ -197,6 +198,7 @@ public sealed class MarkdownParserTests
     public void ExtractLinks_WithExternalLinks_ExcludesHttpLinks()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Document
 
@@ -204,10 +206,10 @@ public sealed class MarkdownParserTests
             Also see [local doc](./local.md).
             And [another external](http://example.com).
             """;
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var links = _sut.ExtractLinks(document);
+        var links = sut.ExtractLinks(document);
 
         // Assert
         links.ShouldNotBeNull();
@@ -219,11 +221,12 @@ public sealed class MarkdownParserTests
     public void ExtractLinks_WithNoLinks_ReturnsEmptyList()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "# Document\n\nNo links here.";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var links = _sut.ExtractLinks(document);
+        var links = sut.ExtractLinks(document);
 
         // Assert
         links.ShouldNotBeNull();
@@ -234,15 +237,16 @@ public sealed class MarkdownParserTests
     public void ExtractLinks_WithAnchorLinks_IncludesAnchorLinks()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Document
 
             See the [overview section](#overview) below.
             """;
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var links = _sut.ExtractLinks(document);
+        var links = sut.ExtractLinks(document);
 
         // Assert
         links.ShouldNotBeNull();
@@ -258,6 +262,7 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_WithMultipleSections_CreatesChunks()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Document Title
 
@@ -278,7 +283,7 @@ public sealed class MarkdownParserTests
             """;
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.ShouldNotBeNull();
@@ -295,10 +300,11 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_WithNoHeaders_ReturnsSingleChunk()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "Just plain text without headers.\nMultiple lines.\nBut no headers.";
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.ShouldNotBeNull();
@@ -310,6 +316,7 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_ChunksContainCorrectLineRanges()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             ## First Section
 
@@ -322,7 +329,7 @@ public sealed class MarkdownParserTests
             """;
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.Count.ShouldBe(2);
@@ -334,6 +341,7 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_IncludesHeaderPathInChunks()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = """
             # Main
 
@@ -343,7 +351,7 @@ public sealed class MarkdownParserTests
             """;
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.ShouldNotBeNull();
@@ -360,10 +368,11 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_WithH4Headers_OnlyChunksAtH2AndH3()
     {
         // Arrange - H4 headers should not create chunk boundaries
+        var sut = new MarkdownParser();
         var markdown = "## Section One\n\nContent.\n\n#### Deep Header\n\nMore content.\n\n## Section Two\n\nFinal.";
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert - Should have 2 chunks (at ## boundaries), not 3
         chunks.Count.ShouldBe(2);
@@ -375,11 +384,12 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_WithSameLevelSiblings_ResetsSiblingPaths()
     {
         // Arrange - H2 siblings after H3 should reset path correctly
+        var sut = new MarkdownParser();
         var markdown = "# Root\n\n## A\n\n### A1\n\n### A2\n\n## B\n\n### B1";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.Count.ShouldBe(6);
@@ -395,10 +405,11 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_WithOnlyH1Header_ChunksAtH1()
     {
         // Arrange - H1 is level 1, <= 3, so should chunk
+        var sut = new MarkdownParser();
         var markdown = "# Only H1\n\nContent under H1.";
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.Count.ShouldBe(1);
@@ -409,11 +420,12 @@ public sealed class MarkdownParserTests
     public void ExtractHeaders_SpanPositionsAreRecorded()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "# Title\n\nSome text.";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.Count.ShouldBe(1);
@@ -425,10 +437,11 @@ public sealed class MarkdownParserTests
     public void ChunkByHeaders_ChunksHaveSequentialIndexes()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "## A\n\nContent A.\n\n## B\n\nContent B.\n\n## C\n\nContent C.";
 
         // Act
-        var chunks = _sut.ChunkByHeaders(markdown);
+        var chunks = sut.ChunkByHeaders(markdown);
 
         // Assert
         chunks.Count.ShouldBe(3);
@@ -446,6 +459,7 @@ public sealed class MarkdownParserTests
     {
         // Arrange - Create a MarkdownDocument with a HeadingBlock that has null Inline.
         // A HeadingBlock created directly without processing inline content will have Inline = null.
+        var sut = new MarkdownParser();
         var document = new MarkdownDocument();
         var headingBlock = new HeadingBlock(null!)
         {
@@ -456,7 +470,7 @@ public sealed class MarkdownParserTests
         document.Add(headingBlock);
 
         // Act
-        var headers = _sut.ExtractHeaders(document);
+        var headers = sut.ExtractHeaders(document);
 
         // Assert
         headers.Count.ShouldBe(1);
@@ -472,11 +486,12 @@ public sealed class MarkdownParserTests
     public void ExtractCodeBlocks_SingleFencedCodeBlock_ExtractsCorrectly()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "## Section\n\n```csharp\nvar x = 1;\n```";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var codeBlocks = _sut.ExtractCodeBlocks(document);
+        var codeBlocks = sut.ExtractCodeBlocks(document);
 
         // Assert
         codeBlocks.Count.ShouldBe(1);
@@ -488,11 +503,12 @@ public sealed class MarkdownParserTests
     public void ExtractCodeBlocks_MultipleCodeBlocks_ExtractsAll()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "```python\nprint('hello')\n```\n\nSome text.\n\n```json\n{\"key\": \"value\"}\n```";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var codeBlocks = _sut.ExtractCodeBlocks(document);
+        var codeBlocks = sut.ExtractCodeBlocks(document);
 
         // Assert
         codeBlocks.Count.ShouldBe(2);
@@ -506,11 +522,12 @@ public sealed class MarkdownParserTests
     public void ExtractCodeBlocks_NoLanguage_ReturnsEmptyString()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "```\nsome code\n```";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var codeBlocks = _sut.ExtractCodeBlocks(document);
+        var codeBlocks = sut.ExtractCodeBlocks(document);
 
         // Assert
         codeBlocks.Count.ShouldBe(1);
@@ -521,11 +538,12 @@ public sealed class MarkdownParserTests
     public void ExtractCodeBlocks_NoCodeBlocks_ReturnsEmptyList()
     {
         // Arrange
+        var sut = new MarkdownParser();
         var markdown = "## Section\n\nJust plain text, no code blocks.";
-        var document = _sut.Parse(markdown);
+        var document = sut.Parse(markdown);
 
         // Act
-        var codeBlocks = _sut.ExtractCodeBlocks(document);
+        var codeBlocks = sut.ExtractCodeBlocks(document);
 
         // Assert
         codeBlocks.ShouldBeEmpty();
@@ -536,6 +554,7 @@ public sealed class MarkdownParserTests
     {
         // Arrange - Markdig sets Info="" for no-language blocks, so we must construct one
         // with Info=null directly to cover the null-coalescing branch.
+        var sut = new MarkdownParser();
         var document = new MarkdownDocument();
         var codeBlock = new FencedCodeBlock(null!)
         {
@@ -545,7 +564,7 @@ public sealed class MarkdownParserTests
         document.Add(codeBlock);
 
         // Act
-        var codeBlocks = _sut.ExtractCodeBlocks(document);
+        var codeBlocks = sut.ExtractCodeBlocks(document);
 
         // Assert
         codeBlocks.Count.ShouldBe(1);

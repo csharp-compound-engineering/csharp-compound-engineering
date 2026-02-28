@@ -9,20 +9,15 @@ namespace CompoundDocs.Tests.Unit.GraphRag;
 
 public sealed class BedrockEntityExtractorTests
 {
-    private readonly Mock<BedrockLlm> _llmMock = new();
-    private readonly BedrockEntityExtractor _extractor;
-
-    public BedrockEntityExtractorTests()
-    {
-        _extractor = new BedrockEntityExtractor(
-            _llmMock.Object,
-            NullLogger<BedrockEntityExtractor>.Instance);
-    }
-
     [Fact]
     public async Task ExtractEntitiesAsync_MapsEntitiesCorrectly()
     {
-        _llmMock
+        var llmMock = new Mock<BedrockLlm>();
+        var extractor = new BedrockEntityExtractor(
+            llmMock.Object,
+            NullLogger<BedrockEntityExtractor>.Instance);
+
+        llmMock
             .Setup(s => s.ExtractEntitiesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -35,7 +30,7 @@ public sealed class BedrockEntityExtractorTests
                 }
             ]);
 
-        var result = await _extractor.ExtractEntitiesAsync("Some text about Neptune");
+        var result = await extractor.ExtractEntitiesAsync("Some text about Neptune");
 
         result.Count.ShouldBe(1);
         result[0].Name.ShouldBe("Amazon Neptune");
@@ -47,11 +42,16 @@ public sealed class BedrockEntityExtractorTests
     [Fact]
     public async Task ExtractEntitiesAsync_EmptyResult_ReturnsEmptyList()
     {
-        _llmMock
+        var llmMock = new Mock<BedrockLlm>();
+        var extractor = new BedrockEntityExtractor(
+            llmMock.Object,
+            NullLogger<BedrockEntityExtractor>.Instance);
+
+        llmMock
             .Setup(s => s.ExtractEntitiesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        var result = await _extractor.ExtractEntitiesAsync("No entities here");
+        var result = await extractor.ExtractEntitiesAsync("No entities here");
 
         result.ShouldBeEmpty();
     }
@@ -59,27 +59,37 @@ public sealed class BedrockEntityExtractorTests
     [Fact]
     public async Task ExtractEntitiesAsync_ExceptionPropagates()
     {
-        _llmMock
+        var llmMock = new Mock<BedrockLlm>();
+        var extractor = new BedrockEntityExtractor(
+            llmMock.Object,
+            NullLogger<BedrockEntityExtractor>.Instance);
+
+        llmMock
             .Setup(s => s.ExtractEntitiesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("LLM failure"));
 
         await Should.ThrowAsync<InvalidOperationException>(
-            () => _extractor.ExtractEntitiesAsync("text"));
+            () => extractor.ExtractEntitiesAsync("text"));
     }
 
     [Fact]
     public async Task ExtractEntitiesAsync_ForwardsCancellationToken()
     {
+        var llmMock = new Mock<BedrockLlm>();
+        var extractor = new BedrockEntityExtractor(
+            llmMock.Object,
+            NullLogger<BedrockEntityExtractor>.Instance);
+
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
 
-        _llmMock
+        llmMock
             .Setup(s => s.ExtractEntitiesAsync("chunk text", token))
             .ReturnsAsync([]);
 
-        await _extractor.ExtractEntitiesAsync("chunk text", token);
+        await extractor.ExtractEntitiesAsync("chunk text", token);
 
-        _llmMock.Verify(
+        llmMock.Verify(
             s => s.ExtractEntitiesAsync("chunk text", token),
             Times.Once);
     }
@@ -87,7 +97,12 @@ public sealed class BedrockEntityExtractorTests
     [Fact]
     public async Task ExtractEntitiesAsync_NullDescriptionAndEmptyAliases_MappedCorrectly()
     {
-        _llmMock
+        var llmMock = new Mock<BedrockLlm>();
+        var extractor = new BedrockEntityExtractor(
+            llmMock.Object,
+            NullLogger<BedrockEntityExtractor>.Instance);
+
+        llmMock
             .Setup(s => s.ExtractEntitiesAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -100,7 +115,7 @@ public sealed class BedrockEntityExtractorTests
                 }
             ]);
 
-        var result = await _extractor.ExtractEntitiesAsync("C# programming");
+        var result = await extractor.ExtractEntitiesAsync("C# programming");
 
         result.Count.ShouldBe(1);
         result[0].Description.ShouldBeNull();

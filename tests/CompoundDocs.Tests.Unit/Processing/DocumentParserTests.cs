@@ -9,16 +9,13 @@ namespace CompoundDocs.Tests.Unit.Processing;
 /// </summary>
 public sealed class DocumentParserTests
 {
-    private static DocumentParser CreateParser() =>
-        new(new FrontmatterParser(), new MarkdownParser());
-
     #region Parse - Null and Empty Input
 
     [Fact]
     public void Parse_WithNullContent_ReturnsEmpty()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.Parse(null!);
@@ -36,7 +33,7 @@ public sealed class DocumentParserTests
     public void Parse_WithEmptyString_ReturnsEmpty()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.Parse(string.Empty);
@@ -56,7 +53,7 @@ public sealed class DocumentParserTests
     public void Parse_WithPlainMarkdown_ReturnsSuccessWithoutFrontmatter()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Hello World\n\nSome content here.";
 
         // Act
@@ -74,7 +71,7 @@ public sealed class DocumentParserTests
     public void Parse_WithDashesInMiddleOfContent_DoesNotParseFrontmatter()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Title\n\nSome content\n---\nMore content";
 
         // Act
@@ -90,7 +87,7 @@ public sealed class DocumentParserTests
     public void Parse_WithUnclosedFrontmatter_TreatsEntireContentAsBody()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle: Unclosed\n\n# Content without closing frontmatter";
 
         // Act
@@ -109,7 +106,7 @@ public sealed class DocumentParserTests
     public void Parse_WithValidFrontmatter_ExtractsFrontmatterAndBody()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle: My Doc\ntags:\n  - csharp\n---\n\n# My Doc\n\nBody text.";
 
         // Act
@@ -129,7 +126,7 @@ public sealed class DocumentParserTests
     public void Parse_WithFrontmatterOnly_ReturnsEmptyBody()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle: No Body\n---\n";
 
         // Act
@@ -198,7 +195,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithNull_ReturnsEmptyList()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.ExtractCodeBlocks(null!);
@@ -211,7 +208,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithEmptyString_ReturnsEmptyList()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.ExtractCodeBlocks(string.Empty);
@@ -224,7 +221,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithNoCodeBlocks_ReturnsEmptyList()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "# Title\n\nJust some plain text, no code blocks at all.";
 
         // Act
@@ -242,7 +239,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithSingleCodeBlock_ExtractsLanguageAndCode()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "Some text\n\n```csharp\nvar x = 1;\n```\n\nMore text";
 
         // Act
@@ -259,7 +256,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithSingleCodeBlock_CalculatesStartLine()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "Line 0\nLine 1\n```csharp\nvar x = 1;\n```";
 
         // Act
@@ -278,7 +275,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithMultipleCodeBlocks_ExtractsAllWithSequentialIndices()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "Text\n\n```python\nprint('hello')\n```\n\nMiddle\n\n```javascript\nconsole.log('hi');\n```";
 
         // Act
@@ -302,7 +299,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithNoLanguageSpecified_SetsLanguageToNull()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "Text\n\n```\nsome code\n```";
 
         // Act
@@ -318,7 +315,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithVariousLanguages_ParsesAllCorrectly()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "```rust\nfn main() {}\n```\n\n```go\nfunc main() {}\n```\n\n```yaml\nkey: value\n```";
 
         // Act
@@ -339,7 +336,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_WithMultilineCode_CalculatesEndLineCorrectly()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "```csharp\nline1\nline2\nline3\n```";
 
         // Act
@@ -355,7 +352,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_AtStartOfBody_StartsAtLineZero()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "```csharp\nvar x = 1;\n```";
 
         // Act
@@ -373,7 +370,7 @@ public sealed class DocumentParserTests
     public void ExtractCodeBlocks_CodeIsTrimmedAtEnd()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var body = "```csharp\nvar x = 1;\n\n```";
 
         // Act
@@ -392,7 +389,7 @@ public sealed class DocumentParserTests
     public void IsValidDocument_WithNull_ReturnsFalse()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.IsValidDocument(null!);
@@ -405,7 +402,7 @@ public sealed class DocumentParserTests
     public void IsValidDocument_WithEmptyString_ReturnsFalse()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.IsValidDocument(string.Empty);
@@ -418,7 +415,7 @@ public sealed class DocumentParserTests
     public void IsValidDocument_WithValidPlainMarkdown_ReturnsTrue()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.IsValidDocument("# Title\n\nSome content.");
@@ -431,7 +428,7 @@ public sealed class DocumentParserTests
     public void IsValidDocument_WithValidFrontmatter_ReturnsTrue()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.IsValidDocument("---\ntitle: Test\n---\n\n# Title");
@@ -444,7 +441,7 @@ public sealed class DocumentParserTests
     public void IsValidDocument_WithWhitespaceOnly_ReturnsTrue()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Whitespace is not null or empty, so Parse succeeds
         var result = sut.IsValidDocument("   \n\n  ");
@@ -461,7 +458,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithEmptyContent_ReturnsSuccessWithEmptyCollections()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.ParseDetailed(string.Empty);
@@ -479,7 +476,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithHeaders_ExtractsHeaders()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Main Title\n\n## Section One\n\nContent.\n\n## Section Two\n\nMore content.";
 
         // Act
@@ -501,7 +498,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithInternalLinks_ExtractsLinks()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Title\n\nSee [other doc](./other.md) and [another](../docs/another.md).";
 
         // Act
@@ -518,7 +515,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_ExternalLinksAreNotIncluded()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Title\n\n[internal](./local.md) and [external](https://example.com).";
 
         // Act
@@ -538,7 +535,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithCodeBlocks_ExtractsCodeBlocks()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Title\n\n```csharp\nvar x = 1;\n```\n\n```python\nprint('hi')\n```";
 
         // Act
@@ -559,7 +556,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithTitleInFrontmatter_ExtractsTitleFromFrontmatter()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle: Frontmatter Title\n---\n\n# Header Title\n\nBody.";
 
         // Act
@@ -574,7 +571,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithNoFrontmatterTitle_FallsBackToFirstH1()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# First H1 Header\n\n## Section\n\nBody.";
 
         // Act
@@ -589,7 +586,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithNoTitleAnywhere_ReturnsEmptyTitle()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "## Only H2\n\nSome body without an H1.";
 
         // Act
@@ -608,7 +605,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatter_PreservesFrontmatterFields()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle: Doc\ntags:\n  - api\n---\n\n# Doc\n\nBody.";
 
         // Act
@@ -626,7 +623,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithoutFrontmatter_SetsHasFrontmatterFalse()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "# Just a heading\n\nBody content.";
 
         // Act
@@ -730,7 +727,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatterMissingTitleKey_FallsBackToFirstH1()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\nauthor: Jane Doe\ntags:\n  - guide\n---\n\n# Fallback Header\n\nBody content.";
 
         // Act
@@ -748,7 +745,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatterNonStringTitle_FallsBackToFirstH1()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle:\n  - part one\n  - part two\n---\n\n# Real Title\n\nBody.";
 
         // Act
@@ -764,7 +761,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatterNullTitle_FallsBackToFirstH1()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\ntitle:\ndescription: A doc\n---\n\n# Header Title\n\nBody.";
 
         // Act
@@ -784,7 +781,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithFrontmatterNoTitleAndNoH1_ReturnsEmptyTitle()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var content = "---\nauthor: Someone\n---\n\n## Only H2 Here\n\nBody content.";
 
         // Act
@@ -899,7 +896,7 @@ public sealed class DocumentParserTests
     public void ParseDetailed_WithNullContent_ReturnsSuccessWithEmptyCollections()
     {
         // Arrange
-        var sut = CreateParser();
+        var sut = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
 
         // Act
         var result = sut.ParseDetailed(null!);

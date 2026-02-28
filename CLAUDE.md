@@ -59,6 +59,50 @@ Package versions are centrally managed in `Directory.Packages.props`. Global bui
 - **Assertions: Use Shouldly only.** Do NOT use FluentAssertions. Use Shouldly's `ShouldBe()`, `ShouldNotBeNull()`, `ShouldContain()`, `ShouldThrow()`, etc.
 - These rules apply to all test projects — unit, integration, and E2E.
 
+## Test Isolation & Infrastructure
+
+- **Every test method must be completely self-contained.** All mocks, SUTs, configs, and test data must be created inline within the test method body. You must be able to understand any test by reading only that test method.
+- **No class-level fields** except `const` values (compile-time constants). No mocks, SUTs, config objects, test data arrays, or any other mutable/reference-type fields.
+- **No constructors** for test setup.
+- **No factory methods or helper methods.** No `CreateSut()`, no `SetupMocks()`, no `MakeTestData()`. These create single points of failure — if the factory has a bug, every test using it fails.
+- **No test base classes.** Do not inherit from `TestBase`, `AsyncTestBase`, or any custom base class.
+- **`IDisposable` test resources:** Use `try/finally` per test method. Create and clean up temp directories inline.
+- **`[Theory]` data:** Use xUnit's built-in `[InlineData]`, `[MemberData]`, or `[ClassData]` for parameterized tests. This is the only mechanism for sharing test data across test methods.
+
+## Integration & E2E Test Patterns
+
+- **No shared fixtures.** Do not use `IClassFixture<T>` or `ICollectionFixture<T>`. Each test creates its own `WebApplicationFactory<Program>` inline. The in-memory `TestServer` is cheap (~10-50ms, no TCP ports, no network).
+- **Per-test factory pattern:**
+  ```csharp
+  await using var factory = new WebApplicationFactory<Program>()
+      .WithWebHostBuilder(builder =>
+      {
+          builder.UseEnvironment("Testing");
+          builder.ConfigureTestServices(services =>
+          {
+              // Register mocks inline
+              services.AddSingleton(myMock.Object);
+              services.PostConfigure<ApiKeyAuthenticationOptions>(opts => { ... });
+          });
+      });
+  using var httpClient = factory.CreateClient();
+  ```
+- **MCP protocol tests must use `HttpClientTransport`.** Pass the factory's `HttpClient` to `HttpClientTransport` with `ownsHttpClient: false`. The factory owns the `HttpClient` lifecycle.
+  ```csharp
+  var transport = new HttpClientTransport(
+      new HttpClientTransportOptions
+      {
+          Endpoint = new Uri(httpClient.BaseAddress!, "/"),
+          AdditionalHeaders = new Dictionary<string, string> { ["X-API-Key"] = "test-key" },
+          TransportMode = HttpTransportMode.StreamableHttp
+      },
+      httpClient,
+      ownsHttpClient: false);
+  await using var mcpClient = await McpClient.CreateAsync(transport, options);
+  ```
+- **Disposal chain:** `McpClient` → `HttpClient` → `WebApplicationFactory` (use `await using` / `using`).
+- **Auth in tests:** Use `PostConfigure<ApiKeyAuthenticationOptions>` to inject test API keys. Set the key via `AdditionalHeaders` on `HttpClientTransportOptions` or `httpClient.DefaultRequestHeaders`.
+
 ## Commit Convention
 
 This repository uses [Conventional Commits](https://www.conventionalcommits.org/). PR titles and single-commit messages are validated by CI (`pr-title.yml`).
