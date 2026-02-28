@@ -4,11 +4,10 @@ namespace CompoundDocs.Tests.Unit.Services;
 
 public class GraphRagPipelineTests
 {
-    private readonly Mock<IGraphRagPipeline> _pipeline = new();
-
     [Fact]
     public async Task QueryAsync_ValidQuery_ReturnsResult()
     {
+        var pipeline = new Mock<IGraphRagPipeline>();
         var expected = new GraphRagResult
         {
             Answer = "Test answer",
@@ -27,10 +26,10 @@ public class GraphRagPipelineTests
             Confidence = 0.85
         };
 
-        _pipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        pipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var result = await _pipeline.Object.QueryAsync("test query");
+        var result = await pipeline.Object.QueryAsync("test query");
 
         result.Answer.ShouldBe("Test answer");
         result.Sources.Count().ShouldBe(1);
@@ -41,7 +40,8 @@ public class GraphRagPipelineTests
     [Fact]
     public async Task QueryAsync_WithOptions_PassesOptions()
     {
-        _pipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var pipeline = new Mock<IGraphRagPipeline>();
+        pipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult { Answer = "answer" });
 
         var options = new GraphRagOptions
@@ -53,9 +53,9 @@ public class GraphRagPipelineTests
             DocTypeFilter = "insight"
         };
 
-        await _pipeline.Object.QueryAsync("query", options);
+        await pipeline.Object.QueryAsync("query", options);
 
-        _pipeline.Verify(m => m.QueryAsync("query", options, It.IsAny<CancellationToken>()), Times.Once);
+        pipeline.Verify(m => m.QueryAsync("query", options, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

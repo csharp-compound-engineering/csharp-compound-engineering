@@ -3,46 +3,32 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CompoundDocs.Tests.Unit.GitSync;
 
-public sealed class GitSyncServiceTests : IDisposable
+public sealed class GitSyncServiceTests
 {
-    private readonly List<string> _tempDirs = [];
-    private readonly NullLogger<GitSyncService> _logger = NullLogger<GitSyncService>.Instance;
-
-    private string CreateTempDir()
-    {
-        var dir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(dir);
-        _tempDirs.Add(dir);
-        return dir;
-    }
-
-    public void Dispose()
-    {
-        foreach (var dir in _tempDirs)
-        {
-            if (Directory.Exists(dir))
-            {
-                Directory.Delete(dir, recursive: true);
-            }
-        }
-    }
-
     // --- Internal constructor tests ---
 
     [Fact]
     public async Task InternalConstructor_SetsBaseDirectory_ReadFileUsesIt()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var filePath = Path.Combine(tempDir, "test.txt");
-        await File.WriteAllTextAsync(filePath, "hello from internal ctor");
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var filePath = Path.Combine(tempDir, "test.txt");
+            await File.WriteAllTextAsync(filePath, "hello from internal ctor");
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act
-        var content = await sut.ReadFileContentAsync(tempDir, "test.txt");
+            // Act
+            var content = await sut.ReadFileContentAsync(tempDir, "test.txt");
 
-        // Assert
-        content.ShouldBe("hello from internal ctor");
+            // Assert
+            content.ShouldBe("hello from internal ctor");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     // --- Public constructor tests ---
@@ -50,29 +36,43 @@ public sealed class GitSyncServiceTests : IDisposable
     [Fact]
     public void PublicConstructor_WithExistingDirectory_DoesNotThrow()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var config = new GitSyncConfig { CloneBaseDirectory = tempDir };
-        var options = Microsoft.Extensions.Options.Options.Create(config);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var config = new GitSyncConfig { CloneBaseDirectory = tempDir };
+            var options = Microsoft.Extensions.Options.Options.Create(config);
 
-        // Act & Assert
-        Should.NotThrow(() => new GitSyncService(options, _logger));
+            // Act & Assert
+            Should.NotThrow(() => new GitSyncService(options, NullLogger<GitSyncService>.Instance));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public void PublicConstructor_WithNonExistingDirectory_CreatesDirectory()
     {
-        // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
-        _tempDirs.Add(tempDir); // register for cleanup even though it doesn't exist yet
-        var config = new GitSyncConfig { CloneBaseDirectory = tempDir };
-        var options = Microsoft.Extensions.Options.Options.Create(config);
+        try
+        {
+            // Arrange
+            var config = new GitSyncConfig { CloneBaseDirectory = tempDir };
+            var options = Microsoft.Extensions.Options.Options.Create(config);
 
-        // Act
-        _ = new GitSyncService(options, _logger);
+            // Act
+            _ = new GitSyncService(options, NullLogger<GitSyncService>.Instance);
 
-        // Assert
-        Directory.Exists(tempDir).ShouldBeTrue();
+            // Assert
+            Directory.Exists(tempDir).ShouldBeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     // --- ReadFileContentAsync tests ---
@@ -80,109 +80,165 @@ public sealed class GitSyncServiceTests : IDisposable
     [Fact]
     public async Task ReadFileContentAsync_ExistingFile_ReturnsContent()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var expectedContent = "test file content";
-        await File.WriteAllTextAsync(Path.Combine(tempDir, "readme.md"), expectedContent);
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var expectedContent = "test file content";
+            await File.WriteAllTextAsync(Path.Combine(tempDir, "readme.md"), expectedContent);
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act
-        var result = await sut.ReadFileContentAsync(tempDir, "readme.md");
+            // Act
+            var result = await sut.ReadFileContentAsync(tempDir, "readme.md");
 
-        // Assert
-        result.ShouldBe(expectedContent);
+            // Assert
+            result.ShouldBe(expectedContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_NonExistingFile_ThrowsFileNotFoundException()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act & Assert
-        await Should.ThrowAsync<FileNotFoundException>(
-            () => sut.ReadFileContentAsync(tempDir, "does-not-exist.txt"));
+            // Act & Assert
+            await Should.ThrowAsync<FileNotFoundException>(
+                () => sut.ReadFileContentAsync(tempDir, "does-not-exist.txt"));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_NestedPath_ReturnsContent()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var nestedDir = Path.Combine(tempDir, "sub", "folder");
-        Directory.CreateDirectory(nestedDir);
-        var expectedContent = "nested content";
-        await File.WriteAllTextAsync(Path.Combine(nestedDir, "deep.txt"), expectedContent);
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var nestedDir = Path.Combine(tempDir, "sub", "folder");
+            Directory.CreateDirectory(nestedDir);
+            var expectedContent = "nested content";
+            await File.WriteAllTextAsync(Path.Combine(nestedDir, "deep.txt"), expectedContent);
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act
-        var result = await sut.ReadFileContentAsync(tempDir, Path.Combine("sub", "folder", "deep.txt"));
+            // Act
+            var result = await sut.ReadFileContentAsync(tempDir, Path.Combine("sub", "folder", "deep.txt"));
 
-        // Assert
-        result.ShouldBe(expectedContent);
+            // Assert
+            result.ShouldBe(expectedContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_CancelledToken_ThrowsOperationCancelledException()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        await File.WriteAllTextAsync(Path.Combine(tempDir, "file.txt"), "content");
-        var sut = new GitSyncService(tempDir, _logger);
-        using var cts = new CancellationTokenSource();
-        cts.Cancel();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            await File.WriteAllTextAsync(Path.Combine(tempDir, "file.txt"), "content");
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
 
-        // Act & Assert
-        await Should.ThrowAsync<OperationCanceledException>(
-            () => sut.ReadFileContentAsync(tempDir, "file.txt", cts.Token));
+            // Act & Assert
+            await Should.ThrowAsync<OperationCanceledException>(
+                () => sut.ReadFileContentAsync(tempDir, "file.txt", cts.Token));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_EmptyFile_ReturnsEmptyString()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        await File.WriteAllTextAsync(Path.Combine(tempDir, "empty.txt"), string.Empty);
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            await File.WriteAllTextAsync(Path.Combine(tempDir, "empty.txt"), string.Empty);
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act
-        var result = await sut.ReadFileContentAsync(tempDir, "empty.txt");
+            // Act
+            var result = await sut.ReadFileContentAsync(tempDir, "empty.txt");
 
-        // Assert
-        result.ShouldBeEmpty();
+            // Assert
+            result.ShouldBeEmpty();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_FileWithUnicodeContent_ReturnsCorrectContent()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var unicodeContent = "Hello, Unicode chars here";
-        await File.WriteAllTextAsync(Path.Combine(tempDir, "unicode.txt"), unicodeContent);
-        var sut = new GitSyncService(tempDir, _logger);
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var unicodeContent = "Hello, Unicode chars here";
+            await File.WriteAllTextAsync(Path.Combine(tempDir, "unicode.txt"), unicodeContent);
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
 
-        // Act
-        var result = await sut.ReadFileContentAsync(tempDir, "unicode.txt");
+            // Act
+            var result = await sut.ReadFileContentAsync(tempDir, "unicode.txt");
 
-        // Assert
-        result.ShouldBe(unicodeContent);
+            // Assert
+            result.ShouldBe(unicodeContent);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public async Task ReadFileContentAsync_FileNotFoundException_ContainsRelativePath()
     {
-        // Arrange
-        var tempDir = CreateTempDir();
-        var sut = new GitSyncService(tempDir, _logger);
-        var relativePath = "missing-file.txt";
+        var tempDir = Path.Combine(Path.GetTempPath(), $"gitsync-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new GitSyncService(tempDir, NullLogger<GitSyncService>.Instance);
+            var relativePath = "missing-file.txt";
 
-        // Act
-        var ex = await Should.ThrowAsync<FileNotFoundException>(
-            () => sut.ReadFileContentAsync(tempDir, relativePath));
+            // Act
+            var ex = await Should.ThrowAsync<FileNotFoundException>(
+                () => sut.ReadFileContentAsync(tempDir, relativePath));
 
-        // Assert
-        ex.Message.ShouldContain(relativePath);
+            // Assert
+            ex.Message.ShouldContain(relativePath);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     // --- GitSyncConfig tests ---

@@ -13,23 +13,6 @@ namespace CompoundDocs.Tests.Unit.Bedrock;
 
 public sealed class BedrockLlmServiceTests
 {
-    private readonly Mock<IAmazonBedrockRuntime> _mockClient;
-    private readonly BedrockLlmService _sut;
-    private readonly BedrockConfig _config;
-
-    public BedrockLlmServiceTests()
-    {
-        _mockClient = new Mock<IAmazonBedrockRuntime>();
-        _config = new BedrockConfig
-        {
-            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
-            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
-            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
-        };
-        var logger = NullLogger<BedrockLlmService>.Instance;
-        _sut = new BedrockLlmService(_mockClient.Object, _config, logger, ResiliencePipeline.Empty);
-    }
-
     [Theory]
     [InlineData(ModelTier.Haiku, "anthropic.claude-haiku-4-5-v1:0")]
     [InlineData(ModelTier.Sonnet, "anthropic.claude-sonnet-4-5-v1:0")]
@@ -37,7 +20,16 @@ public sealed class BedrockLlmServiceTests
     public async Task GenerateAsync_SelectsCorrectModelPerTier(ModelTier tier, string expectedModelId)
     {
         // Arrange
-        _mockClient.Setup(c => c.ConverseAsync(
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        mockClient.Setup(c => c.ConverseAsync(
                 It.Is<ConverseRequest>(r => r.ModelId == expectedModelId),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
@@ -53,14 +45,14 @@ public sealed class BedrockLlmServiceTests
             });
 
         // Act
-        var result = await _sut.GenerateAsync(
+        var result = await sut.GenerateAsync(
             "system prompt",
             [new BedrockMessage("user", "hello")],
             tier);
 
         // Assert
         result.ShouldBe("test response");
-        _mockClient.Verify(c => c.ConverseAsync(
+        mockClient.Verify(c => c.ConverseAsync(
             It.Is<ConverseRequest>(r => r.ModelId == expectedModelId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -69,6 +61,15 @@ public sealed class BedrockLlmServiceTests
     public async Task ExtractEntitiesAsync_ReturnsStructuredEntities()
     {
         // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
         var entities = new[]
         {
             new { name = "React", type = "Framework", description = "UI library", aliases = new[] { "ReactJS" } },
@@ -76,7 +77,7 @@ public sealed class BedrockLlmServiceTests
         };
         var responseJson = JsonSerializer.Serialize(entities);
 
-        _mockClient.Setup(c => c.ConverseAsync(
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
@@ -92,7 +93,7 @@ public sealed class BedrockLlmServiceTests
             });
 
         // Act
-        var result = await _sut.ExtractEntitiesAsync("React and TypeScript are popular.");
+        var result = await sut.ExtractEntitiesAsync("React and TypeScript are popular.");
 
         // Assert
         result.ShouldNotBeNull();
@@ -106,7 +107,16 @@ public sealed class BedrockLlmServiceTests
     public async Task ExtractEntitiesAsync_ReturnsEmptyList_OnInvalidJson()
     {
         // Arrange
-        _mockClient.Setup(c => c.ConverseAsync(
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
@@ -122,7 +132,7 @@ public sealed class BedrockLlmServiceTests
             });
 
         // Act
-        var result = await _sut.ExtractEntitiesAsync("some text");
+        var result = await sut.ExtractEntitiesAsync("some text");
 
         // Assert
         result.ShouldNotBeNull();
@@ -132,22 +142,54 @@ public sealed class BedrockLlmServiceTests
     [Fact]
     public void GetModelId_ReturnsCorrectId_ForEachTier()
     {
-        _sut.GetModelId(ModelTier.Haiku).ShouldBe(_config.HaikuModelId);
-        _sut.GetModelId(ModelTier.Sonnet).ShouldBe(_config.SonnetModelId);
-        _sut.GetModelId(ModelTier.Opus).ShouldBe(_config.OpusModelId);
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        // Assert
+        sut.GetModelId(ModelTier.Haiku).ShouldBe(config.HaikuModelId);
+        sut.GetModelId(ModelTier.Sonnet).ShouldBe(config.SonnetModelId);
+        sut.GetModelId(ModelTier.Opus).ShouldBe(config.OpusModelId);
     }
 
     [Fact]
     public void GetModelId_InvalidTier_ThrowsArgumentOutOfRangeException()
     {
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        // Assert
         Should.Throw<ArgumentOutOfRangeException>(() =>
-            _sut.GetModelId((ModelTier)999));
+            sut.GetModelId((ModelTier)999));
     }
 
     [Fact]
     public async Task GenerateAsync_EmptyResponse_ReturnsEmptyString()
     {
-        _mockClient.Setup(c => c.ConverseAsync(
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
@@ -162,18 +204,30 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        var result = await _sut.GenerateAsync(
+        // Act
+        var result = await sut.GenerateAsync(
             "system prompt",
             [new BedrockMessage("user", "hello")]);
 
+        // Assert
         result.ShouldBe(string.Empty);
     }
 
     [Fact]
     public async Task ExtractEntitiesAsync_UsesHaikuTier()
     {
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
         ConverseRequest? capturedRequest = null;
-        _mockClient.Setup(c => c.ConverseAsync(
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .Callback<ConverseRequest, CancellationToken>((req, _) => capturedRequest = req)
@@ -189,10 +243,12 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        await _sut.ExtractEntitiesAsync("some text about React");
+        // Act
+        await sut.ExtractEntitiesAsync("some text about React");
 
+        // Assert
         capturedRequest.ShouldNotBeNull();
-        capturedRequest!.ModelId.ShouldBe(_config.HaikuModelId);
+        capturedRequest!.ModelId.ShouldBe(config.HaikuModelId);
 
         // Verify system prompt contains entity extraction instructions
         capturedRequest.System.ShouldNotBeNull();
@@ -220,8 +276,18 @@ public sealed class BedrockLlmServiceTests
     [Fact]
     public async Task GenerateAsync_WithAssistantMessage_SetsCorrectRole()
     {
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
         ConverseRequest? capturedRequest = null;
-        _mockClient.Setup(c => c.ConverseAsync(
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .Callback<ConverseRequest, CancellationToken>((req, _) => capturedRequest = req)
@@ -237,7 +303,8 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        await _sut.GenerateAsync(
+        // Act
+        await sut.GenerateAsync(
             "system",
             [
                 new BedrockMessage("user", "hi"),
@@ -245,6 +312,7 @@ public sealed class BedrockLlmServiceTests
                 new BedrockMessage("user", "how are you?")
             ]);
 
+        // Assert
         capturedRequest.ShouldNotBeNull();
         capturedRequest!.Messages.Count.ShouldBe(3);
         capturedRequest.Messages[0].Role.Value.ShouldBe("user");
@@ -255,8 +323,18 @@ public sealed class BedrockLlmServiceTests
     [Fact]
     public async Task GenerateAsync_SetsSystemPrompt()
     {
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
         ConverseRequest? capturedRequest = null;
-        _mockClient.Setup(c => c.ConverseAsync(
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .Callback<ConverseRequest, CancellationToken>((req, _) => capturedRequest = req)
@@ -272,10 +350,12 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        await _sut.GenerateAsync(
+        // Act
+        await sut.GenerateAsync(
             "You are a helpful assistant.",
             [new BedrockMessage("user", "hello")]);
 
+        // Assert
         capturedRequest.ShouldNotBeNull();
         capturedRequest!.System.Count.ShouldBe(1);
         capturedRequest.System[0].Text.ShouldBe("You are a helpful assistant.");
@@ -284,7 +364,17 @@ public sealed class BedrockLlmServiceTests
     [Fact]
     public async Task ExtractEntitiesAsync_NullJsonArray_ReturnsEmptyList()
     {
-        _mockClient.Setup(c => c.ConverseAsync(
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        mockClient.Setup(c => c.ConverseAsync(
                 It.IsAny<ConverseRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
@@ -299,8 +389,10 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        var result = await _sut.ExtractEntitiesAsync("some text");
+        // Act
+        var result = await sut.ExtractEntitiesAsync("some text");
 
+        // Assert
         result.ShouldNotBeNull();
         result.Count.ShouldBe(0);
     }
@@ -308,8 +400,18 @@ public sealed class BedrockLlmServiceTests
     [Fact]
     public async Task GenerateAsync_DefaultsToSonnetTier()
     {
-        _mockClient.Setup(c => c.ConverseAsync(
-                It.Is<ConverseRequest>(r => r.ModelId == _config.SonnetModelId),
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig
+        {
+            SonnetModelId = "anthropic.claude-sonnet-4-5-v1:0",
+            HaikuModelId = "anthropic.claude-haiku-4-5-v1:0",
+            OpusModelId = "anthropic.claude-opus-4-5-v1:0"
+        };
+        var sut = new BedrockLlmService(mockClient.Object, config, NullLogger<BedrockLlmService>.Instance, ResiliencePipeline.Empty);
+
+        mockClient.Setup(c => c.ConverseAsync(
+                It.Is<ConverseRequest>(r => r.ModelId == config.SonnetModelId),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ConverseResponse
             {
@@ -323,13 +425,15 @@ public sealed class BedrockLlmServiceTests
                 }
             });
 
-        var result = await _sut.GenerateAsync(
+        // Act
+        var result = await sut.GenerateAsync(
             "system",
             [new BedrockMessage("user", "hello")]);
 
+        // Assert
         result.ShouldBe("response");
-        _mockClient.Verify(c => c.ConverseAsync(
-            It.Is<ConverseRequest>(r => r.ModelId == _config.SonnetModelId),
+        mockClient.Verify(c => c.ConverseAsync(
+            It.Is<ConverseRequest>(r => r.ModelId == config.SonnetModelId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

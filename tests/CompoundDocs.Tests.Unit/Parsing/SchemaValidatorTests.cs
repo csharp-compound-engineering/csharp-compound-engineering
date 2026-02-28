@@ -11,23 +11,17 @@ public sealed class SchemaValidatorTests
         {"type":"object","properties":{"name":{"type":"string"},"age":{"type":"integer"}},"required":["name"]}
         """;
 
-    private readonly SchemaValidator _sut;
-
-    public SchemaValidatorTests()
-    {
-        _sut = new SchemaValidator();
-    }
-
     #region ValidateAsync Tests
 
     [Fact]
     public async Task ValidateAsync_ValidData_ReturnsIsValidTrue()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var data = new { name = "Alice", age = 30 };
 
         // Act
-        var result = await _sut.ValidateAsync(data, SimpleSchema);
+        var result = await sut.ValidateAsync(data, SimpleSchema);
 
         // Assert
         result.IsValid.ShouldBeTrue();
@@ -38,10 +32,11 @@ public sealed class SchemaValidatorTests
     public async Task ValidateAsync_InvalidData_ReturnsIsValidFalse()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var data = new { age = 30 }; // missing required "name"
 
         // Act
-        var result = await _sut.ValidateAsync(data, SimpleSchema);
+        var result = await sut.ValidateAsync(data, SimpleSchema);
 
         // Assert
         result.IsValid.ShouldBeFalse();
@@ -52,10 +47,11 @@ public sealed class SchemaValidatorTests
     public async Task ValidateAsync_InvalidData_ErrorsContainPathAndKind()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var data = new { age = 30 }; // missing required "name"
 
         // Act
-        var result = await _sut.ValidateAsync(data, SimpleSchema);
+        var result = await sut.ValidateAsync(data, SimpleSchema);
 
         // Assert
         result.Errors.ShouldNotBeEmpty();
@@ -73,10 +69,11 @@ public sealed class SchemaValidatorTests
     public async Task ValidateJsonAsync_ValidJson_ReturnsIsValidTrue()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var json = """{"name":"Bob","age":25}""";
 
         // Act
-        var result = await _sut.ValidateJsonAsync(json, SimpleSchema);
+        var result = await sut.ValidateJsonAsync(json, SimpleSchema);
 
         // Assert
         result.IsValid.ShouldBeTrue();
@@ -87,10 +84,11 @@ public sealed class SchemaValidatorTests
     public async Task ValidateJsonAsync_InvalidJson_ReturnsIsValidFalse()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var json = """{"age":25}"""; // missing required "name"
 
         // Act
-        var result = await _sut.ValidateJsonAsync(json, SimpleSchema);
+        var result = await sut.ValidateJsonAsync(json, SimpleSchema);
 
         // Assert
         result.IsValid.ShouldBeFalse();
@@ -101,11 +99,12 @@ public sealed class SchemaValidatorTests
     public async Task ValidateJsonAsync_MalformedJson_Throws()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var malformedJson = "this is not json at all {{{";
 
         // Act & Assert
         await Should.ThrowAsync<Exception>(
-            async () => await _sut.ValidateJsonAsync(malformedJson, SimpleSchema));
+            async () => await sut.ValidateJsonAsync(malformedJson, SimpleSchema));
     }
 
     #endregion
@@ -116,12 +115,13 @@ public sealed class SchemaValidatorTests
     public async Task ValidateAsync_CachesSchema_SecondCallUsesCached()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var data1 = new { name = "Alice", age = 30 };
         var data2 = new { name = "Bob", age = 40 };
 
         // Act - call twice with the same schema to exercise the cache path
-        var result1 = await _sut.ValidateAsync(data1, SimpleSchema);
-        var result2 = await _sut.ValidateAsync(data2, SimpleSchema);
+        var result1 = await sut.ValidateAsync(data1, SimpleSchema);
+        var result2 = await sut.ValidateAsync(data2, SimpleSchema);
 
         // Assert
         result1.IsValid.ShouldBeTrue();
@@ -132,6 +132,7 @@ public sealed class SchemaValidatorTests
     public async Task ValidateAsync_DifferentSchemas_ParsesBothSeparately()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var schemaA = """{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""";
         var schemaB = """{"type":"object","properties":{"title":{"type":"string"}},"required":["title"]}""";
 
@@ -139,8 +140,8 @@ public sealed class SchemaValidatorTests
         var dataB = new { title = "Document" };
 
         // Act
-        var resultA = await _sut.ValidateAsync(dataA, schemaA);
-        var resultB = await _sut.ValidateAsync(dataB, schemaB);
+        var resultA = await sut.ValidateAsync(dataA, schemaA);
+        var resultB = await sut.ValidateAsync(dataB, schemaB);
 
         // Assert
         resultA.IsValid.ShouldBeTrue();
@@ -155,13 +156,14 @@ public sealed class SchemaValidatorTests
     public async Task LoadSchemaAsync_ValidFile_ReturnsJsonSchema()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var tempFile = Path.GetTempFileName();
         try
         {
             await File.WriteAllTextAsync(tempFile, SimpleSchema);
 
             // Act
-            var schema = await _sut.LoadSchemaAsync(tempFile);
+            var schema = await sut.LoadSchemaAsync(tempFile);
 
             // Assert
             schema.ShouldNotBeNull();
@@ -176,11 +178,12 @@ public sealed class SchemaValidatorTests
     public async Task LoadSchemaAsync_MissingFile_ThrowsFileNotFoundException()
     {
         // Arrange
+        var sut = new SchemaValidator();
         var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), "missing.json");
 
         // Act & Assert
         await Should.ThrowAsync<IOException>(
-            async () => await _sut.LoadSchemaAsync(nonExistentPath));
+            async () => await sut.LoadSchemaAsync(nonExistentPath));
     }
 
     #endregion

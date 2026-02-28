@@ -9,17 +9,12 @@ namespace CompoundDocs.Tests.Integration.Bedrock;
 /// </summary>
 public class BedrockLlmMockTests
 {
-    private readonly Mock<IBedrockLlmService> _llmServiceMock;
-
-    public BedrockLlmMockTests()
-    {
-        _llmServiceMock = new Mock<IBedrockLlmService>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task ConverseApi_WithMockedBedrock_ReturnsResponse()
     {
         // Arrange
+        var llmServiceMock = new Mock<IBedrockLlmService>(MockBehavior.Strict);
+
         var systemPrompt = "You are a technical documentation assistant. Answer questions based on the provided context. Cite your sources.";
         var messages = new List<BedrockMessage>
         {
@@ -37,7 +32,7 @@ public class BedrockLlmMockTests
         IReadOnlyList<BedrockMessage>? capturedMessages = null;
         ModelTier? capturedTier = null;
 
-        _llmServiceMock
+        llmServiceMock
             .Setup(l => l.GenerateAsync(
                 It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<BedrockMessage>>(),
@@ -53,7 +48,7 @@ public class BedrockLlmMockTests
             .ReturnsAsync(expectedResponse)
             .Verifiable();
 
-        var service = _llmServiceMock.Object;
+        var service = llmServiceMock.Object;
 
         // Act
         var result = await service.GenerateAsync(systemPrompt, messages, tier);
@@ -72,7 +67,7 @@ public class BedrockLlmMockTests
         capturedMessages[0].Content.ShouldContain("dependency injection");
         capturedTier.ShouldBe(ModelTier.Sonnet);
 
-        _llmServiceMock.Verify(
+        llmServiceMock.Verify(
             l => l.GenerateAsync(
                 systemPrompt,
                 It.Is<IReadOnlyList<BedrockMessage>>(m => m.Count == 1 && m[0].Role == "user"),

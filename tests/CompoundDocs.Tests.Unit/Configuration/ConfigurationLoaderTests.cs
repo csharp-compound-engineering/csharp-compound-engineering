@@ -6,70 +6,89 @@ namespace CompoundDocs.Tests.Unit.Configuration;
 /// <summary>
 /// Unit tests for ConfigurationLoader.
 /// </summary>
-public sealed class ConfigurationLoaderTests : IDisposable
+public sealed class ConfigurationLoaderTests
 {
-    private readonly ConfigurationLoader _sut;
-    private readonly string _tempDir;
-    private bool _disposed;
-
-    public ConfigurationLoaderTests()
-    {
-        _sut = new ConfigurationLoader();
-        _tempDir = Path.Combine(Path.GetTempPath(), $"config-loader-tests-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-    }
-
     #region LoadGlobalConfig Tests
 
     [Fact]
     public void LoadGlobalConfig_NoOverridePath_ReturnsDefaultConfig()
     {
-        // Arrange - use a temp dir that has no config file
-        var configDir = Path.Combine(_tempDir, "no-override-global");
-        Directory.CreateDirectory(configDir);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange - use a temp dir that has no config file
+            var sut = new ConfigurationLoader();
+            var configDir = Path.Combine(tempDir, "no-override-global");
+            Directory.CreateDirectory(configDir);
 
-        // Act
-        var result = _sut.LoadGlobalConfig(configDir);
+            // Act
+            var result = sut.LoadGlobalConfig(configDir);
 
-        // Assert
-        result.ShouldNotBeNull();
+            // Assert
+            result.ShouldNotBeNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadGlobalConfig_WithOverridePath_SetsConfigDirectory()
     {
-        // Arrange
-        var overrideDir = Path.Combine(_tempDir, "override-sets-dir");
-        Directory.CreateDirectory(overrideDir);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var overrideDir = Path.Combine(tempDir, "override-sets-dir");
+            Directory.CreateDirectory(overrideDir);
 
-        // Act
-        var result = _sut.LoadGlobalConfig(overrideDir);
+            // Act
+            var result = sut.LoadGlobalConfig(overrideDir);
 
-        // Assert
-        result.ConfigDirectory.ShouldBe(overrideDir);
+            // Assert
+            result.ConfigDirectory.ShouldBe(overrideDir);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadGlobalConfig_WithExistingConfigFile_LoadsConfiguration()
     {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "existing-global");
-        Directory.CreateDirectory(configDir);
-
-        var config = new GlobalConfig();
-
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "global-config.json"), json);
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var configDir = Path.Combine(tempDir, "existing-global");
+            Directory.CreateDirectory(configDir);
 
-        // Act
-        var result = _sut.LoadGlobalConfig(configDir);
+            var config = new GlobalConfig();
 
-        // Assert
-        result.ShouldNotBeNull();
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            File.WriteAllText(Path.Combine(configDir, "global-config.json"), json);
+
+            // Act
+            var result = sut.LoadGlobalConfig(configDir);
+
+            // Assert
+            result.ShouldNotBeNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     #endregion
@@ -79,100 +98,150 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void LoadProjectConfig_WithNoConfigFile_ReturnsDefaultConfig()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "empty-project");
-        Directory.CreateDirectory(projectPath);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "empty-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
+            // Act
+            var result = sut.LoadProjectConfig(projectPath);
 
-        // Assert
-        result.ShouldNotBeNull();
-        result.ProjectName.ShouldBe("empty-project");
+            // Assert
+            result.ShouldNotBeNull();
+            result.ProjectName.ShouldBe("empty-project");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadProjectConfig_WithExistingConfigFile_LoadsConfiguration()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "existing-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
-
-        var config = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "custom-project-name",
-            Rag = new RagSettings
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "existing-project");
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.CreateDirectory(configDir);
+
+            var config = new ProjectConfig
             {
-                MaxResults = 20,
-                LinkDepth = 10,
-                SimilarityThreshold = 0.8f
-            }
-        };
+                ProjectName = "custom-project-name",
+                Rag = new RagSettings
+                {
+                    MaxResults = 20,
+                    LinkDepth = 10,
+                    SimilarityThreshold = 0.8f
+                }
+            };
 
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            File.WriteAllText(Path.Combine(configDir, "config.json"), json);
+
+            // Act
+            var result = sut.LoadProjectConfig(projectPath);
+
+            // Assert
+            result.ShouldNotBeNull();
+            result.ProjectName.ShouldBe("custom-project-name");
+            result.Rag.MaxResults.ShouldBe(20);
+            result.Rag.LinkDepth.ShouldBe(10);
+        }
+        finally
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "config.json"), json);
-
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.ProjectName.ShouldBe("custom-project-name");
-        result.Rag.MaxResults.ShouldBe(20);
-        result.Rag.LinkDepth.ShouldBe(10);
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadProjectConfig_WithInvalidJson_ThrowsJsonException()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "invalid-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "invalid-project");
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.CreateDirectory(configDir);
 
-        File.WriteAllText(Path.Combine(configDir, "config.json"), "invalid json content");
+            File.WriteAllText(Path.Combine(configDir, "config.json"), "invalid json content");
 
-        // Act & Assert
-        // The ConfigurationLoader does not currently handle invalid JSON gracefully
-        // and throws a JsonException. This documents the current behavior.
-        Should.Throw<JsonException>(() => _sut.LoadProjectConfig(projectPath));
+            // Act & Assert
+            // The ConfigurationLoader does not currently handle invalid JSON gracefully
+            // and throws a JsonException. This documents the current behavior.
+            Should.Throw<JsonException>(() => sut.LoadProjectConfig(projectPath));
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadProjectConfig_WithNullDeserializeResult_ReturnsDefault()
     {
-        // Arrange - JSON literal "null" deserializes to null
-        var projectPath = Path.Combine(_tempDir, "null-deser-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange - JSON literal "null" deserializes to null
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "null-deser-project");
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.CreateDirectory(configDir);
 
-        File.WriteAllText(Path.Combine(configDir, "config.json"), "null");
+            File.WriteAllText(Path.Combine(configDir, "config.json"), "null");
 
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
+            // Act
+            var result = sut.LoadProjectConfig(projectPath);
 
-        // Assert - should fall back to default
-        result.ShouldNotBeNull();
-        result.ProjectName.ShouldBe("null-deser-project");
+            // Assert - should fall back to default
+            result.ShouldNotBeNull();
+            result.ProjectName.ShouldBe("null-deser-project");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void LoadProjectConfig_DefaultProjectName_DerivedFromDirectoryName()
     {
-        // Arrange - test that CreateDefaultProjectConfig sets ProjectName from path
-        var projectPath = Path.Combine(_tempDir, "my-awesome-project");
-        Directory.CreateDirectory(projectPath);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange - test that CreateDefaultProjectConfig sets ProjectName from path
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "my-awesome-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
+            // Act
+            var result = sut.LoadProjectConfig(projectPath);
 
-        // Assert
-        result.ProjectName.ShouldBe("my-awesome-project");
+            // Assert
+            result.ProjectName.ShouldBe("my-awesome-project");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     #endregion
@@ -182,103 +251,143 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void SaveProjectConfig_CreatesConfigFile()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "save-project");
-        Directory.CreateDirectory(projectPath);
-
-        var config = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "saved-project",
-            Rag = new RagSettings { MaxResults = 50 }
-        };
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "save-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        _sut.SaveProjectConfig(projectPath, config);
+            var config = new ProjectConfig
+            {
+                ProjectName = "saved-project",
+                Rag = new RagSettings { MaxResults = 50 }
+            };
 
-        // Assert
-        var configFile = Path.Combine(projectPath, ".csharp-compounding-docs", "config.json");
-        File.Exists(configFile).ShouldBeTrue();
+            // Act
+            sut.SaveProjectConfig(projectPath, config);
 
-        var loadedConfig = _sut.LoadProjectConfig(projectPath);
-        loadedConfig.ProjectName.ShouldBe("saved-project");
-        loadedConfig.Rag.MaxResults.ShouldBe(50);
+            // Assert
+            var configFile = Path.Combine(projectPath, ".csharp-compounding-docs", "config.json");
+            File.Exists(configFile).ShouldBeTrue();
+
+            var loadedConfig = sut.LoadProjectConfig(projectPath);
+            loadedConfig.ProjectName.ShouldBe("saved-project");
+            loadedConfig.Rag.MaxResults.ShouldBe(50);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void SaveProjectConfig_OverwritesExistingConfig()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "overwrite-project");
-        Directory.CreateDirectory(projectPath);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "overwrite-project");
+            Directory.CreateDirectory(projectPath);
 
-        var initialConfig = new ProjectConfig { ProjectName = "initial" };
-        _sut.SaveProjectConfig(projectPath, initialConfig);
+            var initialConfig = new ProjectConfig { ProjectName = "initial" };
+            sut.SaveProjectConfig(projectPath, initialConfig);
 
-        var updatedConfig = new ProjectConfig { ProjectName = "updated" };
+            var updatedConfig = new ProjectConfig { ProjectName = "updated" };
 
-        // Act
-        _sut.SaveProjectConfig(projectPath, updatedConfig);
+            // Act
+            sut.SaveProjectConfig(projectPath, updatedConfig);
 
-        // Assert
-        var loadedConfig = _sut.LoadProjectConfig(projectPath);
-        loadedConfig.ProjectName.ShouldBe("updated");
+            // Assert
+            var loadedConfig = sut.LoadProjectConfig(projectPath);
+            loadedConfig.ProjectName.ShouldBe("updated");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void SaveProjectConfig_CreatesConfigDirectory_WhenNotExists()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "new-config-dir");
-        Directory.CreateDirectory(projectPath);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "new-config-dir");
+            Directory.CreateDirectory(projectPath);
 
-        var config = new ProjectConfig { ProjectName = "new-project" };
+            var config = new ProjectConfig { ProjectName = "new-project" };
 
-        // Act
-        _sut.SaveProjectConfig(projectPath, config);
+            // Act
+            sut.SaveProjectConfig(projectPath, config);
 
-        // Assert
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.Exists(configDir).ShouldBeTrue();
+            // Assert
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.Exists(configDir).ShouldBeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void SaveProjectConfig_RoundTrips_WithLoadProjectConfig()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "roundtrip-project");
-        Directory.CreateDirectory(projectPath);
-
-        var config = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "roundtrip-test",
-            Rag = new RagSettings
-            {
-                ChunkSize = 1500,
-                ChunkOverlap = 300,
-                MaxResults = 25,
-                SimilarityThreshold = 0.85f,
-                LinkDepth = 4
-            },
-            LinkResolution = new LinkResolutionSettings
-            {
-                MaxDepth = 5,
-                MaxLinkedDocs = 10
-            }
-        };
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "roundtrip-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        _sut.SaveProjectConfig(projectPath, config);
-        var loaded = _sut.LoadProjectConfig(projectPath);
+            var config = new ProjectConfig
+            {
+                ProjectName = "roundtrip-test",
+                Rag = new RagSettings
+                {
+                    ChunkSize = 1500,
+                    ChunkOverlap = 300,
+                    MaxResults = 25,
+                    SimilarityThreshold = 0.85f,
+                    LinkDepth = 4
+                },
+                LinkResolution = new LinkResolutionSettings
+                {
+                    MaxDepth = 5,
+                    MaxLinkedDocs = 10
+                }
+            };
 
-        // Assert
-        loaded.ProjectName.ShouldBe(config.ProjectName);
-        loaded.Rag.ChunkSize.ShouldBe(config.Rag.ChunkSize);
-        loaded.Rag.ChunkOverlap.ShouldBe(config.Rag.ChunkOverlap);
-        loaded.Rag.MaxResults.ShouldBe(config.Rag.MaxResults);
-        loaded.Rag.SimilarityThreshold.ShouldBe(config.Rag.SimilarityThreshold);
-        loaded.Rag.LinkDepth.ShouldBe(config.Rag.LinkDepth);
-        loaded.LinkResolution.MaxDepth.ShouldBe(config.LinkResolution.MaxDepth);
-        loaded.LinkResolution.MaxLinkedDocs.ShouldBe(config.LinkResolution.MaxLinkedDocs);
+            // Act
+            sut.SaveProjectConfig(projectPath, config);
+            var loaded = sut.LoadProjectConfig(projectPath);
+
+            // Assert
+            loaded.ProjectName.ShouldBe(config.ProjectName);
+            loaded.Rag.ChunkSize.ShouldBe(config.Rag.ChunkSize);
+            loaded.Rag.ChunkOverlap.ShouldBe(config.Rag.ChunkOverlap);
+            loaded.Rag.MaxResults.ShouldBe(config.Rag.MaxResults);
+            loaded.Rag.SimilarityThreshold.ShouldBe(config.Rag.SimilarityThreshold);
+            loaded.Rag.LinkDepth.ShouldBe(config.Rag.LinkDepth);
+            loaded.LinkResolution.MaxDepth.ShouldBe(config.LinkResolution.MaxDepth);
+            loaded.LinkResolution.MaxLinkedDocs.ShouldBe(config.LinkResolution.MaxLinkedDocs);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     #endregion
@@ -288,68 +397,98 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void EnsureProjectConfigDirectory_CreatesDirectoryAndDefaultConfig()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "ensure-dir-project");
-        Directory.CreateDirectory(projectPath);
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "ensure-dir-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        _sut.EnsureProjectConfigDirectory(projectPath);
+            // Act
+            sut.EnsureProjectConfigDirectory(projectPath);
 
-        // Assert
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.Exists(configDir).ShouldBeTrue();
+            // Assert
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.Exists(configDir).ShouldBeTrue();
 
-        var configFile = Path.Combine(configDir, "config.json");
-        File.Exists(configFile).ShouldBeTrue();
+            var configFile = Path.Combine(configDir, "config.json");
+            File.Exists(configFile).ShouldBeTrue();
 
-        var loaded = _sut.LoadProjectConfig(projectPath);
-        loaded.ProjectName.ShouldBe("ensure-dir-project");
+            var loaded = sut.LoadProjectConfig(projectPath);
+            loaded.ProjectName.ShouldBe("ensure-dir-project");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void EnsureProjectConfigDirectory_WithExistingConfig_DoesNotOverwrite()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "no-overwrite-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
-
-        var originalConfig = new ProjectConfig { ProjectName = "original-name" };
-        var json = JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "config.json"), json);
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "no-overwrite-project");
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.CreateDirectory(configDir);
 
-        // Act
-        _sut.EnsureProjectConfigDirectory(projectPath);
+            var originalConfig = new ProjectConfig { ProjectName = "original-name" };
+            var json = JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            File.WriteAllText(Path.Combine(configDir, "config.json"), json);
 
-        // Assert
-        var loaded = _sut.LoadProjectConfig(projectPath);
-        loaded.ProjectName.ShouldBe("original-name");
+            // Act
+            sut.EnsureProjectConfigDirectory(projectPath);
+
+            // Assert
+            var loaded = sut.LoadProjectConfig(projectPath);
+            loaded.ProjectName.ShouldBe("original-name");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void EnsureProjectConfigDirectory_WithProvidedConfig_UsesProvidedConfig()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "provided-config-project");
-        Directory.CreateDirectory(projectPath);
-
-        var providedConfig = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "provided-name",
-            Rag = new RagSettings { MaxResults = 25 }
-        };
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "provided-config-project");
+            Directory.CreateDirectory(projectPath);
 
-        // Act
-        _sut.EnsureProjectConfigDirectory(projectPath, providedConfig);
+            var providedConfig = new ProjectConfig
+            {
+                ProjectName = "provided-name",
+                Rag = new RagSettings { MaxResults = 25 }
+            };
 
-        // Assert
-        var loaded = _sut.LoadProjectConfig(projectPath);
-        loaded.ProjectName.ShouldBe("provided-name");
-        loaded.Rag.MaxResults.ShouldBe(25);
+            // Act
+            sut.EnsureProjectConfigDirectory(projectPath, providedConfig);
+
+            // Assert
+            var loaded = sut.LoadProjectConfig(projectPath);
+            loaded.ProjectName.ShouldBe("provided-name");
+            loaded.Rag.MaxResults.ShouldBe(25);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     #endregion
@@ -359,47 +498,67 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void EnsureGlobalConfigDirectory_CreatesGlobalConfigFile()
     {
-        // Arrange
-        var configDir = Path.Combine(_tempDir, "ensure-global-dir");
-        var config = new GlobalConfig { ConfigDirectory = configDir };
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var configDir = Path.Combine(tempDir, "ensure-global-dir");
+            var config = new GlobalConfig { ConfigDirectory = configDir };
 
-        // Act
-        _sut.EnsureGlobalConfigDirectory(config);
+            // Act
+            sut.EnsureGlobalConfigDirectory(config);
 
-        // Assert
-        Directory.Exists(configDir).ShouldBeTrue();
-        var globalConfigFile = Path.Combine(configDir, "global-config.json");
-        File.Exists(globalConfigFile).ShouldBeTrue();
+            // Assert
+            Directory.Exists(configDir).ShouldBeTrue();
+            var globalConfigFile = Path.Combine(configDir, "global-config.json");
+            File.Exists(globalConfigFile).ShouldBeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void EnsureGlobalConfigDirectory_DoesNotOverwriteExistingConfig()
     {
-        // Arrange - create a config file with custom values first
-        var configDir = Path.Combine(_tempDir, "no-overwrite-global");
-        Directory.CreateDirectory(configDir);
-
-        var originalConfig = new GlobalConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ConfigDirectory = configDir
-        };
-        var json = JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "global-config.json"), json);
+            // Arrange - create a config file with custom values first
+            var sut = new ConfigurationLoader();
+            var configDir = Path.Combine(tempDir, "no-overwrite-global");
+            Directory.CreateDirectory(configDir);
 
-        // Act - call EnsureGlobalConfigDirectory with different config
-        var newConfig = new GlobalConfig
-        {
-            ConfigDirectory = configDir
-        };
-        _sut.EnsureGlobalConfigDirectory(newConfig);
+            var originalConfig = new GlobalConfig
+            {
+                ConfigDirectory = configDir
+            };
+            var json = JsonSerializer.Serialize(originalConfig, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            File.WriteAllText(Path.Combine(configDir, "global-config.json"), json);
 
-        // Assert - original config should be preserved
-        var loaded = _sut.LoadGlobalConfig(configDir);
-        loaded.ShouldNotBeNull();
+            // Act - call EnsureGlobalConfigDirectory with different config
+            var newConfig = new GlobalConfig
+            {
+                ConfigDirectory = configDir
+            };
+            sut.EnsureGlobalConfigDirectory(newConfig);
+
+            // Assert - original config should be preserved
+            var loaded = sut.LoadGlobalConfig(configDir);
+            loaded.ShouldNotBeNull();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     #endregion
@@ -409,60 +568,80 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void LoadProjectConfig_WithRagSettings_LoadsDefaultValues()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "rag-default-project");
-        var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
-        Directory.CreateDirectory(configDir);
-
-        var config = new ProjectConfig { ProjectName = "rag-test" };
-        var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        File.WriteAllText(Path.Combine(configDir, "config.json"), json);
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "rag-default-project");
+            var configDir = Path.Combine(projectPath, ".csharp-compounding-docs");
+            Directory.CreateDirectory(configDir);
 
-        // Act
-        var result = _sut.LoadProjectConfig(projectPath);
+            var config = new ProjectConfig { ProjectName = "rag-test" };
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            });
+            File.WriteAllText(Path.Combine(configDir, "config.json"), json);
 
-        // Assert
-        result.Rag.ChunkSize.ShouldBe(1000);
-        result.Rag.ChunkOverlap.ShouldBe(200);
-        result.Rag.MaxResults.ShouldBe(10);
-        result.Rag.SimilarityThreshold.ShouldBe(0.7f);
-        result.Rag.LinkDepth.ShouldBe(2);
+            // Act
+            var result = sut.LoadProjectConfig(projectPath);
+
+            // Assert
+            result.Rag.ChunkSize.ShouldBe(1000);
+            result.Rag.ChunkOverlap.ShouldBe(200);
+            result.Rag.MaxResults.ShouldBe(10);
+            result.Rag.SimilarityThreshold.ShouldBe(0.7f);
+            result.Rag.LinkDepth.ShouldBe(2);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
     public void SaveProjectConfig_WithCustomRagSettings_PreservesAllValues()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "custom-rag-project");
-        Directory.CreateDirectory(projectPath);
-
-        var config = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "custom-rag-test",
-            Rag = new RagSettings
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "custom-rag-project");
+            Directory.CreateDirectory(projectPath);
+
+            var config = new ProjectConfig
             {
-                ChunkSize = 2000,
-                ChunkOverlap = 400,
-                MaxResults = 20,
-                SimilarityThreshold = 0.8f,
-                LinkDepth = 3
-            }
-        };
+                ProjectName = "custom-rag-test",
+                Rag = new RagSettings
+                {
+                    ChunkSize = 2000,
+                    ChunkOverlap = 400,
+                    MaxResults = 20,
+                    SimilarityThreshold = 0.8f,
+                    LinkDepth = 3
+                }
+            };
 
-        // Act
-        _sut.SaveProjectConfig(projectPath, config);
+            // Act
+            sut.SaveProjectConfig(projectPath, config);
 
-        // Assert
-        var loaded = _sut.LoadProjectConfig(projectPath);
-        loaded.Rag.ChunkSize.ShouldBe(2000);
-        loaded.Rag.ChunkOverlap.ShouldBe(400);
-        loaded.Rag.MaxResults.ShouldBe(20);
-        loaded.Rag.SimilarityThreshold.ShouldBe(0.8f);
-        loaded.Rag.LinkDepth.ShouldBe(3);
+            // Assert
+            var loaded = sut.LoadProjectConfig(projectPath);
+            loaded.Rag.ChunkSize.ShouldBe(2000);
+            loaded.Rag.ChunkOverlap.ShouldBe(400);
+            loaded.Rag.MaxResults.ShouldBe(20);
+            loaded.Rag.SimilarityThreshold.ShouldBe(0.8f);
+            loaded.Rag.LinkDepth.ShouldBe(3);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+        }
     }
 
     [Fact]
@@ -499,60 +678,46 @@ public sealed class ConfigurationLoaderTests : IDisposable
     [Fact]
     public void FullConfiguration_LoadAndSave_RoundTrip()
     {
-        // Arrange
-        var projectPath = Path.Combine(_tempDir, "full-config-project");
-        Directory.CreateDirectory(projectPath);
-
-        var originalConfig = new ProjectConfig
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        try
         {
-            ProjectName = "integration-test",
-            Rag = new RagSettings
+            // Arrange
+            var sut = new ConfigurationLoader();
+            var projectPath = Path.Combine(tempDir, "full-config-project");
+            Directory.CreateDirectory(projectPath);
+
+            var originalConfig = new ProjectConfig
             {
-                ChunkSize = 1500,
-                ChunkOverlap = 300,
-                MaxResults = 15,
-                SimilarityThreshold = 0.75f,
-                LinkDepth = 3
-            },
-            LinkResolution = new LinkResolutionSettings
-            {
-                MaxDepth = 3,
-                MaxLinkedDocs = 8
-            }
-        };
-
-        // Act
-        _sut.SaveProjectConfig(projectPath, originalConfig);
-        var loadedConfig = _sut.LoadProjectConfig(projectPath);
-
-        // Assert
-        loadedConfig.ProjectName.ShouldBe("integration-test");
-        loadedConfig.Rag.ChunkSize.ShouldBe(1500);
-        loadedConfig.Rag.MaxResults.ShouldBe(15);
-        loadedConfig.LinkResolution.MaxDepth.ShouldBe(3);
-    }
-
-    #endregion
-
-    #region Cleanup
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            try
-            {
-                if (Directory.Exists(_tempDir))
+                ProjectName = "integration-test",
+                Rag = new RagSettings
                 {
-                    Directory.Delete(_tempDir, recursive: true);
+                    ChunkSize = 1500,
+                    ChunkOverlap = 300,
+                    MaxResults = 15,
+                    SimilarityThreshold = 0.75f,
+                    LinkDepth = 3
+                },
+                LinkResolution = new LinkResolutionSettings
+                {
+                    MaxDepth = 3,
+                    MaxLinkedDocs = 8
                 }
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
+            };
 
-            _disposed = true;
+            // Act
+            sut.SaveProjectConfig(projectPath, originalConfig);
+            var loadedConfig = sut.LoadProjectConfig(projectPath);
+
+            // Assert
+            loadedConfig.ProjectName.ShouldBe("integration-test");
+            loadedConfig.Rag.ChunkSize.ShouldBe(1500);
+            loadedConfig.Rag.MaxResults.ShouldBe(15);
+            loadedConfig.LinkResolution.MaxDepth.ShouldBe(3);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
         }
     }
 

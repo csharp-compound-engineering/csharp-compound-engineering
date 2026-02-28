@@ -13,31 +13,21 @@ namespace CompoundDocs.Tests.Unit.Bedrock;
 
 public sealed class BedrockEmbeddingServiceTests
 {
-    private readonly Mock<IAmazonBedrockRuntime> _mockClient;
-    private readonly BedrockEmbeddingService _sut;
-
-    public BedrockEmbeddingServiceTests()
-    {
-        _mockClient = new Mock<IAmazonBedrockRuntime>();
-        var config = new BedrockConfig
-        {
-            EmbeddingModelId = "amazon.titan-embed-text-v2:0"
-        };
-        var logger = NullLogger<BedrockEmbeddingService>.Instance;
-        _sut = new BedrockEmbeddingService(_mockClient.Object, config, logger, ResiliencePipeline.Empty);
-    }
-
     [Fact]
     public async Task GenerateEmbeddingAsync_Returns1024DimensionArray()
     {
         // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig { EmbeddingModelId = "amazon.titan-embed-text-v2:0" };
+        var sut = new BedrockEmbeddingService(mockClient.Object, config, NullLogger<BedrockEmbeddingService>.Instance, ResiliencePipeline.Empty);
+
         var embedding = new float[1024];
         for (var i = 0; i < 1024; i++) embedding[i] = i * 0.001f;
 
         var responseBody = JsonSerializer.Serialize(new { embedding });
         var responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseBody));
 
-        _mockClient.Setup(c => c.InvokeModelAsync(
+        mockClient.Setup(c => c.InvokeModelAsync(
                 It.Is<InvokeModelRequest>(r => r.ModelId == "amazon.titan-embed-text-v2:0"),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new InvokeModelResponse
@@ -47,7 +37,7 @@ public sealed class BedrockEmbeddingServiceTests
             });
 
         // Act
-        var result = await _sut.GenerateEmbeddingAsync("test text");
+        var result = await sut.GenerateEmbeddingAsync("test text");
 
         // Assert
         result.ShouldNotBeNull();
@@ -58,12 +48,16 @@ public sealed class BedrockEmbeddingServiceTests
     public async Task GenerateEmbeddingsAsync_ProcessesBatch()
     {
         // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig { EmbeddingModelId = "amazon.titan-embed-text-v2:0" };
+        var sut = new BedrockEmbeddingService(mockClient.Object, config, NullLogger<BedrockEmbeddingService>.Instance, ResiliencePipeline.Empty);
+
         var embedding = new float[1024];
         for (var i = 0; i < 1024; i++) embedding[i] = 0.5f;
 
         var responseBody = JsonSerializer.Serialize(new { embedding });
 
-        _mockClient.Setup(c => c.InvokeModelAsync(
+        mockClient.Setup(c => c.InvokeModelAsync(
                 It.IsAny<InvokeModelRequest>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(() => new InvokeModelResponse
@@ -75,7 +69,7 @@ public sealed class BedrockEmbeddingServiceTests
         var texts = new[] { "text1", "text2", "text3" };
 
         // Act
-        var results = await _sut.GenerateEmbeddingsAsync(texts);
+        var results = await sut.GenerateEmbeddingsAsync(texts);
 
         // Assert
         results.ShouldNotBeNull();
@@ -87,12 +81,16 @@ public sealed class BedrockEmbeddingServiceTests
     public async Task GenerateEmbeddingAsync_SendsCorrectRequestBody()
     {
         // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig { EmbeddingModelId = "amazon.titan-embed-text-v2:0" };
+        var sut = new BedrockEmbeddingService(mockClient.Object, config, NullLogger<BedrockEmbeddingService>.Instance, ResiliencePipeline.Empty);
+
         InvokeModelRequest? capturedRequest = null;
         var embedding = new float[1024];
 
         var responseBody = JsonSerializer.Serialize(new { embedding });
 
-        _mockClient.Setup(c => c.InvokeModelAsync(
+        mockClient.Setup(c => c.InvokeModelAsync(
                 It.IsAny<InvokeModelRequest>(),
                 It.IsAny<CancellationToken>()))
             .Callback<InvokeModelRequest, CancellationToken>((req, _) => capturedRequest = req)
@@ -103,7 +101,7 @@ public sealed class BedrockEmbeddingServiceTests
             });
 
         // Act
-        await _sut.GenerateEmbeddingAsync("test input text");
+        await sut.GenerateEmbeddingAsync("test input text");
 
         // Assert
         capturedRequest.ShouldNotBeNull();
@@ -124,11 +122,18 @@ public sealed class BedrockEmbeddingServiceTests
     [Fact]
     public async Task GenerateEmbeddingsAsync_EmptyCollection_ReturnsEmptyList()
     {
-        var results = await _sut.GenerateEmbeddingsAsync(Array.Empty<string>());
+        // Arrange
+        var mockClient = new Mock<IAmazonBedrockRuntime>();
+        var config = new BedrockConfig { EmbeddingModelId = "amazon.titan-embed-text-v2:0" };
+        var sut = new BedrockEmbeddingService(mockClient.Object, config, NullLogger<BedrockEmbeddingService>.Instance, ResiliencePipeline.Empty);
 
+        // Act
+        var results = await sut.GenerateEmbeddingsAsync(Array.Empty<string>());
+
+        // Assert
         results.ShouldNotBeNull();
         results.Count.ShouldBe(0);
-        _mockClient.Verify(c => c.InvokeModelAsync(
+        mockClient.Verify(c => c.InvokeModelAsync(
             It.IsAny<InvokeModelRequest>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }

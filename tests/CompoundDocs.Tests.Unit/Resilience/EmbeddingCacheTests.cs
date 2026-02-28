@@ -3,20 +3,12 @@ using CompoundDocs.McpServer.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 
 namespace CompoundDocs.Tests.Unit.Resilience;
 
 public sealed class EmbeddingCacheTests
 {
-    private static readonly ReadOnlyMemory<float> SampleEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
-
-    private static IOptions<EmbeddingCacheOptions> CreateOptions(Action<EmbeddingCacheOptions>? configure = null)
-    {
-        var options = new EmbeddingCacheOptions();
-        configure?.Invoke(options);
-        return Microsoft.Extensions.Options.Options.Create(options);
-    }
-
     #region Constructor Tests
 
     [Fact]
@@ -29,14 +21,17 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Constructor_NullLogger_ThrowsArgumentNullException()
     {
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+
         Should.Throw<ArgumentNullException>(() =>
-            new EmbeddingCache(CreateOptions(), null!));
+            new EmbeddingCache(options, null!));
     }
 
     [Fact]
     public void Constructor_ValidArguments_CreatesInstance()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         cache.ShouldNotBeNull();
         cache.Count.ShouldBe(0);
@@ -49,7 +44,8 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void IsEnabled_DefaultOptions_ReturnsTrue()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         cache.IsEnabled.ShouldBeTrue();
     }
@@ -57,9 +53,9 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void IsEnabled_DisabledOptions_ReturnsFalse()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.Enabled = false),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { Enabled = false };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         cache.IsEnabled.ShouldBeFalse();
     }
@@ -71,22 +67,24 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_CacheDisabled_ReturnsFalse()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.Enabled = false),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { Enabled = false };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("test content", SampleEmbedding); // no-op when disabled
+        cache.Set("test content", embedding); // no-op when disabled
 
-        var result = cache.TryGet("test content", out var embedding);
+        var result = cache.TryGet("test content", out var retrieved);
 
         result.ShouldBeFalse();
-        embedding.Length.ShouldBe(0);
+        retrieved.Length.ShouldBe(0);
     }
 
     [Fact]
     public void TryGet_ContentNotCached_ReturnsFalse()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         var result = cache.TryGet("nonexistent", out var embedding);
 
@@ -97,32 +95,35 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_ContentCached_ReturnsTrueAndEmbedding()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("test content", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("test content", embedding);
 
-        var result = cache.TryGet("test content", out var embedding);
+        var result = cache.TryGet("test content", out var retrieved);
 
         result.ShouldBeTrue();
-        embedding.Length.ShouldBe(3);
-        embedding.Span[0].ShouldBe(0.1f);
-        embedding.Span[1].ShouldBe(0.2f);
-        embedding.Span[2].ShouldBe(0.3f);
+        retrieved.Length.ShouldBe(3);
+        retrieved.Span[0].ShouldBe(0.1f);
+        retrieved.Span[1].ShouldBe(0.2f);
+        retrieved.Span[2].ShouldBe(0.3f);
     }
 
     [Fact]
     public void TryGet_ExpiredEntry_ReturnsFalseAndRemovesEntry()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.ExpirationHours = 0),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { ExpirationHours = 0 };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("test content", SampleEmbedding);
+        cache.Set("test content", embedding);
 
         // With 0 expiration hours, any entry is immediately expired on next TryGet
         // We need a small delay to ensure DateTime.UtcNow difference > TimeSpan.FromHours(0)
         Thread.Sleep(10);
 
-        var result = cache.TryGet("test content", out var embedding);
+        var result = cache.TryGet("test content", out var retrieved);
 
         result.ShouldBeFalse();
         cache.Count.ShouldBe(0);
@@ -131,8 +132,10 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_IncrementsAccessCount()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("test content", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("test content", embedding);
 
         cache.TryGet("test content", out _);
         cache.TryGet("test content", out _);
@@ -146,8 +149,10 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_SameContentDifferentCalls_ReturnsSameEmbedding()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("identical content", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("identical content", embedding);
 
         cache.TryGet("identical content", out var first);
         cache.TryGet("identical content", out var second);
@@ -162,11 +167,12 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Set_CacheDisabled_DoesNotStore()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.Enabled = false),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { Enabled = false };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("test content", SampleEmbedding);
+        cache.Set("test content", embedding);
 
         cache.Count.ShouldBe(0);
     }
@@ -174,10 +180,12 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Set_NewContent_IncrementsCount()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("content 1", SampleEmbedding);
-        cache.Set("content 2", SampleEmbedding);
+        cache.Set("content 1", embedding);
+        cache.Set("content 2", embedding);
 
         cache.Count.ShouldBe(2);
     }
@@ -185,34 +193,37 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Set_DuplicateContent_OverwritesEntry()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
         var updatedEmbedding = new ReadOnlyMemory<float>(new float[] { 0.9f, 0.8f });
 
-        cache.Set("test content", SampleEmbedding);
+        cache.Set("test content", embedding);
         cache.Set("test content", updatedEmbedding);
 
         cache.Count.ShouldBe(1);
-        cache.TryGet("test content", out var embedding);
-        embedding.Span[0].ShouldBe(0.9f);
+        cache.TryGet("test content", out var retrieved);
+        retrieved.Span[0].ShouldBe(0.9f);
     }
 
     [Fact]
     public void Set_AtCapacity_EvictsLeastRecentlyUsed()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.MaxCachedItems = 2),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { MaxCachedItems = 2 };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("first", SampleEmbedding);
+        cache.Set("first", embedding);
         Thread.Sleep(10); // Ensure different timestamps
-        cache.Set("second", SampleEmbedding);
+        cache.Set("second", embedding);
 
         // Access "first" to make it more recently used
         cache.TryGet("first", out _);
         Thread.Sleep(10);
 
         // This should evict "second" (least recently used)
-        cache.Set("third", SampleEmbedding);
+        cache.Set("third", embedding);
 
         cache.Count.ShouldBe(2);
         cache.TryGet("first", out _).ShouldBeTrue();
@@ -226,8 +237,10 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Remove_ExistingContent_ReturnsTrueAndRemoves()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("test content", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("test content", embedding);
 
         var result = cache.Remove("test content");
 
@@ -238,7 +251,8 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Remove_NonexistentContent_ReturnsFalse()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         var result = cache.Remove("nonexistent");
 
@@ -252,10 +266,12 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Clear_WithEntries_RemovesAll()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("content 1", SampleEmbedding);
-        cache.Set("content 2", SampleEmbedding);
-        cache.Set("content 3", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("content 1", embedding);
+        cache.Set("content 2", embedding);
+        cache.Set("content 3", embedding);
 
         cache.Clear();
 
@@ -265,7 +281,8 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Clear_EmptyCache_DoesNotThrow()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         Should.NotThrow(() => cache.Clear());
         cache.Count.ShouldBe(0);
@@ -278,7 +295,8 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void GetStats_EmptyCache_ReturnsZeroStats()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         var stats = cache.GetStats();
 
@@ -295,12 +313,13 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void GetStats_WithEntries_ReturnsAccurateStats()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.MaxCachedItems = 500),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { MaxCachedItems = 500 };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
 
-        cache.Set("content 1", SampleEmbedding);
-        cache.Set("content 2", SampleEmbedding);
+        cache.Set("content 1", embedding);
+        cache.Set("content 2", embedding);
 
         // Access content 1 twice
         cache.TryGet("content 1", out _);
@@ -321,9 +340,9 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void GetStats_DisabledCache_ReportsDisabled()
     {
-        using var cache = new EmbeddingCache(
-            CreateOptions(o => o.Enabled = false),
-            NullLogger<EmbeddingCache>.Instance);
+        var opts = new EmbeddingCacheOptions { Enabled = false };
+        var options = Microsoft.Extensions.Options.Options.Create(opts);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         var stats = cache.GetStats();
 
@@ -352,9 +371,11 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_CacheHit_RecordsCacheHitMetric()
     {
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
         var metricsMock = new Mock<IMetricsCollector>();
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
-        cache.Set("test content", SampleEmbedding);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("test content", embedding);
 
         cache.TryGet("test content", out _);
 
@@ -364,8 +385,9 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_CacheMiss_RecordsCacheMissMetric()
     {
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
         var metricsMock = new Mock<IMetricsCollector>();
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
 
         cache.TryGet("nonexistent", out _);
 
@@ -375,8 +397,10 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_WithoutMetrics_DoesNotThrow()
     {
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
-        cache.Set("test content", SampleEmbedding);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        using var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
+        var embedding = new ReadOnlyMemory<float>(new float[] { 0.1f, 0.2f, 0.3f });
+        cache.Set("test content", embedding);
 
         Should.NotThrow(() => cache.TryGet("test content", out _));
         Should.NotThrow(() => cache.TryGet("nonexistent", out _));
@@ -389,7 +413,8 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void Dispose_CanBeCalledMultipleTimes()
     {
-        var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance);
+        var options = Microsoft.Extensions.Options.Options.Create(new EmbeddingCacheOptions());
+        var cache = new EmbeddingCache(options, NullLogger<EmbeddingCache>.Instance);
 
         Should.NotThrow(() =>
         {

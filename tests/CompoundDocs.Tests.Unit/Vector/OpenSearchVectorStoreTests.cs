@@ -10,35 +10,36 @@ namespace CompoundDocs.Tests.Unit.Vector;
 
 public sealed class OpenSearchVectorStoreTests
 {
-    private readonly OpenSearchConfig _config;
-    private readonly OpenSearchVectorStore _sut;
-    private readonly Mock<OpenSearch.Client.IOpenSearchClient> _mockClient;
-    private readonly Mock<IOpenSearchLowLevelClient> _mockLowLevel;
-
-    public OpenSearchVectorStoreTests()
+    [Fact]
+    public async Task IndexAsync_CallsLowLevelIndex()
     {
-        _config = new OpenSearchConfig
+        // Arrange
+        var config = new OpenSearchConfig
         {
             CollectionEndpoint = "https://opensearch.example.com",
             IndexName = "test-index"
         };
-        _mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
-        _mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
-        _mockClient.Setup(c => c.LowLevel).Returns(_mockLowLevel.Object);
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        var logger = NullLogger<OpenSearchVectorStore>.Instance;
-        _sut = new OpenSearchVectorStore(_mockClient.Object, _config, logger, ResiliencePipeline.Empty);
-    }
+        var response = new StringResponse("{}");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.IndexAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<IndexRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
-    [Fact]
-    public async Task IndexAsync_CallsLowLevelIndex()
-    {
-        SetupIndexAsync(CreateSuccessResponse("{}"));
-
-        await _sut.IndexAsync("chunk-1", new float[] { 0.1f, 0.2f },
+        // Act
+        await sut.IndexAsync("chunk-1", new float[] { 0.1f, 0.2f },
             new Dictionary<string, string> { ["repo"] = "test" });
 
-        _mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
+        // Assert
+        mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
             "test-index",
             "chunk-1",
             It.IsAny<PostData>(),
@@ -49,11 +50,31 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task DeleteByDocumentIdAsync_CallsLowLevelDeleteByQuery()
     {
-        SetupDeleteByQueryAsync(CreateSuccessResponse("{}"));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        await _sut.DeleteByDocumentIdAsync("doc-1");
+        var response = new StringResponse("{}");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.DeleteByQueryAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<DeleteByQueryRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
-        _mockLowLevel.Verify(c => c.DeleteByQueryAsync<StringResponse>(
+        // Act
+        await sut.DeleteByDocumentIdAsync("doc-1");
+
+        // Assert
+        mockLowLevel.Verify(c => c.DeleteByQueryAsync<StringResponse>(
             "test-index",
             It.IsAny<PostData>(),
             It.IsAny<DeleteByQueryRequestParameters>(),
@@ -63,6 +84,17 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task SearchAsync_ParsesJsonResponse()
     {
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+
         var responseJson = """
         {
             "hits": {
@@ -86,10 +118,19 @@ public sealed class OpenSearchVectorStoreTests
         }
         """;
 
-        SetupSearchAsync(CreateSuccessResponse(responseJson));
+        var response = new StringResponse(responseJson);
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f, 0.2f }, topK: 10);
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f, 0.2f }, topK: 10);
 
+        // Assert
         results.Count.ShouldBe(2);
         results[0].ChunkId.ShouldBe("chunk-1");
         results[0].Score.ShouldBe(0.95);
@@ -101,7 +142,25 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task SearchAsync_WithFilters_CallsSearch()
     {
-        SetupSearchAsync(CreateSuccessResponse("""{"hits":{"hits":[]}}"""));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+
+        var response = new StringResponse("""{"hits":{"hits":[]}}""");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
         var filters = new Dictionary<string, string>
         {
@@ -109,10 +168,12 @@ public sealed class OpenSearchVectorStoreTests
             ["doc_type"] = "spec"
         };
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f }, topK: 5, filters: filters);
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f }, topK: 5, filters: filters);
 
+        // Assert
         results.Count.ShouldBe(0);
-        _mockLowLevel.Verify(c => c.SearchAsync<StringResponse>(
+        mockLowLevel.Verify(c => c.SearchAsync<StringResponse>(
             "test-index",
             It.IsAny<PostData>(),
             It.IsAny<SearchRequestParameters>(),
@@ -122,16 +183,56 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task SearchAsync_EmptyResults_ReturnsEmptyList()
     {
-        SetupSearchAsync(CreateSuccessResponse("""{"hits":{"hits":[]}}"""));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f });
+        var response = new StringResponse("""{"hits":{"hits":[]}}""");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f });
+
+        // Assert
         results.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task BatchIndexAsync_CallsIndexForEachDocument()
     {
-        SetupIndexAsync(CreateSuccessResponse("{}"));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+
+        var response = new StringResponse("{}");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.IndexAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<IndexRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
         var documents = new List<VectorDocument>
         {
@@ -140,9 +241,11 @@ public sealed class OpenSearchVectorStoreTests
             new() { ChunkId = "c3", Embedding = new float[] { 0.3f } }
         };
 
-        await _sut.BatchIndexAsync(documents);
+        // Act
+        await sut.BatchIndexAsync(documents);
 
-        _mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
+        // Assert
+        mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
             "test-index",
             It.IsAny<string>(),
             It.IsAny<PostData>(),
@@ -153,15 +256,46 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task IndexAsync_FailedResponse_ThrowsInvalidOperationException()
     {
-        SetupIndexAsync(CreateFailedResponse("error"));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
+        var response = new StringResponse("error");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 500, Success = false };
+        mockLowLevel.Setup(c => c.IndexAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<IndexRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        // Act & Assert
         await Should.ThrowAsync<InvalidOperationException>(async () =>
-            await _sut.IndexAsync("chunk-1", new float[] { 0.1f }, new Dictionary<string, string>()));
+            await sut.IndexAsync("chunk-1", new float[] { 0.1f }, new Dictionary<string, string>()));
     }
 
     [Fact]
     public async Task SearchAsync_HitWithoutMetadata_ReturnsEmptyMetadataDictionary()
     {
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+
         var responseJson = """
         {
             "hits": {
@@ -177,10 +311,19 @@ public sealed class OpenSearchVectorStoreTests
         }
         """;
 
-        SetupSearchAsync(CreateSuccessResponse(responseJson));
+        var response = new StringResponse(responseJson);
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f, 0.2f }, topK: 5);
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f, 0.2f }, topK: 5);
 
+        // Assert
         results.Count.ShouldBe(1);
         results[0].ChunkId.ShouldBe("chunk-no-meta");
         results[0].Score.ShouldBe(0.90);
@@ -191,30 +334,83 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public async Task SearchAsync_NullFilters_DoesNotAddFilterToQuery()
     {
-        SetupSearchAsync(CreateSuccessResponse("""{"hits":{"hits":[]}}"""));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f }, topK: 5, filters: null);
+        var response = new StringResponse("""{"hits":{"hits":[]}}""");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
 
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f }, topK: 5, filters: null);
+
+        // Assert
         results.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task SearchAsync_EmptyFilters_DoesNotAddFilterToQuery()
     {
-        SetupSearchAsync(CreateSuccessResponse("""{"hits":{"hits":[]}}"""));
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        var results = await _sut.SearchAsync(new float[] { 0.1f }, topK: 5,
+        var response = new StringResponse("""{"hits":{"hits":[]}}""");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
+        mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
+                It.IsAny<string>(),
+                It.IsAny<PostData>(),
+                It.IsAny<SearchRequestParameters>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var results = await sut.SearchAsync(new float[] { 0.1f }, topK: 5,
             filters: new Dictionary<string, string>());
 
+        // Assert
         results.ShouldBeEmpty();
     }
 
     [Fact]
     public async Task BatchIndexAsync_EmptyCollection_MakesNoRequests()
     {
-        await _sut.BatchIndexAsync(new List<VectorDocument>());
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
+        var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
+        mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
-        _mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
+        // Act
+        await sut.BatchIndexAsync(new List<VectorDocument>());
+
+        // Assert
+        mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<PostData>(),
@@ -225,85 +421,59 @@ public sealed class OpenSearchVectorStoreTests
     [Fact]
     public void PublicConstructor_WithIOptions_CreatesStoreWithRetryPipeline()
     {
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
-        var options = Microsoft.Extensions.Options.Options.Create(_config);
+        var options = Microsoft.Extensions.Options.Options.Create(config);
         var logger = NullLogger<OpenSearchVectorStore>.Instance;
 
+        // Act
         var store = new OpenSearchVectorStore(mockClient.Object, options, logger);
 
+        // Assert
         store.ShouldNotBeNull();
     }
 
     [Fact]
     public async Task Constructor_NullRetryPipeline_UsesEmptyPipeline()
     {
+        // Arrange
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+
+        var response = new StringResponse("{}");
+        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
         mockLowLevel.Setup(c => c.IndexAsync<StringResponse>(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<PostData>(),
                 It.IsAny<IndexRequestParameters>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateSuccessResponse("{}"));
+            .ReturnsAsync(response);
 
         var logger = NullLogger<OpenSearchVectorStore>.Instance;
-        var store = new OpenSearchVectorStore(mockClient.Object, _config, logger, retryPipeline: null);
+        var store = new OpenSearchVectorStore(mockClient.Object, config, logger, retryPipeline: null);
 
+        // Act
         await store.IndexAsync("chunk-null", new float[] { 0.1f },
             new Dictionary<string, string> { ["key"] = "val" });
 
+        // Assert
         mockLowLevel.Verify(c => c.IndexAsync<StringResponse>(
             "test-index",
             "chunk-null",
             It.IsAny<PostData>(),
             It.IsAny<IndexRequestParameters>(),
             It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    private void SetupIndexAsync(StringResponse response)
-    {
-        _mockLowLevel.Setup(c => c.IndexAsync<StringResponse>(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<PostData>(),
-                It.IsAny<IndexRequestParameters>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(response);
-    }
-
-    private void SetupDeleteByQueryAsync(StringResponse response)
-    {
-        _mockLowLevel.Setup(c => c.DeleteByQueryAsync<StringResponse>(
-                It.IsAny<string>(),
-                It.IsAny<PostData>(),
-                It.IsAny<DeleteByQueryRequestParameters>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(response);
-    }
-
-    private void SetupSearchAsync(StringResponse response)
-    {
-        _mockLowLevel.Setup(c => c.SearchAsync<StringResponse>(
-                It.IsAny<string>(),
-                It.IsAny<PostData>(),
-                It.IsAny<SearchRequestParameters>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(response);
-    }
-
-    private static StringResponse CreateSuccessResponse(string body)
-    {
-        var response = new StringResponse(body);
-        response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
-        return response;
-    }
-
-    private static StringResponse CreateFailedResponse(string body)
-    {
-        var response = new StringResponse(body);
-        response.ApiCall = new ApiCallDetails { HttpStatusCode = 500, Success = false };
-        return response;
     }
 }

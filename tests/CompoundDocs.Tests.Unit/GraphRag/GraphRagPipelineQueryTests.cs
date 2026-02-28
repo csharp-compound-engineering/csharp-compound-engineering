@@ -13,159 +13,63 @@ namespace CompoundDocs.Tests.Unit.GraphRag;
 
 public sealed class GraphRagPipelineQueryTests
 {
-    private readonly Mock<IBedrockEmbeddingService> _embeddingMock = new();
-    private readonly Mock<IVectorStore> _vectorMock = new();
-    private readonly Mock<IGraphRepository> _graphMock = new();
-    private readonly Mock<IBedrockLlmService> _llmMock = new();
-    private readonly Mock<ICrossRepoEntityResolver> _resolverMock = new();
-    private readonly GraphRagPipeline _sut;
-
-    private static readonly float[] _testEmbedding = [0.1f, 0.2f, 0.3f];
-    private static readonly CompoundDocsCloudConfig _defaultConfig = new()
-    {
-        GraphRag = new GraphRagConfig
-        {
-            MaxChunksPerQuery = 10,
-            MinRelevanceScore = 0.7,
-            MaxTraversalSteps = 5,
-            UseCrossRepoLinks = true
-        }
-    };
-
-    public GraphRagPipelineQueryTests()
-    {
-        var options = MsOptions.Create(_defaultConfig);
-        _sut = new GraphRagPipeline(
-            _embeddingMock.Object,
-            _vectorMock.Object,
-            _graphMock.Object,
-            _llmMock.Object,
-            _resolverMock.Object,
-            options,
-            NullLogger<GraphRagPipeline>.Instance);
-    }
-
-    private void SetupEmbedding()
-    {
-        _embeddingMock
-            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(_testEmbedding);
-    }
-
-    private void SetupVectorSearch(List<VectorSearchResult> results)
-    {
-        _vectorMock
-            .Setup(v => v.SearchAsync(
-                It.IsAny<float[]>(),
-                It.IsAny<int>(),
-                It.IsAny<Dictionary<string, string>?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(results);
-    }
-
-    private void SetupChunkRetrieval(List<ChunkNode> chunks)
-    {
-        _graphMock
-            .Setup(g => g.GetChunksByIdsAsync(
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(chunks);
-    }
-
-    private void SetupConceptRetrieval(List<ConceptNode> concepts)
-    {
-        _graphMock
-            .Setup(g => g.GetConceptsByChunkIdsAsync(
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(concepts);
-    }
-
-    private void SetupLinkedDocuments(List<DocumentNode> docs)
-    {
-        _graphMock
-            .Setup(g => g.GetLinkedDocumentsAsync(
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(docs);
-    }
-
-    private void SetupLlmResponse(string response)
-    {
-        _llmMock
-            .Setup(l => l.GenerateAsync(
-                It.IsAny<string>(),
-                It.IsAny<IReadOnlyList<BedrockMessage>>(),
-                It.IsAny<ModelTier>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(response);
-    }
-
-    private static VectorSearchResult MakeVectorResult(
-        string chunkId,
-        double score,
-        string? documentId = null,
-        string? filePath = null,
-        string? repository = null)
-    {
-        var metadata = new Dictionary<string, string>();
-        if (documentId is not null)
-        {
-            metadata["document_id"] = documentId;
-        }
-
-        if (filePath is not null)
-        {
-            metadata["file_path"] = filePath;
-        }
-
-        if (repository is not null)
-        {
-            metadata["repository"] = repository;
-        }
-
-        return new VectorSearchResult
-        {
-            ChunkId = chunkId,
-            Score = score,
-            Metadata = metadata
-        };
-    }
-
-    private static ChunkNode MakeChunk(string id, string content = "chunk content") =>
-        new()
-        {
-            Id = id,
-            SectionId = "sec-1",
-            DocumentId = "doc-1",
-            Content = content,
-            Order = 0,
-            TokenCount = content.Length / 4
-        };
-
     #region Happy path
 
     [Fact]
     public async Task QueryAsync_HappyPath_ReturnsCompleteResult()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch(
-        [
-            MakeVectorResult("chunk-1", 0.9, "doc-1", "/docs/guide.md", "my-repo"),
-            MakeVectorResult("chunk-2", 0.85, "doc-1", "/docs/guide.md", "my-repo")
-        ]);
-        SetupChunkRetrieval([MakeChunk("chunk-1", "First chunk"), MakeChunk("chunk-2", "Second chunk")]);
-        SetupConceptRetrieval(
-        [
-            new ConceptNode { Id = "c1", Name = "DependencyInjection" },
-            new ConceptNode { Id = "c2", Name = "GraphRAG" }
-        ]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Synthesized answer about DI and GraphRAG.");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/docs/guide.md", ["repository"] = "my-repo" } },
+                new() { ChunkId = "chunk-2", Score = 0.85, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/docs/guide.md", ["repository"] = "my-repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode>
+            {
+                new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "First chunk", Order = 0, TokenCount = 3 },
+                new() { Id = "chunk-2", SectionId = "sec-1", DocumentId = "doc-1", Content = "Second chunk", Order = 0, TokenCount = 3 }
+            });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>
+            {
+                new() { Id = "c1", Name = "DependencyInjection" },
+                new() { Id = "c2", Name = "GraphRAG" }
+            });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Synthesized answer about DI and GraphRAG.");
 
         // Act
-        var result = await _sut.QueryAsync("How does DI work?");
+        var result = await sut.QueryAsync("How does DI work?");
 
         // Assert
         result.Answer.ShouldBe("Synthesized answer about DI and GraphRAG.");
@@ -188,11 +92,33 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_NoVectorResults_ReturnsEmptyAnswerAndZeroConfidence()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         // Act
-        var result = await _sut.QueryAsync("Unknown query");
+        var result = await sut.QueryAsync("Unknown query");
 
         // Assert
         result.Answer.ShouldBe("No relevant documents found for your query.");
@@ -200,7 +126,7 @@ public sealed class GraphRagPipelineQueryTests
         result.Sources.ShouldBeEmpty();
         result.RelatedConcepts.ShouldBeEmpty();
 
-        _llmMock.Verify(
+        llmMock.Verify(
             l => l.GenerateAsync(
                 It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<BedrockMessage>>(),
@@ -217,19 +143,49 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_ResultsBelowMinScore_FilteredOut()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch(
-        [
-            MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo"),
-            MakeVectorResult("chunk-2", 0.5, "doc-1", "/path", "repo")
-        ]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } },
+                new() { ChunkId = "chunk-2", Score = 0.5, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — chunk-2 with score 0.5 should be filtered (default min=0.7)
         result.Sources.Count.ShouldBe(1);
@@ -240,21 +196,43 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_AllResultsBelowMinScore_ReturnsEmptyAnswer()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch(
-        [
-            MakeVectorResult("chunk-1", 0.3),
-            MakeVectorResult("chunk-2", 0.5)
-        ]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.3, Metadata = new Dictionary<string, string>() },
+                new() { ChunkId = "chunk-2", Score = 0.5, Metadata = new Dictionary<string, string>() }
+            });
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert
         result.Answer.ShouldBe("No relevant documents found for your query.");
         result.Confidence.ShouldBe(0);
 
-        _llmMock.Verify(
+        llmMock.Verify(
             l => l.GenerateAsync(
                 It.IsAny<string>(),
                 It.IsAny<IReadOnlyList<BedrockMessage>>(),
@@ -271,12 +249,45 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_OptionsOverrideConfigDefaults()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.5, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.5, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         var options = new GraphRagOptions
         {
@@ -285,13 +296,13 @@ public sealed class GraphRagPipelineQueryTests
         };
 
         // Act
-        var result = await _sut.QueryAsync("query", options);
+        var result = await sut.QueryAsync("query", options);
 
         // Assert — chunk-1 at 0.5 passes the 0.4 threshold
         result.Sources.Count.ShouldBe(1);
 
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             3,
             It.IsAny<Dictionary<string, string>?>(),
             It.IsAny<CancellationToken>()),
@@ -302,15 +313,37 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_NullOptions_UsesConfigDefaults()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         // Act
-        await _sut.QueryAsync("query", null);
+        await sut.QueryAsync("query", null);
 
         // Assert — should use config default maxChunks=10
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             10,
             null,
             It.IsAny<CancellationToken>()),
@@ -325,17 +358,39 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_RepositoryFilter_PassedToSearch()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         var options = new GraphRagOptions { RepositoryFilter = "my-repo" };
 
         // Act
-        await _sut.QueryAsync("query", options);
+        await sut.QueryAsync("query", options);
 
         // Assert
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             It.IsAny<int>(),
             It.Is<Dictionary<string, string>?>(f =>
                 f != null &&
@@ -349,17 +404,39 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_DocTypeFilter_PassedToSearch()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         var options = new GraphRagOptions { DocTypeFilter = "guide" };
 
         // Act
-        await _sut.QueryAsync("query", options);
+        await sut.QueryAsync("query", options);
 
         // Assert
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             It.IsAny<int>(),
             It.Is<Dictionary<string, string>?>(f =>
                 f != null &&
@@ -373,8 +450,30 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_BothFilters_BothPassedToSearch()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         var options = new GraphRagOptions
         {
@@ -383,11 +482,11 @@ public sealed class GraphRagPipelineQueryTests
         };
 
         // Act
-        await _sut.QueryAsync("query", options);
+        await sut.QueryAsync("query", options);
 
         // Assert
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             It.IsAny<int>(),
             It.Is<Dictionary<string, string>?>(f =>
                 f != null &&
@@ -402,17 +501,39 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_NoFilters_NullPassedToSearch()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([]);
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>());
 
         var options = new GraphRagOptions(); // No filters set
 
         // Act
-        await _sut.QueryAsync("query", options);
+        await sut.QueryAsync("query", options);
 
         // Assert
-        _vectorMock.Verify(v => v.SearchAsync(
-            _testEmbedding,
+        vectorMock.Verify(v => v.SearchAsync(
+            testEmbedding,
             It.IsAny<int>(),
             null,
             It.IsAny<CancellationToken>()),
@@ -427,20 +548,48 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_ConceptEnrichmentFails_PipelineContinues()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer without concepts");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _graphMock
-            .Setup(g => g.GetConceptsByChunkIdsAsync(
-                It.IsAny<IReadOnlyList<string>>(),
-                It.IsAny<CancellationToken>()))
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer without concepts");
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Neptune down"));
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — pipeline continues, answer is produced
         result.Answer.ShouldBe("Answer without concepts");
@@ -452,20 +601,48 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_LinkedDocEnrichmentFails_PipelineContinues()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([new ConceptNode { Id = "c1", Name = "Concept" }]);
-        SetupLlmResponse("Answer with concept");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _graphMock
-            .Setup(g => g.GetLinkedDocumentsAsync(
-                It.IsAny<string>(),
-                It.IsAny<CancellationToken>()))
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode> { new() { Id = "c1", Name = "Concept" } });
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer with concept");
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Neptune down"));
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — pipeline continues
         result.Answer.ShouldBe("Answer with concept");
@@ -480,19 +657,53 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_Confidence_CorrectFormula()
     {
         // Arrange — 2 results out of 10 requested, scores 0.9 and 0.8
-        SetupEmbedding();
-        SetupVectorSearch(
-        [
-            MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo"),
-            MakeVectorResult("chunk-2", 0.8, "doc-1", "/path", "repo")
-        ]);
-        SetupChunkRetrieval([MakeChunk("chunk-1"), MakeChunk("chunk-2")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } },
+                new() { ChunkId = "chunk-2", Score = 0.8, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode>
+            {
+                new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 },
+                new() { Id = "chunk-2", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 }
+            });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert: avg=0.85, coverage=2/10=0.2, confidence=0.85*0.2=0.17
         var expectedConfidence = 0.85 * (2.0 / 10);
@@ -503,17 +714,50 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_Confidence_ScaledDownWithFewerResults()
     {
         // Arrange — 1 result out of 5 requested
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         var options = new GraphRagOptions { MaxChunks = 5 };
 
         // Act
-        var result = await _sut.QueryAsync("query", options);
+        var result = await sut.QueryAsync("query", options);
 
         // Assert: avg=0.9, coverage=1/5=0.2, confidence=0.9*0.2=0.18
         var expectedConfidence = 0.9 * (1.0 / 5);
@@ -528,18 +772,51 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_LlmCalledWithSonnetTier()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        await _sut.QueryAsync("query");
+        await sut.QueryAsync("query");
 
         // Assert
-        _llmMock.Verify(l => l.GenerateAsync(
+        llmMock.Verify(l => l.GenerateAsync(
             It.IsAny<string>(),
             It.IsAny<IReadOnlyList<BedrockMessage>>(),
             ModelTier.Sonnet,
@@ -551,18 +828,51 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_SystemPromptContainsRagInstructions()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        await _sut.QueryAsync("query");
+        await sut.QueryAsync("query");
 
         // Assert
-        _llmMock.Verify(l => l.GenerateAsync(
+        llmMock.Verify(l => l.GenerateAsync(
             It.Is<string>(s =>
                 s.Contains("documentation assistant") &&
                 s.Contains("provided context")),
@@ -576,18 +886,51 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_UserMessageContainsChunkContentAndMetadata()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/docs/guide.md", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1", "Important content about DI")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/docs/guide.md", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "Important content about DI", Order = 0, TokenCount = 6 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        await _sut.QueryAsync("How does DI work?");
+        await sut.QueryAsync("How does DI work?");
 
         // Assert
-        _llmMock.Verify(l => l.GenerateAsync(
+        llmMock.Verify(l => l.GenerateAsync(
             It.IsAny<string>(),
             It.Is<IReadOnlyList<BedrockMessage>>(msgs =>
                 msgs.Count == 1 &&
@@ -608,19 +951,53 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_SourcesMappedFromVectorResults()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch(
-        [
-            MakeVectorResult("chunk-1", 0.9, "doc-1", "/docs/a.md", "repo-a"),
-            MakeVectorResult("chunk-2", 0.8, "doc-2", "/docs/b.md", "repo-b")
-        ]);
-        SetupChunkRetrieval([MakeChunk("chunk-1"), MakeChunk("chunk-2")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/docs/a.md", ["repository"] = "repo-a" } },
+                new() { ChunkId = "chunk-2", Score = 0.8, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-2", ["file_path"] = "/docs/b.md", ["repository"] = "repo-b" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode>
+            {
+                new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 },
+                new() { Id = "chunk-2", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 }
+            });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert
         result.Sources.Count.ShouldBe(2);
@@ -646,27 +1023,60 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CancellationTokenForwardedToAllCalls()
     {
         // Arrange
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
 
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         // Act
-        await _sut.QueryAsync("query", null, token);
+        await sut.QueryAsync("query", null, token);
 
         // Assert
-        _embeddingMock.Verify(e => e.GenerateEmbeddingAsync("query", token), Times.Once);
-        _vectorMock.Verify(v => v.SearchAsync(
+        embeddingMock.Verify(e => e.GenerateEmbeddingAsync("query", token), Times.Once);
+        vectorMock.Verify(v => v.SearchAsync(
             It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), token),
             Times.Once);
-        _graphMock.Verify(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), token), Times.Once);
-        _graphMock.Verify(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), token), Times.Once);
-        _llmMock.Verify(l => l.GenerateAsync(
+        graphMock.Verify(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), token), Times.Once);
+        graphMock.Verify(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), token), Times.Once);
+        llmMock.Verify(l => l.GenerateAsync(
             It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), token),
             Times.Once);
     }
@@ -679,19 +1089,50 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CrossRepoLinksDisabled_SkipsLinkedDocLookup()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
+
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
 
         var options = new GraphRagOptions { UseCrossRepoLinks = false };
 
         // Act
-        await _sut.QueryAsync("query", options);
+        await sut.QueryAsync("query", options);
 
         // Assert
-        _graphMock.Verify(
+        graphMock.Verify(
             g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -704,14 +1145,46 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CrossRepoResolution_EnrichesRelatedConcepts()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo-a")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([new ConceptNode { Id = "c1", Name = "LocalConcept" }]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _resolverMock
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo-a" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode> { new() { Id = "c1", Name = "LocalConcept" } });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
+        resolverMock
             .Setup(r => r.ResolveAsync("LocalConcept", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ResolvedEntity
             {
@@ -723,7 +1196,7 @@ public sealed class GraphRagPipelineQueryTests
             });
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — should include both the original and cross-repo concept
         result.RelatedConcepts.ShouldContain("LocalConcept");
@@ -734,14 +1207,46 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CrossRepoResolution_SameRepo_DoesNotEnrich()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo-a")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([new ConceptNode { Id = "c1", Name = "LocalConcept" }]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _resolverMock
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo-a" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode> { new() { Id = "c1", Name = "LocalConcept" } });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
+        resolverMock
             .Setup(r => r.ResolveAsync("LocalConcept", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ResolvedEntity
             {
@@ -753,7 +1258,7 @@ public sealed class GraphRagPipelineQueryTests
             });
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — same repo, so cross-repo names should NOT be added
         result.RelatedConcepts.ShouldContain("LocalConcept");
@@ -764,19 +1269,51 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CrossRepoResolution_ExceptionSwallowed()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo-a")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([new ConceptNode { Id = "c1", Name = "ErrorConcept" }]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _resolverMock
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo-a" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode> { new() { Id = "c1", Name = "ErrorConcept" } });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
+        resolverMock
             .Setup(r => r.ResolveAsync("ErrorConcept", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Resolver down"));
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert — pipeline continues despite resolver error
         result.Answer.ShouldBe("Answer");
@@ -787,19 +1324,51 @@ public sealed class GraphRagPipelineQueryTests
     public async Task QueryAsync_CrossRepoResolution_NullResult_SkipsEnrichment()
     {
         // Arrange
-        SetupEmbedding();
-        SetupVectorSearch([MakeVectorResult("chunk-1", 0.9, "doc-1", "/path", "repo-a")]);
-        SetupChunkRetrieval([MakeChunk("chunk-1")]);
-        SetupConceptRetrieval([new ConceptNode { Id = "c1", Name = "UnknownConcept" }]);
-        SetupLinkedDocuments([]);
-        SetupLlmResponse("Answer");
+        var embeddingMock = new Mock<IBedrockEmbeddingService>();
+        var vectorMock = new Mock<IVectorStore>();
+        var graphMock = new Mock<IGraphRepository>();
+        var llmMock = new Mock<IBedrockLlmService>();
+        var resolverMock = new Mock<ICrossRepoEntityResolver>();
+        var testEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+        var config = new CompoundDocsCloudConfig
+        {
+            GraphRag = new GraphRagConfig
+            {
+                MaxChunksPerQuery = 10, MinRelevanceScore = 0.7,
+                MaxTraversalSteps = 5, UseCrossRepoLinks = true
+            }
+        };
+        var sut = new GraphRagPipeline(
+            embeddingMock.Object, vectorMock.Object, graphMock.Object, llmMock.Object,
+            resolverMock.Object, MsOptions.Create(config), NullLogger<GraphRagPipeline>.Instance);
 
-        _resolverMock
+        embeddingMock
+            .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(testEmbedding);
+        vectorMock
+            .Setup(v => v.SearchAsync(It.IsAny<float[]>(), It.IsAny<int>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<VectorSearchResult>
+            {
+                new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["document_id"] = "doc-1", ["file_path"] = "/path", ["repository"] = "repo-a" } }
+            });
+        graphMock
+            .Setup(g => g.GetChunksByIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ChunkNode> { new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "chunk content", Order = 0, TokenCount = 3 } });
+        graphMock
+            .Setup(g => g.GetConceptsByChunkIdsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ConceptNode> { new() { Id = "c1", Name = "UnknownConcept" } });
+        graphMock
+            .Setup(g => g.GetLinkedDocumentsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<DocumentNode>());
+        llmMock
+            .Setup(l => l.GenerateAsync(It.IsAny<string>(), It.IsAny<IReadOnlyList<BedrockMessage>>(), It.IsAny<ModelTier>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Answer");
+        resolverMock
             .Setup(r => r.ResolveAsync("UnknownConcept", It.IsAny<CancellationToken>()))
             .ReturnsAsync((ResolvedEntity?)null);
 
         // Act
-        var result = await _sut.QueryAsync("query");
+        var result = await sut.QueryAsync("query");
 
         // Assert
         result.RelatedConcepts.ShouldBe(["UnknownConcept"]);
@@ -824,11 +1393,11 @@ public sealed class GraphRagPipelineQueryTests
     {
         var chunks = new List<ChunkNode>
         {
-            MakeChunk("chunk-1", "Content of chunk one")
+            new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "Content of chunk one", Order = 0, TokenCount = 5 }
         };
         var vectorResults = new List<VectorSearchResult>
         {
-            MakeVectorResult("chunk-1", 0.9, filePath: "/docs/guide.md")
+            new() { ChunkId = "chunk-1", Score = 0.9, Metadata = new Dictionary<string, string> { ["file_path"] = "/docs/guide.md" } }
         };
 
         var formatted = GraphRagPipeline.FormatChunkContext(chunks, vectorResults);
@@ -844,7 +1413,7 @@ public sealed class GraphRagPipelineQueryTests
     {
         var chunks = new List<ChunkNode>
         {
-            MakeChunk("chunk-1", "Content without path")
+            new() { Id = "chunk-1", SectionId = "sec-1", DocumentId = "doc-1", Content = "Content without path", Order = 0, TokenCount = 5 }
         };
         var vectorResults = new List<VectorSearchResult>
         {

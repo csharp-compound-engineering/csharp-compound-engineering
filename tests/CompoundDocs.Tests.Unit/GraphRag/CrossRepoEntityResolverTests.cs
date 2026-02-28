@@ -9,28 +9,23 @@ namespace CompoundDocs.Tests.Unit.GraphRag;
 
 public sealed class CrossRepoEntityResolverTests
 {
-    private readonly Mock<IGraphRepository> _graphMock = new();
-    private readonly CrossRepoEntityResolver _sut;
-
-    public CrossRepoEntityResolverTests()
-    {
-        _sut = new CrossRepoEntityResolver(
-            _graphMock.Object,
-            NullLogger<CrossRepoEntityResolver>.Instance);
-    }
-
     #region Happy path
 
     [Fact]
     public async Task ResolveAsync_ConceptFoundWithRelatedConcepts_ReturnsResolvedEntity()
     {
         // Arrange
+        var graphMock = new Mock<IGraphRepository>();
+        var sut = new CrossRepoEntityResolver(
+            graphMock.Object,
+            NullLogger<CrossRepoEntityResolver>.Instance);
+
         var concept = new ConceptNode { Id = "concept:react", Name = "React", Description = "UI library", Category = "framework" };
-        _graphMock
+        graphMock
             .Setup(g => g.FindConceptsByNameAsync("React", It.IsAny<CancellationToken>()))
             .ReturnsAsync([concept]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetRelatedConceptsAsync("concept:react", 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -38,7 +33,7 @@ public sealed class CrossRepoEntityResolverTests
                 new ConceptNode { Id = "concept:hooks", Name = "Hooks" }
             ]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetChunksByConceptAsync("concept:react", It.IsAny<CancellationToken>()))
             .ReturnsAsync(
             [
@@ -46,7 +41,7 @@ public sealed class CrossRepoEntityResolverTests
             ]);
 
         // Act
-        var result = await _sut.ResolveAsync("React");
+        var result = await sut.ResolveAsync("React");
 
         // Assert
         result.ShouldNotBeNull();
@@ -65,17 +60,22 @@ public sealed class CrossRepoEntityResolverTests
     public async Task ResolveAsync_ConceptNotFound_ReturnsNull()
     {
         // Arrange
-        _graphMock
+        var graphMock = new Mock<IGraphRepository>();
+        var sut = new CrossRepoEntityResolver(
+            graphMock.Object,
+            NullLogger<CrossRepoEntityResolver>.Instance);
+
+        graphMock
             .Setup(g => g.FindConceptsByNameAsync("Unknown", It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         // Act
-        var result = await _sut.ResolveAsync("Unknown");
+        var result = await sut.ResolveAsync("Unknown");
 
         // Assert
         result.ShouldBeNull();
 
-        _graphMock.Verify(
+        graphMock.Verify(
             g => g.GetRelatedConceptsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -88,21 +88,26 @@ public sealed class CrossRepoEntityResolverTests
     public async Task ResolveAsync_NoRelatedConcepts_ReturnsEntityWithEmptyLists()
     {
         // Arrange
+        var graphMock = new Mock<IGraphRepository>();
+        var sut = new CrossRepoEntityResolver(
+            graphMock.Object,
+            NullLogger<CrossRepoEntityResolver>.Instance);
+
         var concept = new ConceptNode { Id = "concept:solo", Name = "Solo" };
-        _graphMock
+        graphMock
             .Setup(g => g.FindConceptsByNameAsync("Solo", It.IsAny<CancellationToken>()))
             .ReturnsAsync([concept]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetRelatedConceptsAsync("concept:solo", 1, It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetChunksByConceptAsync("concept:solo", It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         // Act
-        var result = await _sut.ResolveAsync("Solo");
+        var result = await sut.ResolveAsync("Solo");
 
         // Assert
         result.ShouldNotBeNull();
@@ -120,29 +125,34 @@ public sealed class CrossRepoEntityResolverTests
     public async Task ResolveAsync_ForwardsCancellationToken()
     {
         // Arrange
+        var graphMock = new Mock<IGraphRepository>();
+        var sut = new CrossRepoEntityResolver(
+            graphMock.Object,
+            NullLogger<CrossRepoEntityResolver>.Instance);
+
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
 
         var concept = new ConceptNode { Id = "concept:test", Name = "Test" };
-        _graphMock
+        graphMock
             .Setup(g => g.FindConceptsByNameAsync("Test", token))
             .ReturnsAsync([concept]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetRelatedConceptsAsync("concept:test", 1, token))
             .ReturnsAsync([]);
 
-        _graphMock
+        graphMock
             .Setup(g => g.GetChunksByConceptAsync("concept:test", token))
             .ReturnsAsync([]);
 
         // Act
-        await _sut.ResolveAsync("Test", token);
+        await sut.ResolveAsync("Test", token);
 
         // Assert
-        _graphMock.Verify(g => g.FindConceptsByNameAsync("Test", token), Times.Once);
-        _graphMock.Verify(g => g.GetRelatedConceptsAsync("concept:test", 1, token), Times.Once);
-        _graphMock.Verify(g => g.GetChunksByConceptAsync("concept:test", token), Times.Once);
+        graphMock.Verify(g => g.FindConceptsByNameAsync("Test", token), Times.Once);
+        graphMock.Verify(g => g.GetRelatedConceptsAsync("concept:test", 1, token), Times.Once);
+        graphMock.Verify(g => g.GetChunksByConceptAsync("concept:test", token), Times.Once);
     }
 
     #endregion

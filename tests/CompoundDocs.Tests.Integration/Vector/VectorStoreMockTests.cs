@@ -9,17 +9,12 @@ namespace CompoundDocs.Tests.Integration.Vector;
 /// </summary>
 public class VectorStoreMockTests
 {
-    private readonly Mock<IVectorStore> _vectorStoreMock;
-
-    public VectorStoreMockTests()
-    {
-        _vectorStoreMock = new Mock<IVectorStore>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task IndexAndSearch_WithMockedOpenSearch_ReturnsResults()
     {
         // Arrange
+        var vectorStoreMock = new Mock<IVectorStore>(MockBehavior.Strict);
+
         var chunkId = "chunk-001";
         var embedding = new float[1024];
         Array.Fill(embedding, 0.5f);
@@ -51,7 +46,7 @@ public class VectorStoreMockTests
             }
         };
 
-        _vectorStoreMock
+        vectorStoreMock
             .Setup(v => v.IndexAsync(
                 It.IsAny<string>(),
                 It.IsAny<float[]>(),
@@ -60,7 +55,7 @@ public class VectorStoreMockTests
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        _vectorStoreMock
+        vectorStoreMock
             .Setup(v => v.SearchAsync(
                 It.IsAny<float[]>(),
                 It.IsAny<int>(),
@@ -69,7 +64,7 @@ public class VectorStoreMockTests
             .ReturnsAsync(expectedResults)
             .Verifiable();
 
-        var store = _vectorStoreMock.Object;
+        var store = vectorStoreMock.Object;
 
         // Act
         await store.IndexAsync(chunkId, embedding, metadata);
@@ -88,11 +83,11 @@ public class VectorStoreMockTests
         results[1].ChunkId.ShouldBe("chunk-002");
         results[1].Score.ShouldBeGreaterThan(0.8);
 
-        _vectorStoreMock.Verify(
+        vectorStoreMock.Verify(
             v => v.IndexAsync(chunkId, embedding, metadata, It.IsAny<CancellationToken>()),
             Times.Once);
 
-        _vectorStoreMock.Verify(
+        vectorStoreMock.Verify(
             v => v.SearchAsync(embedding, 5, null, It.IsAny<CancellationToken>()),
             Times.Once);
     }

@@ -10,17 +10,12 @@ namespace CompoundDocs.Tests.Integration.Pipeline;
 /// </summary>
 public class GraphRagPipelineMockTests
 {
-    private readonly Mock<IGraphRagPipeline> _pipelineMock;
-
-    public GraphRagPipelineMockTests()
-    {
-        _pipelineMock = new Mock<IGraphRagPipeline>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task FullPipeline_WithMockedServices_ReturnsStructuredResult()
     {
         // Arrange
+        var pipelineMock = new Mock<IGraphRagPipeline>(MockBehavior.Strict);
+
         var query = "How does the GraphRAG pipeline combine vector search with graph traversal?";
         var options = new GraphRagOptions
         {
@@ -82,7 +77,7 @@ public class GraphRagPipelineMockTests
         string? capturedQuery = null;
         GraphRagOptions? capturedOptions = null;
 
-        _pipelineMock
+        pipelineMock
             .Setup(p => p.QueryAsync(
                 It.IsAny<string>(),
                 It.IsAny<GraphRagOptions?>(),
@@ -96,7 +91,7 @@ public class GraphRagPipelineMockTests
             .ReturnsAsync(expectedResult)
             .Verifiable();
 
-        var pipeline = _pipelineMock.Object;
+        var pipeline = pipelineMock.Object;
 
         // Act
         var result = await pipeline.QueryAsync(query, options);
@@ -152,7 +147,7 @@ public class GraphRagPipelineMockTests
         capturedOptions.DocTypeFilter.ShouldBe("architecture");
         capturedOptions.RepositoryFilter.ShouldBeNull();
 
-        _pipelineMock.Verify(
+        pipelineMock.Verify(
             p => p.QueryAsync(query, options, It.IsAny<CancellationToken>()),
             Times.Once);
     }

@@ -9,17 +9,12 @@ namespace CompoundDocs.Tests.Integration.Vector;
 /// </summary>
 public class EmbeddingIndexMockTests
 {
-    private readonly Mock<IVectorStore> _vectorStoreMock;
-
-    public EmbeddingIndexMockTests()
-    {
-        _vectorStoreMock = new Mock<IVectorStore>(MockBehavior.Strict);
-    }
-
     [Fact]
     public async Task IndexMapping_WithMockedStore_Validates1024Dimensions()
     {
         // Arrange
+        var vectorStoreMock = new Mock<IVectorStore>(MockBehavior.Strict);
+
         const int expectedDimensions = 1024;
         var chunkId = "chunk-embed-001";
         var embedding = new float[expectedDimensions];
@@ -38,7 +33,7 @@ public class EmbeddingIndexMockTests
 
         float[]? capturedEmbedding = null;
 
-        _vectorStoreMock
+        vectorStoreMock
             .Setup(v => v.IndexAsync(
                 It.IsAny<string>(),
                 It.Is<float[]>(e => e.Length == expectedDimensions),
@@ -49,13 +44,13 @@ public class EmbeddingIndexMockTests
             .Returns(Task.CompletedTask)
             .Verifiable();
 
-        var store = _vectorStoreMock.Object;
+        var store = vectorStoreMock.Object;
 
         // Act
         await store.IndexAsync(chunkId, embedding, metadata);
 
         // Assert
-        _vectorStoreMock.Verify(
+        vectorStoreMock.Verify(
             v => v.IndexAsync(
                 chunkId,
                 It.Is<float[]>(e => e.Length == expectedDimensions),
