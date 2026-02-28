@@ -14,7 +14,7 @@ public static class ObservabilityServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddObservability(this IServiceCollection services)
     {
-        services.TryAddSingleton<MetricsCollector>();
+        services.TryAddSingleton<IMetricsCollector, MetricsCollector>();
         return services;
     }
 }

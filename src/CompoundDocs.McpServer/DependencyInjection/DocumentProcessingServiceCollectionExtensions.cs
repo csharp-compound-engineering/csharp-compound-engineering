@@ -14,9 +14,9 @@ public static class DocumentProcessingServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddDocumentProcessingServices(this IServiceCollection services)
     {
-        services.TryAddSingleton<MarkdownParser>();
-        services.TryAddSingleton<FrontmatterParser>();
-        services.TryAddSingleton<SchemaValidator>();
+        services.TryAddSingleton<IMarkdownParser, MarkdownParser>();
+        services.TryAddSingleton<IFrontmatterParser, FrontmatterParser>();
+        services.TryAddSingleton<ISchemaValidator, SchemaValidator>();
 
         return services;
     }
@@ -26,9 +26,9 @@ public static class DocumentProcessingServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddParsingServices(this IServiceCollection services)
     {
-        services.TryAddSingleton<MarkdownParser>();
-        services.TryAddSingleton<FrontmatterParser>();
-        services.TryAddSingleton<SchemaValidator>();
+        services.TryAddSingleton<IMarkdownParser, MarkdownParser>();
+        services.TryAddSingleton<IFrontmatterParser, FrontmatterParser>();
+        services.TryAddSingleton<ISchemaValidator, SchemaValidator>();
         return services;
     }
 }

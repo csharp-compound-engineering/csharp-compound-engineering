@@ -352,26 +352,24 @@ public sealed class EmbeddingCacheTests
     [Fact]
     public void TryGet_CacheHit_RecordsCacheHitMetric()
     {
-        using var metrics = new MetricsCollector();
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metrics);
+        var metricsMock = new Mock<IMetricsCollector>();
+        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
         cache.Set("test content", SampleEmbedding);
 
         cache.TryGet("test content", out _);
 
-        var snapshot = metrics.GetSnapshot();
-        snapshot.CacheHitRate.ShouldBe(1.0);
+        metricsMock.Verify(m => m.RecordCacheHit(), Times.Once);
     }
 
     [Fact]
     public void TryGet_CacheMiss_RecordsCacheMissMetric()
     {
-        using var metrics = new MetricsCollector();
-        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metrics);
+        var metricsMock = new Mock<IMetricsCollector>();
+        using var cache = new EmbeddingCache(CreateOptions(), NullLogger<EmbeddingCache>.Instance, metricsMock.Object);
 
         cache.TryGet("nonexistent", out _);
 
-        var snapshot = metrics.GetSnapshot();
-        snapshot.CacheHitRate.ShouldBe(0.0);
+        metricsMock.Verify(m => m.RecordCacheMiss(), Times.Once);
     }
 
     [Fact]

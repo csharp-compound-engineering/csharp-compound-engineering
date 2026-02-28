@@ -4,33 +4,34 @@ using CompoundDocs.GraphRag;
 using CompoundDocs.McpServer.Observability;
 using CompoundDocs.McpServer.Tools;
 using CompoundDocs.Vector;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CompoundDocs.Tests.Unit.Tools;
 
-public class RagQueryToolTests : IDisposable
+public class RagQueryToolTests
 {
-    private readonly Mock<IVectorStore> _vectorStore = new();
-    private readonly Mock<IGraphRepository> _graphRepository = new();
-    private readonly Mock<IBedrockEmbeddingService> _embeddingService = new();
-    private readonly Mock<IBedrockLlmService> _llmService = new();
-    private readonly Mock<IGraphRagPipeline> _graphRagPipeline = new();
-    private readonly MetricsCollector _metrics = new();
-    private readonly ILogger<RagQueryTool> _logger = NullLogger<RagQueryTool>.Instance;
-    private readonly RagQueryTool _sut;
-
-    public RagQueryToolTests()
-    {
-        _sut = new RagQueryTool(
-            _vectorStore.Object, _graphRepository.Object, _embeddingService.Object,
-            _llmService.Object, _graphRagPipeline.Object, _metrics, _logger);
-    }
+    private static RagQueryTool CreateSut(
+        Mock<IGraphRagPipeline>? graphRagPipeline = null,
+        Mock<IMetricsCollector>? metrics = null,
+        Mock<IVectorStore>? vectorStore = null,
+        Mock<IGraphRepository>? graphRepository = null,
+        Mock<IBedrockEmbeddingService>? embeddingService = null,
+        Mock<IBedrockLlmService>? llmService = null) =>
+        new(
+            (vectorStore ?? new Mock<IVectorStore>()).Object,
+            (graphRepository ?? new Mock<IGraphRepository>()).Object,
+            (embeddingService ?? new Mock<IBedrockEmbeddingService>()).Object,
+            (llmService ?? new Mock<IBedrockLlmService>()).Object,
+            (graphRagPipeline ?? new Mock<IGraphRagPipeline>()).Object,
+            (metrics ?? new Mock<IMetricsCollector>()).Object,
+            NullLogger<RagQueryTool>.Instance);
 
     [Fact]
     public async Task QueryAsync_EmptyQuery_ReturnsEmptyQueryError()
     {
-        var result = await _sut.QueryAsync("", 5, CancellationToken.None);
+        var sut = CreateSut();
+
+        var result = await sut.QueryAsync("", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
         result.ErrorCode.ShouldBe("EMPTY_QUERY");
@@ -39,7 +40,9 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_WhitespaceQuery_ReturnsEmptyQueryError()
     {
-        var result = await _sut.QueryAsync("   ", 5, CancellationToken.None);
+        var sut = CreateSut();
+
+        var result = await sut.QueryAsync("   ", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
         result.ErrorCode.ShouldBe("EMPTY_QUERY");
@@ -48,6 +51,7 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_ValidQuery_ReturnsSuccessWithResult()
     {
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
         var graphRagResult = new GraphRagResult
         {
             Answer = "Test answer",
@@ -66,16 +70,17 @@ public class RagQueryToolTests : IDisposable
             Confidence = 0.9
         };
 
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(graphRagResult);
 
-        var result = await _sut.QueryAsync("test query", 5, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var result = await sut.QueryAsync("test query", 5, CancellationToken.None);
 
         result.Success.ShouldBeTrue();
         result.Data.ShouldNotBeNull();
-        result.Data!.Query.ShouldBe("test query");
+        result.Data.Query.ShouldBe("test query");
         result.Data.Answer.ShouldBe("Test answer");
-        result.Data.Sources.Count().ShouldBe(1);
+        result.Data.Sources.Count.ShouldBe(1);
         result.Data.Sources[0].DocumentId.ShouldBe("doc1");
         result.Data.ConfidenceScore.ShouldBe(0.9f, 0.01f);
     }
@@ -83,28 +88,32 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_ValidQuery_RecordsQueryMetrics()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        var metricsMock = new Mock<IMetricsCollector>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult
             {
                 Answer = "answer",
                 Sources = [new GraphRagSource { DocumentId = "d1", ChunkId = "c1", Repository = "r1", FilePath = "f.md", RelevanceScore = 0.9 }]
             });
 
-        await _sut.QueryAsync("test query", 5, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline, metrics: metricsMock);
+        await sut.QueryAsync("test query", 5, CancellationToken.None);
 
-        var snapshot = _metrics.GetSnapshot();
-        snapshot.TotalQueries.ShouldBe(1);
+        metricsMock.Verify(m => m.RecordQuery(It.Is<double>(d => d >= 0), It.IsAny<int>()), Times.Once);
     }
 
     [Fact]
     public async Task QueryAsync_MaxResultsNegative_DefaultsTo5()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult { Answer = "answer" });
 
-        await _sut.QueryAsync("query", -1, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        await sut.QueryAsync("query", -1, CancellationToken.None);
 
-        _graphRagPipeline.Verify(m => m.QueryAsync(
+        graphRagPipeline.Verify(m => m.QueryAsync(
             "query",
             It.Is<GraphRagOptions>(o => o.MaxChunks == 5),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -113,12 +122,14 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_MaxResultsOver20_CapsAt20()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new GraphRagResult { Answer = "answer" });
 
-        await _sut.QueryAsync("query", 50, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        await sut.QueryAsync("query", 50, CancellationToken.None);
 
-        _graphRagPipeline.Verify(m => m.QueryAsync(
+        graphRagPipeline.Verify(m => m.QueryAsync(
             "query",
             It.Is<GraphRagOptions>(o => o.MaxChunks == 20),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -127,10 +138,12 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_CancellationRequested_ReturnsOperationCancelled()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
-        var result = await _sut.QueryAsync("query", 5, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var result = await sut.QueryAsync("query", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
         result.ErrorCode.ShouldBe("OPERATION_CANCELLED");
@@ -139,10 +152,12 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_PipelineThrows_ReturnsRagSynthesisFailed()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline failure"));
 
-        var result = await _sut.QueryAsync("query", 5, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline);
+        var result = await sut.QueryAsync("query", 5, CancellationToken.None);
 
         result.Success.ShouldBeFalse();
         result.ErrorCode.ShouldBe("RAG_SYNTHESIS_FAILED");
@@ -152,43 +167,47 @@ public class RagQueryToolTests : IDisposable
     [Fact]
     public async Task QueryAsync_PipelineThrows_RecordsErrorMetric()
     {
-        _graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        var metricsMock = new Mock<IMetricsCollector>();
+        graphRagPipeline.Setup(m => m.QueryAsync(It.IsAny<string>(), It.IsAny<GraphRagOptions>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Pipeline failure"));
 
-        await _sut.QueryAsync("query", 5, CancellationToken.None);
+        var sut = CreateSut(graphRagPipeline: graphRagPipeline, metrics: metricsMock);
+        await sut.QueryAsync("query", 5, CancellationToken.None);
 
-        // The error counter should have been incremented (no direct accessor, but verify no exception)
-        var snapshot = _metrics.GetSnapshot();
-        snapshot.ShouldNotBeNull();
+        metricsMock.Verify(m => m.RecordError("InvalidOperationException"), Times.Once);
     }
 
     [Fact]
     public void Constructor_NullDependency_ThrowsArgumentNullException()
     {
-        var ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(null!, _graphRepository.Object, _embeddingService.Object, _llmService.Object, _graphRagPipeline.Object, _metrics, _logger));
+        var vectorStore = new Mock<IVectorStore>();
+        var graphRepository = new Mock<IGraphRepository>();
+        var embeddingService = new Mock<IBedrockEmbeddingService>();
+        var llmService = new Mock<IBedrockLlmService>();
+        var graphRagPipeline = new Mock<IGraphRagPipeline>();
+        var metricsMock = new Mock<IMetricsCollector>();
+        var logger = NullLogger<RagQueryTool>.Instance;
+
+        var ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(null!, graphRepository.Object, embeddingService.Object, llmService.Object, graphRagPipeline.Object, metricsMock.Object, logger));
         ex.ParamName.ShouldBe("vectorStore");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, null!, _embeddingService.Object, _llmService.Object, _graphRagPipeline.Object, _metrics, _logger));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, null!, embeddingService.Object, llmService.Object, graphRagPipeline.Object, metricsMock.Object, logger));
         ex.ParamName.ShouldBe("graphRepository");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, _graphRepository.Object, null!, _llmService.Object, _graphRagPipeline.Object, _metrics, _logger));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, graphRepository.Object, null!, llmService.Object, graphRagPipeline.Object, metricsMock.Object, logger));
         ex.ParamName.ShouldBe("embeddingService");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, _graphRepository.Object, _embeddingService.Object, null!, _graphRagPipeline.Object, _metrics, _logger));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, graphRepository.Object, embeddingService.Object, null!, graphRagPipeline.Object, metricsMock.Object, logger));
         ex.ParamName.ShouldBe("llmService");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, _graphRepository.Object, _embeddingService.Object, _llmService.Object, null!, _metrics, _logger));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, graphRepository.Object, embeddingService.Object, llmService.Object, null!, metricsMock.Object, logger));
         ex.ParamName.ShouldBe("graphRagPipeline");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, _graphRepository.Object, _embeddingService.Object, _llmService.Object, _graphRagPipeline.Object, null!, _logger));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, graphRepository.Object, embeddingService.Object, llmService.Object, graphRagPipeline.Object, null!, logger));
         ex.ParamName.ShouldBe("metrics");
 
-        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(_vectorStore.Object, _graphRepository.Object, _embeddingService.Object, _llmService.Object, _graphRagPipeline.Object, _metrics, null!));
+        ex = Should.Throw<ArgumentNullException>(() => new RagQueryTool(vectorStore.Object, graphRepository.Object, embeddingService.Object, llmService.Object, graphRagPipeline.Object, metricsMock.Object, null!));
         ex.ParamName.ShouldBe("logger");
-    }
-
-    public void Dispose()
-    {
-        _metrics.Dispose();
     }
 }

@@ -9,8 +9,8 @@ namespace CompoundDocs.McpServer.Processing;
 /// </summary>
 public sealed partial class DocumentParser
 {
-    private readonly FrontmatterParser _frontmatterParser;
-    private readonly MarkdownParser _markdownParser;
+    private readonly IFrontmatterParser _frontmatterParser;
+    private readonly IMarkdownParser _markdownParser;
 
     /// <summary>
     /// Regular expression pattern for matching YAML frontmatter delimiters.
@@ -25,12 +25,10 @@ public sealed partial class DocumentParser
     /// <summary>
     /// Creates a new instance of DocumentParser.
     /// </summary>
-    /// <param name="frontmatterParser">Optional frontmatter parser. If null, a new instance is created.</param>
-    /// <param name="markdownParser">Optional markdown parser. If null, a new instance is created.</param>
-    public DocumentParser(FrontmatterParser? frontmatterParser = null, MarkdownParser? markdownParser = null)
+    public DocumentParser(IFrontmatterParser frontmatterParser, IMarkdownParser markdownParser)
     {
-        _frontmatterParser = frontmatterParser ?? new FrontmatterParser();
-        _markdownParser = markdownParser ?? new MarkdownParser();
+        _frontmatterParser = frontmatterParser;
+        _markdownParser = markdownParser;
     }
 
     /// <summary>

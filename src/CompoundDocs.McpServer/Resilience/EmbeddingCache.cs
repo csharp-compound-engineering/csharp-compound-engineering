@@ -92,7 +92,7 @@ public sealed partial class EmbeddingCache : IEmbeddingCache, IDisposable
 
     private readonly ILogger<EmbeddingCache> _logger;
     private readonly EmbeddingCacheOptions _options;
-    private readonly MetricsCollector? _metrics;
+    private readonly IMetricsCollector? _metrics;
     private readonly ConcurrentDictionary<string, CachedEmbedding> _cache = new();
     private readonly Timer _cleanupTimer;
     private bool _disposed;
@@ -106,7 +106,7 @@ public sealed partial class EmbeddingCache : IEmbeddingCache, IDisposable
     public EmbeddingCache(
         IOptions<EmbeddingCacheOptions> options,
         ILogger<EmbeddingCache> logger,
-        MetricsCollector? metrics = null)
+        IMetricsCollector? metrics = null)
     {
         _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

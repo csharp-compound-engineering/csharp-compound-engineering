@@ -8,7 +8,7 @@ namespace CompoundDocs.McpServer.Observability;
 /// Collects and exposes operational metrics for the MCP server.
 /// Uses System.Diagnostics.Metrics for .NET 9.0 native metrics and ActivitySource for tracing.
 /// </summary>
-public sealed class MetricsCollector : IDisposable
+public sealed class MetricsCollector : IMetricsCollector
 {
     /// <summary>
     /// The meter name for CompoundDocs metrics.
@@ -203,7 +203,8 @@ public sealed class MetricsCollector : IDisposable
         };
     }
 
-    private double CalculateCacheHitRate()
+    /// <inheritdoc />
+    public double CalculateCacheHitRate()
     {
         var total = Interlocked.Read(ref _cacheHits) + Interlocked.Read(ref _cacheMisses);
         if (total == 0)

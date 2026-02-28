@@ -6,7 +6,7 @@ namespace CompoundDocs.Common.Parsing;
 /// <summary>
 /// Validates JSON/YAML data against JSON Schema using NJsonSchema.
 /// </summary>
-public sealed class SchemaValidator
+public sealed class SchemaValidator : ISchemaValidator
 {
     private readonly Dictionary<string, JsonSchema> _schemaCache = new();
 

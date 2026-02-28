@@ -1,16 +1,16 @@
+using CompoundDocs.Common.Parsing;
 using CompoundDocs.McpServer.Processing;
 
 namespace CompoundDocs.Tests.Integration.Processing;
 
 public class DocumentProcessingIntegrationTests
 {
-    private readonly DocumentParser _parser = new();
-    private readonly ChunkingStrategy _chunker = new();
-
     [Fact]
     public void ParseAndChunk_MarkdownDocument_ProducesChunksWithMetadata()
     {
         // Arrange
+        var parser = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
+        var chunker = new ChunkingStrategy();
         var markdown = """
             ---
             title: Getting Started with GraphRAG
@@ -58,8 +58,8 @@ public class DocumentProcessingIntegrationTests
             """;
 
         // Act
-        var parsed = _parser.ParseDetailed(markdown);
-        var chunks = _chunker.Chunk(parsed.Body, "test-doc-1");
+        var parsed = parser.ParseDetailed(markdown);
+        var chunks = chunker.Chunk(parsed.Body, "test-doc-1");
 
         // Assert
         parsed.IsSuccess.ShouldBeTrue();
@@ -84,6 +84,7 @@ public class DocumentProcessingIntegrationTests
     public void ParseAndChunk_LargeDocument_ChunksAreWithinSizeLimit()
     {
         // Arrange - create a document larger than default chunk size (1000 chars)
+        var parser = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var sections = Enumerable.Range(1, 20).Select(i =>
             $"""
 
@@ -101,7 +102,7 @@ public class DocumentProcessingIntegrationTests
         var chunker = new ChunkingStrategy(options);
 
         // Act
-        var parsed = _parser.Parse(markdown);
+        var parsed = parser.Parse(markdown);
         var chunks = chunker.Chunk(parsed.Body, "large-doc");
 
         // Assert
@@ -119,6 +120,7 @@ public class DocumentProcessingIntegrationTests
     {
         // Arrange - use internal (relative) links since MarkdownParser.ExtractLinks
         // skips external http/https URLs by design
+        var parser = new DocumentParser(new FrontmatterParser(), new MarkdownParser());
         var markdown = """
             ---
             title: API Reference
@@ -134,7 +136,7 @@ public class DocumentProcessingIntegrationTests
             """;
 
         // Act
-        var parsed = _parser.ParseDetailed(markdown);
+        var parsed = parser.ParseDetailed(markdown);
 
         // Assert
         parsed.IsSuccess.ShouldBeTrue();

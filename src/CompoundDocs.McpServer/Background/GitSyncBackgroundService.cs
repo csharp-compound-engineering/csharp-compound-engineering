@@ -32,7 +32,7 @@ internal sealed partial class GitSyncBackgroundService : BackgroundService, IGit
         Message = "Git sync background service stopped")]
     private partial void LogStopped();
 
-    private readonly GitSyncRunner _runner;
+    private readonly IGitSyncRunner _runner;
     private readonly CompoundDocsCloudConfig _cloudConfig;
     private readonly GitSyncConfig _gitSyncConfig;
     private readonly ILogger<GitSyncBackgroundService> _logger;
@@ -41,7 +41,7 @@ internal sealed partial class GitSyncBackgroundService : BackgroundService, IGit
     private bool _lastRunFailed;
 
     public GitSyncBackgroundService(
-        GitSyncRunner runner,
+        IGitSyncRunner runner,
         IOptions<CompoundDocsCloudConfig> cloudConfig,
         IOptions<GitSyncConfig> gitSyncConfig,
         ILogger<GitSyncBackgroundService> logger)

@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace CompoundDocs.McpServer.Background;
 
-internal sealed partial class GitSyncRunner
+internal sealed partial class GitSyncRunner : IGitSyncRunner
 {
     [LoggerMessage(EventId = 1, Level = LogLevel.Information,
         Message = "Repository config not found for '{RepoName}'")]

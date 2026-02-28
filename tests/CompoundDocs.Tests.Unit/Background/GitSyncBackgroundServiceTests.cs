@@ -1,52 +1,28 @@
 using CompoundDocs.Common.Configuration;
 using CompoundDocs.GitSync;
-using CompoundDocs.Graph;
-using CompoundDocs.GraphRag;
 using CompoundDocs.McpServer.Background;
 using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using Shouldly;
 
 namespace CompoundDocs.Tests.Unit.Background;
 
 public sealed class GitSyncBackgroundServiceTests
 {
-    private readonly Mock<IGitSyncService> _gitSyncMock = new();
-    private readonly Mock<IDocumentIngestionService> _ingestionMock = new();
-    private readonly Mock<IGraphRepository> _graphMock = new();
-    private readonly CompoundDocsCloudConfig _cloudConfig = new();
-    private readonly GitSyncConfig _gitSyncConfig = new() { IntervalSeconds = 1 };
-
-    public GitSyncBackgroundServiceTests()
-    {
-        _graphMock
-            .Setup(g => g.GetSyncStateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string?)null);
-        _gitSyncMock
-            .Setup(s => s.GetHeadCommitHashAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("abc123");
-    }
-
-    private GitSyncRunner CreateRunner() =>
+    private static GitSyncBackgroundService CreateService(
+        Mock<IGitSyncRunner> runnerMock,
+        CompoundDocsCloudConfig? cloudConfig = null,
+        GitSyncConfig? gitSyncConfig = null) =>
         new(
-            _gitSyncMock.Object,
-            _ingestionMock.Object,
-            _graphMock.Object,
-            Microsoft.Extensions.Options.Options.Create(_cloudConfig),
-            NullLogger<GitSyncRunner>.Instance);
-
-    private GitSyncBackgroundService CreateService() =>
-        new(
-            CreateRunner(),
-            Microsoft.Extensions.Options.Options.Create(_cloudConfig),
-            Microsoft.Extensions.Options.Options.Create(_gitSyncConfig),
+            runnerMock.Object,
+            Microsoft.Extensions.Options.Options.Create(cloudConfig ?? new CompoundDocsCloudConfig()),
+            Microsoft.Extensions.Options.Options.Create(gitSyncConfig ?? new GitSyncConfig { IntervalSeconds = 1 }),
             NullLogger<GitSyncBackgroundService>.Instance);
 
     [Fact]
     public async Task RunSyncCycleAsync_NoRepositories_LogsWarningAndReturns()
     {
-        _cloudConfig.Repositories = [];
-        var sut = CreateService();
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig { Repositories = [] };
+        var sut = CreateService(runnerMock, cloudConfig);
 
         await sut.RunSyncCycleAsync(CancellationToken.None);
 
@@ -57,96 +33,88 @@ public sealed class GitSyncBackgroundServiceTests
     [Fact]
     public async Task RunSyncCycleAsync_SingleRepo_CallsRunnerAndSetsLastSuccess()
     {
-        _cloudConfig.Repositories = [new RepositoryConfig { Name = "my-repo" }];
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(It.IsAny<RepositoryConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/repos/my-repo");
-        _gitSyncMock
-            .Setup(s => s.GetChangedFilesAsync(It.IsAny<RepositoryConfig>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig
+        {
+            Repositories = [new RepositoryConfig { Name = "my-repo" }]
+        };
+        runnerMock
+            .Setup(r => r.RunAsync("my-repo", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
-        var sut = CreateService();
+        var sut = CreateService(runnerMock, cloudConfig);
         await sut.RunSyncCycleAsync(CancellationToken.None);
 
         sut.LastSuccessfulRun.ShouldNotBeNull();
         sut.LastRunFailed.ShouldBeFalse();
+        runnerMock.Verify(r => r.RunAsync("my-repo", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task RunSyncCycleAsync_MultipleRepos_CallsRunnerForEach()
     {
-        _cloudConfig.Repositories =
-        [
-            new RepositoryConfig { Name = "repo-a" },
-            new RepositoryConfig { Name = "repo-b" }
-        ];
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(It.IsAny<RepositoryConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/repos/default");
-        _gitSyncMock
-            .Setup(s => s.GetChangedFilesAsync(It.IsAny<RepositoryConfig>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig
+        {
+            Repositories =
+            [
+                new RepositoryConfig { Name = "repo-a" },
+                new RepositoryConfig { Name = "repo-b" }
+            ]
+        };
+        runnerMock
+            .Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
-        var sut = CreateService();
+        var sut = CreateService(runnerMock, cloudConfig);
         await sut.RunSyncCycleAsync(CancellationToken.None);
 
-        _gitSyncMock.Verify(
-            s => s.CloneOrUpdateAsync(
-                It.Is<RepositoryConfig>(r => r.Name == "repo-a"),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
-        _gitSyncMock.Verify(
-            s => s.CloneOrUpdateAsync(
-                It.Is<RepositoryConfig>(r => r.Name == "repo-b"),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+        runnerMock.Verify(r => r.RunAsync("repo-a", It.IsAny<CancellationToken>()), Times.Once);
+        runnerMock.Verify(r => r.RunAsync("repo-b", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task RunSyncCycleAsync_OneRepoFails_OtherRepoStillProcessed()
     {
-        _cloudConfig.Repositories =
-        [
-            new RepositoryConfig { Name = "fail-repo" },
-            new RepositoryConfig { Name = "ok-repo" }
-        ];
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(
-                It.Is<RepositoryConfig>(r => r.Name == "fail-repo"),
-                It.IsAny<CancellationToken>()))
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig
+        {
+            Repositories =
+            [
+                new RepositoryConfig { Name = "fail-repo" },
+                new RepositoryConfig { Name = "ok-repo" }
+            ]
+        };
+        runnerMock
+            .Setup(r => r.RunAsync("fail-repo", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("clone failed"));
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(
-                It.Is<RepositoryConfig>(r => r.Name == "ok-repo"),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/repos/ok-repo");
-        _gitSyncMock
-            .Setup(s => s.GetChangedFilesAsync(It.IsAny<RepositoryConfig>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        runnerMock
+            .Setup(r => r.RunAsync("ok-repo", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
-        var sut = CreateService();
+        var sut = CreateService(runnerMock, cloudConfig);
         await sut.RunSyncCycleAsync(CancellationToken.None);
 
         sut.LastRunFailed.ShouldBeTrue();
-        _gitSyncMock.Verify(
-            s => s.CloneOrUpdateAsync(
-                It.Is<RepositoryConfig>(r => r.Name == "ok-repo"),
-                It.IsAny<CancellationToken>()),
-            Times.Once);
+        runnerMock.Verify(r => r.RunAsync("ok-repo", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task RunSyncCycleAsync_CancellationRequested_PropagatesCancellation()
     {
-        _cloudConfig.Repositories = [new RepositoryConfig { Name = "my-repo" }];
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig
+        {
+            Repositories = [new RepositoryConfig { Name = "my-repo" }]
+        };
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(It.IsAny<RepositoryConfig>(), It.IsAny<CancellationToken>()))
+        runnerMock
+            .Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new OperationCanceledException());
 
-        var sut = CreateService();
+        var sut = CreateService(runnerMock, cloudConfig);
 
         await Should.ThrowAsync<OperationCanceledException>(
             () => sut.RunSyncCycleAsync(cts.Token));
@@ -155,8 +123,9 @@ public sealed class GitSyncBackgroundServiceTests
     [Fact]
     public void IntervalSeconds_ReturnsConfiguredValue()
     {
-        _gitSyncConfig.IntervalSeconds = 3600;
-        var sut = CreateService();
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var gitSyncConfig = new GitSyncConfig { IntervalSeconds = 3600 };
+        var sut = CreateService(runnerMock, gitSyncConfig: gitSyncConfig);
 
         sut.IntervalSeconds.ShouldBe(3600);
     }
@@ -164,15 +133,16 @@ public sealed class GitSyncBackgroundServiceTests
     [Fact]
     public async Task ExecuteAsync_RunsInitialSyncThenStopsOnCancellation()
     {
-        _cloudConfig.Repositories = [new RepositoryConfig { Name = "my-repo" }];
-        _gitSyncMock
-            .Setup(s => s.CloneOrUpdateAsync(It.IsAny<RepositoryConfig>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("/repos/my-repo");
-        _gitSyncMock
-            .Setup(s => s.GetChangedFilesAsync(It.IsAny<RepositoryConfig>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([]);
+        var runnerMock = new Mock<IGitSyncRunner>();
+        var cloudConfig = new CompoundDocsCloudConfig
+        {
+            Repositories = [new RepositoryConfig { Name = "my-repo" }]
+        };
+        runnerMock
+            .Setup(r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(0);
 
-        var sut = CreateService();
+        var sut = CreateService(runnerMock, cloudConfig);
 
         using var cts = new CancellationTokenSource();
         cts.CancelAfter(TimeSpan.FromMilliseconds(100));
@@ -181,8 +151,8 @@ public sealed class GitSyncBackgroundServiceTests
         await Task.Delay(TimeSpan.FromMilliseconds(200));
         await sut.StopAsync(CancellationToken.None);
 
-        _gitSyncMock.Verify(
-            s => s.CloneOrUpdateAsync(It.IsAny<RepositoryConfig>(), It.IsAny<CancellationToken>()),
+        runnerMock.Verify(
+            r => r.RunAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.AtLeastOnce);
     }
 }
