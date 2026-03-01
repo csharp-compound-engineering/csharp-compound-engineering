@@ -1,0 +1,22 @@
+# OpenTofu / Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!terraform.tfvars.example
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Phase subdirectories
+phases/*/.terraform/
+phases/*/*.tfstate
+phases/*/*.tfstate.*
+phases/*/*.tfplan
+phases/*/*.tfvars
+!phases/*/terraform.tfvars.example
+phases/*/.terraform.lock.hcl

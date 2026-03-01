@@ -32,7 +32,7 @@ Before contributing, ensure you have:
 - .NET 9.0 SDK or later
 - Git
 - A code editor (Visual Studio, VS Code, or Rider recommended)
-- PowerShell 7+ (only needed for the reference IaC scripts in `opentofu/scripts/`)
+- PowerShell 7+ (only needed for the reference IaC scripts in `opentofu/k8s/scripts/` and `opentofu/serverless/scripts/`)
 - AWS credentials (optional — only needed to run against real AWS services)
 - Docker (optional — only needed for building the production container image)
 

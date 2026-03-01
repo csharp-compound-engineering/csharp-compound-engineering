@@ -71,15 +71,15 @@
       "@semantic-release/exec",
       {
         "verifyConditionsCmd": "dotnet --version && docker version --format '{{.Server.Version}}' && helm version --short && pnpm --version",
-        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-docs.sh ${nextRelease.version}",
-        "publishCmd": "bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-helm.sh ${nextRelease.version}",
+        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-docs.sh ${nextRelease.version}",
+        "publishCmd": "bash scripts/release-helm.sh ${nextRelease.version}",
         "successCmd": "echo 'Release ${nextRelease.version} published successfully'"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml"],
+        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml", "charts/compound-docs/values.yaml", "opentofu/serverless/phases/03-compute/variables.tf"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

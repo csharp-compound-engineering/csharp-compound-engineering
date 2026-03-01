@@ -21,6 +21,7 @@ echo "Building and pushing Docker image ${IMAGE}:${VERSION}..."
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --push \
+  --metadata-file /tmp/mcp-server-metadata.json \
   "${TAGS[@]}" \
   --build-arg "VERSION=${VERSION}" \
   --build-arg "COMMIT_SHA=${GITHUB_SHA}" \
@@ -45,6 +46,7 @@ echo "Building and pushing Docker image ${GITSYNC_IMAGE}:${VERSION}..."
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   --push \
+  --metadata-file /tmp/gitsync-metadata.json \
   "${GITSYNC_TAGS[@]}" \
   --build-arg "VERSION=${VERSION}" \
   --build-arg "COMMIT_SHA=${GITHUB_SHA}" \
@@ -55,3 +57,22 @@ docker buildx build \
   --file ./Dockerfile.gitsync .
 
 echo "Docker image ${GITSYNC_IMAGE}:${VERSION} pushed successfully"
+
+# --- Extract digests and update Helm chart + OpenTofu ---
+MCP_DIGEST=$(jq -r '.["containerimage.digest"]' /tmp/mcp-server-metadata.json)
+GITSYNC_DIGEST=$(jq -r '.["containerimage.digest"]' /tmp/gitsync-metadata.json)
+
+echo "MCP server digest: ${MCP_DIGEST}"
+echo "GitSync digest: ${GITSYNC_DIGEST}"
+
+# Update values.yaml with digests
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+sed -i'' -e '/^image:/,/^[^ ]/ { /^  digest:/ s|digest:.*|digest: "'"${MCP_DIGEST}"'"|; }' "${REPO_ROOT}/charts/compound-docs/values.yaml"
+sed -i'' -e '/^    image:/,/^[^ ]/ { /^      digest:/ s|digest:.*|digest: "'"${GITSYNC_DIGEST}"'"|; }' "${REPO_ROOT}/charts/compound-docs/values.yaml"
+
+# Update OpenTofu serverless gitsync_image_digest default
+sed -i'' -e '/variable "gitsync_image_digest"/,/^}/ { /default/ s|default.*|default     = "'"${GITSYNC_DIGEST}"'"|; }' "${REPO_ROOT}/opentofu/serverless/phases/03-compute/variables.tf"
+
+echo "Updated values.yaml and OpenTofu variables with image digests"

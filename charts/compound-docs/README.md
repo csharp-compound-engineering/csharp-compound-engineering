@@ -26,7 +26,7 @@ When using **Mode A** or **Mode D** (Crossplane enabled), the Crossplane `provid
 | Route 53 (route53:*) | CreateHostedZone, DeleteHostedZone, GetChange, AssociateVPCWithHostedZone, DisassociateVPCFromHostedZone, ListHostedZonesByVPC, ListHostedZonesByName, ChangeResourceRecordSets, GetHostedZone, ListResourceRecordSets | Manage private hosted zones for AOSS VPC endpoint DNS resolution |
 | STS | GetCallerIdentity | Account ID lookups in OpenTofu |
 
-The project includes a reference OpenTofu configuration (`opentofu/`) that provisions this policy automatically in `opentofu/phases/00-prereqs`. If you are not using the reference IaC, create and attach a policy with the above permissions manually to the role assumed by the Crossplane provider pod.
+The project includes a reference OpenTofu configuration (`opentofu/k8s/`) that provisions this policy automatically in `opentofu/k8s/phases/00-prereqs`. If you are not using the reference IaC, create and attach a policy with the above permissions manually to the role assumed by the Crossplane provider pod.
 
 ## Configuration Modes
 
@@ -262,7 +262,7 @@ kubectl describe secretstore <release> -n <namespace>
 
 - **SecretStore `InvalidProvider`**: Ensure the ESO ServiceAccount has a Pod Identity association and the IAM role has `secretsmanager:GetSecretValue` permissions.
 - **ExternalSecret `SecretSyncedError`**: Verify the Secrets Manager path exists and matches the `secretsManagerPrefix` value (e.g. `compound-docs/neptune`).
-- **Crossplane Workspace `AccessDenied`**: The Crossplane provider IAM role is missing permissions. If using the reference OpenTofu configuration (`opentofu/phases/00-prereqs`), re-apply after updating. Otherwise ensure the role has Neptune, OpenSearch Serverless, IAM, EKS, Secrets Manager, and STS permissions as documented in the Prerequisites section.
+- **Crossplane Workspace `AccessDenied`**: The Crossplane provider IAM role is missing permissions. If using the reference OpenTofu configuration (`opentofu/k8s/phases/00-prereqs`), re-apply after updating. Otherwise ensure the role has Neptune, OpenSearch Serverless, IAM, EKS, Secrets Manager, and STS permissions as documented in the Prerequisites section.
 - **Neptune `InvalidParameterCombination` / service-linked role missing**: Neptune requires the `AWSServiceRoleForNeptune` service-linked role. The chart creates it by default (`neptune.createServiceLinkedRole: true`). If your account already has this role, set `neptune.createServiceLinkedRole: false` to skip creation.
 - **IAM OpenSearch Policy workspace `empty result`**: The OpenSearch Serverless collection doesn't exist yet. Wait for the OpenSearch workspace (wave 2) to reach `READY=True` — the policy workspace will self-heal on its next reconciliation loop.
 - **Crossplane provider pod identity not working after association**: After the IAM workspace creates the `eks:PodIdentityAssociation`, the Crossplane provider pod may need a restart to pick up the new credentials. Delete the provider pod to trigger a restart: `kubectl delete pod -n crossplane-system -l pkg.crossplane.io/revision`.
