@@ -18,7 +18,7 @@ spec:
             kubernetes.io/arch: arm64
           containers:
             - name: gitsync
-              image: "{{ .Values.gitSync.job.image.repository }}:{{ .Values.gitSync.job.image.tag | default .Chart.AppVersion }}"
+              image: "{{ .Values.gitSync.job.image.repository }}{{ if .Values.gitSync.job.image.digest }}@{{ .Values.gitSync.job.image.digest }}{{ else }}:{{ .Values.gitSync.job.image.tag | default .Chart.AppVersion }}{{ end }}"
               volumeMounts:
                 - name: git-repos
                   mountPath: {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" }}
