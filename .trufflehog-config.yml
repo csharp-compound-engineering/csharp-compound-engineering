@@ -1,0 +1,19 @@
+detectors:
+  - name: DotnetConnectionString
+    keywords:
+      - password
+      - pwd
+    regex:
+      credential: '(?i)(password|pwd)\s*=\s*[^\s;]{8,}'
+
+  - name: AwsNeptuneEndpoint
+    keywords:
+      - neptune
+    regex:
+      endpoint: '[\w.-]+\.neptune\.amazonaws\.com'
+
+  - name: AwsOpenSearchEndpoint
+    keywords:
+      - aoss
+    regex:
+      endpoint: '[\w.-]+\.aoss\.amazonaws\.com'

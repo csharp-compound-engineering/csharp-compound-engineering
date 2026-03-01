@@ -1,16 +1,17 @@
 # Multi-stage Dockerfile for CompoundDocs MCP Server
 # Uses Ubuntu Chiseled images for minimal attack surface with non-root by default
 #
-# Version pins — update these together:
-#   SDK_DIGEST     → mcr.microsoft.com/dotnet/sdk:10.0-noble
-#   RUNTIME_DIGEST → mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
-ARG SDK_TAG=10.0-noble
-ARG RUNTIME_TAG=10.0-noble-chiseled-extra
+# Version pins — update digests with:
+#   docker buildx imagetools inspect <image>:<tag> --format '{{.Manifest.Digest}}'
+#   SDK:     mcr.microsoft.com/dotnet/sdk:10.0-noble
+#   Runtime: mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra
+ARG SDK_DIGEST=sha256:e362a8dbcd691522456da26a5198b8f3ca1d7641c95624fadc5e3e82678bd08a
+ARG RUNTIME_DIGEST=sha256:b7dcab0a2c26dd114943605fa6aaa43f07956ed9ffcfcf63cc55cb9af5481779
 
 # ============================================================================
 # Stage 1: Build (runs on host arch, cross-compiles to TARGETARCH)
 # ============================================================================
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${SDK_TAG} AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@${SDK_DIGEST} AS build
 
 ARG TARGETARCH
 ARG VERSION=0.0.0
@@ -48,7 +49,7 @@ RUN dotnet publish src/CompoundDocs.McpServer/CompoundDocs.McpServer.csproj \
 # ============================================================================
 # Stage 2: Runtime (Ubuntu Chiseled — non-root by default, UID 1654)
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:${RUNTIME_TAG} AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet@${RUNTIME_DIGEST} AS runtime
 
 WORKDIR /app
 

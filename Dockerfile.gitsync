@@ -1,12 +1,16 @@
 # Multi-stage Dockerfile for CompoundDocs GitSync Job
 # Uses Ubuntu Chiseled images for minimal attack surface with non-root by default
-ARG SDK_TAG=10.0-noble
-ARG RUNTIME_TAG=10.0-noble-chiseled-extra
+# Version pins — update digests with:
+#   docker buildx imagetools inspect <image>:<tag> --format '{{.Manifest.Digest}}'
+#   SDK:     mcr.microsoft.com/dotnet/sdk:10.0-noble
+#   Runtime: mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled-extra
+ARG SDK_DIGEST=sha256:e362a8dbcd691522456da26a5198b8f3ca1d7641c95624fadc5e3e82678bd08a
+ARG RUNTIME_DIGEST=sha256:dd1cb76fe85de8c3f9f691cab9b6bbe905335071f47fddff0b9910b6bd04f281
 
 # ============================================================================
 # Stage 1: Build (runs on host arch, cross-compiles to TARGETARCH)
 # ============================================================================
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:${SDK_TAG} AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk@${SDK_DIGEST} AS build
 
 ARG TARGETARCH
 ARG VERSION=0.0.0
@@ -44,7 +48,7 @@ RUN dotnet publish src/CompoundDocs.GitSync.Job/CompoundDocs.GitSync.Job.csproj 
 # ============================================================================
 # Stage 2: Runtime (Ubuntu Chiseled — non-root by default, UID 1654)
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/runtime:${RUNTIME_TAG} AS runtime
+FROM mcr.microsoft.com/dotnet/runtime@${RUNTIME_DIGEST} AS runtime
 
 WORKDIR /app
 
