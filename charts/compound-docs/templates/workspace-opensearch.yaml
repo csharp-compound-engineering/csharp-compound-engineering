@@ -18,8 +18,14 @@ spec:
     vars:
       - key: name_prefix
         value: {{ include "compound-docs.fullname" . | quote }}
-      - key: collection_name
-        value: {{ .Values.opensearch.collectionName | quote }}
+      - key: domain_name
+        value: {{ .Values.opensearch.domainName | quote }}
+      - key: instance_type
+        value: {{ .Values.opensearch.instanceType | quote }}
+      - key: engine_version
+        value: {{ .Values.opensearch.engineVersion | quote }}
+      - key: ebs_volume_size
+        value: {{ .Values.opensearch.ebsVolumeSize | quote }}
       - key: vpc_id
         value: {{ .Values.vpc.vpcId | quote }}
       - key: private_subnet_ids

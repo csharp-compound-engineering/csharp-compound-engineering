@@ -17,15 +17,15 @@ public sealed partial class NeptuneClient : INeptuneClient
         Message = "Neptune connection test failed")]
     private partial void LogConnectionTestFailed(Exception exception);
 
-    private readonly IAmazonNeptunedata _client;
+    private readonly INeptunedataClientFactory _clientFactory;
     private readonly ILogger<NeptuneClient> _logger;
     private readonly ResiliencePipeline _retryPipeline;
 
     public NeptuneClient(
-        IAmazonNeptunedata client,
+        INeptunedataClientFactory clientFactory,
         ILogger<NeptuneClient> logger)
     {
-        _client = client;
+        _clientFactory = clientFactory;
         _logger = logger;
 
         _retryPipeline = new ResiliencePipelineBuilder()
@@ -43,11 +43,11 @@ public sealed partial class NeptuneClient : INeptuneClient
     }
 
     internal NeptuneClient(
-        IAmazonNeptunedata client,
+        INeptunedataClientFactory clientFactory,
         ILogger<NeptuneClient> logger,
         ResiliencePipeline? retryPipeline = null)
     {
-        _client = client;
+        _clientFactory = clientFactory;
         _logger = logger;
         _retryPipeline = retryPipeline ?? ResiliencePipeline.Empty;
     }
@@ -71,7 +71,7 @@ public sealed partial class NeptuneClient : INeptuneClient
                 request.Parameters = JsonSerializer.Serialize(parameters);
             }
 
-            var response = await _client.ExecuteOpenCypherQueryAsync(request, token);
+            var response = await _clientFactory.GetClient().ExecuteOpenCypherQueryAsync(request, token);
 
             using var doc = JsonDocument.Parse(response.Results.ToString()!);
             return doc.RootElement.Clone();

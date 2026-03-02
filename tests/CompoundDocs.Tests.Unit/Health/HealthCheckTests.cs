@@ -1,6 +1,7 @@
 using CompoundDocs.Bedrock;
 using CompoundDocs.Graph;
 using CompoundDocs.McpServer.Health;
+using CompoundDocs.Vector;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Moq;
 using OpenSearch.Client;
@@ -66,8 +67,10 @@ public sealed class OpenSearchHealthCheckTests
         mockClient
             .Setup(c => c.PingAsync(It.IsAny<Func<PingDescriptor, IPingRequest>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PingResponse());
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
 
-        var sut = new OpenSearchHealthCheck(mockClient.Object);
+        var sut = new OpenSearchHealthCheck(mockFactory.Object);
 
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 
@@ -81,8 +84,10 @@ public sealed class OpenSearchHealthCheckTests
         mockClient
             .Setup(c => c.PingAsync(It.IsAny<Func<PingDescriptor, IPingRequest>>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Connection refused"));
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
 
-        var sut = new OpenSearchHealthCheck(mockClient.Object);
+        var sut = new OpenSearchHealthCheck(mockFactory.Object);
 
         var result = await sut.CheckHealthAsync(new HealthCheckContext());
 

@@ -57,6 +57,7 @@ Package versions are centrally managed in `Directory.Packages.props`. Global bui
 
 - **Mocking: Use Moq only.** Do NOT use NSubstitute. All mocks must use `Moq` (`Mock<T>`, `It.IsAny<T>()`, `.Setup()`, `.Returns()`, `.Verifiable()`, etc.).
 - **Assertions: Use Shouldly only.** Do NOT use FluentAssertions. Use Shouldly's `ShouldBe()`, `ShouldNotBeNull()`, `ShouldContain()`, `ShouldThrow()`, etc.
+- **No test-only code paths in production classes.** Do not add alternate constructors, `#if DEBUG` blocks, or `internal` methods solely for testability. Use dependency injection and interface mocking instead.
 - These rules apply to all test projects — unit, integration, and E2E.
 
 ## Test Isolation & Infrastructure
@@ -180,6 +181,10 @@ Single unified GitHub Actions workflow: `.github/workflows/ci.yml` (named "Relea
 - **Use appropriate agent types.** Match `subagent_type` to the work: `backend-architect` for service design, `quality-engineer` for tests, `security-engineer` for auth/security, `refactoring-expert` for refactors, `frontend-architect` for UI, etc.
 - **Task lists are mandatory.** All team work MUST be tracked via `TaskCreate`/`TaskUpdate`/`TaskList`. Every teammate MUST mark tasks completed when done.
 - **Graceful shutdown is required.** When work is complete, send `shutdown_request` to all teammates and call `TeamDelete` to clean up.
+
+### Explicit user requests override everything
+
+If the user says "use agent teams", "spawn a team", or any similar instruction — **do it immediately, no exceptions.** Do not second-guess, do not decide the task is "too small", do not attempt it solo. The user's explicit instruction to use agent teams is a **hard override** that supersedes all heuristics below.
 
 ### When single-session work is acceptable
 

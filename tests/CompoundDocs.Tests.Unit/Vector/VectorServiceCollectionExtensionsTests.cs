@@ -4,7 +4,6 @@ using CompoundDocs.Vector.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using OpenSearch.Client;
 
 namespace CompoundDocs.Tests.Unit.Vector;
 
@@ -23,6 +22,7 @@ public sealed class VectorServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddOpenSearchVector(config);
 
@@ -33,10 +33,10 @@ public sealed class VectorServiceCollectionExtensionsTests
         vectorStoreDescriptor!.ImplementationType.ShouldBe(typeof(OpenSearchVectorStore));
         vectorStoreDescriptor.Lifetime.ShouldBe(ServiceLifetime.Singleton);
 
-        var clientDescriptor = services.FirstOrDefault(
-            d => d.ServiceType == typeof(IOpenSearchClient));
-        clientDescriptor.ShouldNotBeNull();
-        clientDescriptor!.Lifetime.ShouldBe(ServiceLifetime.Singleton);
+        var factoryDescriptor = services.FirstOrDefault(
+            d => d.ServiceType == typeof(IOpenSearchClientFactory));
+        factoryDescriptor.ShouldNotBeNull();
+        factoryDescriptor!.Lifetime.ShouldBe(ServiceLifetime.Singleton);
     }
 
     [Fact]
@@ -52,6 +52,7 @@ public sealed class VectorServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddOpenSearchVector(config);
 

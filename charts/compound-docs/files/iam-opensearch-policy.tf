@@ -2,23 +2,23 @@ variable "role_name" {
   type = string
 }
 
-variable "collection_name" {
+variable "domain_name" {
   type = string
 }
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_opensearchserverless_collection" "main" {
-  name = var.collection_name
+data "aws_opensearch_domain" "main" {
+  domain_name = var.domain_name
 }
 
 data "aws_iam_policy_document" "opensearch" {
   statement {
     effect  = "Allow"
-    actions = ["aoss:APIAccessAll"]
+    actions = ["es:ESHttp*"]
     resources = [
-      "arn:aws:aoss:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:collection/${data.aws_opensearchserverless_collection.main.id}"
+      "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.domain_name}/*"
     ]
   }
 }

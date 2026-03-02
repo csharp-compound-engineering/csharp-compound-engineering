@@ -132,27 +132,19 @@ resource "aws_iam_policy" "crossplane_provider_aws" {
         Resource = "*"
       },
       {
-        Sid    = "OpenSearchServerless"
+        Sid    = "OpenSearchProvisioned"
         Effect = "Allow"
         Action = [
-          "aoss:CreateSecurityPolicy",
-          "aoss:GetSecurityPolicy",
-          "aoss:UpdateSecurityPolicy",
-          "aoss:DeleteSecurityPolicy",
-          "aoss:CreateAccessPolicy",
-          "aoss:GetAccessPolicy",
-          "aoss:UpdateAccessPolicy",
-          "aoss:DeleteAccessPolicy",
-          "aoss:CreateCollection",
-          "aoss:DeleteCollection",
-          "aoss:BatchGetCollection",
-          "aoss:CreateVpcEndpoint",
-          "aoss:DeleteVpcEndpoint",
-          "aoss:UpdateVpcEndpoint",
-          "aoss:BatchGetVpcEndpoint",
-          "aoss:TagResource",
-          "aoss:UntagResource",
-          "aoss:ListTagsForResource",
+          "es:CreateDomain",
+          "es:DeleteDomain",
+          "es:DescribeDomain",
+          "es:DescribeDomains",
+          "es:UpdateDomainConfig",
+          "es:AddTags",
+          "es:RemoveTags",
+          "es:ListTags",
+          "es:DescribeDomainConfig",
+          "es:CreateServiceLinkedRole",
         ]
         Resource = "*"
       },
@@ -220,35 +212,21 @@ resource "aws_iam_policy" "crossplane_provider_aws" {
         Resource = "*"
       },
       {
-        Sid    = "EC2VpcEndpoint"
+        Sid    = "EC2SecurityGroupAndVpc"
         Effect = "Allow"
         Action = [
-          "ec2:CreateVpcEndpoint",
-          "ec2:DeleteVpcEndpoints",
-          "ec2:DescribeVpcEndpoints",
-          "ec2:ModifyVpcEndpoint",
           "ec2:DescribeVpcs",
+          "ec2:DescribeVpcAttribute",
           "ec2:DescribeSubnets",
           "ec2:DescribeSecurityGroups",
           "ec2:DescribeNetworkInterfaces",
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupEgress",
           "ec2:CreateTags",
-        ]
-        Resource = "*"
-      },
-      {
-        Sid    = "Route53ForAOSSVpcEndpoint"
-        Effect = "Allow"
-        Action = [
-          "route53:CreateHostedZone",
-          "route53:DeleteHostedZone",
-          "route53:GetChange",
-          "route53:AssociateVPCWithHostedZone",
-          "route53:DisassociateVPCFromHostedZone",
-          "route53:ListHostedZonesByVPC",
-          "route53:ListHostedZonesByName",
-          "route53:ChangeResourceRecordSets",
-          "route53:GetHostedZone",
-          "route53:ListResourceRecordSets",
         ]
         Resource = "*"
       }

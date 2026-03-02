@@ -22,6 +22,7 @@ try
 
     var serverOptions = new CompoundDocsServerOptions();
     var builder = WebApplication.CreateBuilder(args);
+    builder.Configuration.AddKeyPerFile("/etc/config/secrets", optional: true, reloadOnChange: true);
 
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole();

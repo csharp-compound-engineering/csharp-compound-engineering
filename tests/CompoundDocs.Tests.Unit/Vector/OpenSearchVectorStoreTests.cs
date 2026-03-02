@@ -22,7 +22,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("{}");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -59,7 +61,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("{}");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -93,7 +97,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var responseJson = """
         {
@@ -151,7 +157,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("""{"hits":{"hits":[]}}""");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -192,7 +200,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("""{"hits":{"hits":[]}}""");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -222,7 +232,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("{}");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -265,7 +277,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("error");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 500, Success = false };
@@ -294,7 +308,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var responseJson = """
         {
@@ -343,7 +359,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("""{"hits":{"hits":[]}}""");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -373,7 +391,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         var response = new StringResponse("""{"hits":{"hits":[]}}""");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -404,7 +424,9 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
-        var sut = new OpenSearchVectorStore(mockClient.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
+        var sut = new OpenSearchVectorStore(mockFactory.Object, config, NullLogger<OpenSearchVectorStore>.Instance, ResiliencePipeline.Empty);
 
         // Act
         await sut.BatchIndexAsync(new List<VectorDocument>());
@@ -419,7 +441,7 @@ public sealed class OpenSearchVectorStoreTests
     }
 
     [Fact]
-    public void PublicConstructor_WithIOptions_CreatesStoreWithRetryPipeline()
+    public void PublicConstructor_WithIOptionsMonitor_CreatesStoreWithRetryPipeline()
     {
         // Arrange
         var config = new OpenSearchConfig
@@ -427,12 +449,13 @@ public sealed class OpenSearchVectorStoreTests
             CollectionEndpoint = "https://opensearch.example.com",
             IndexName = "test-index"
         };
-        var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
-        var options = Microsoft.Extensions.Options.Options.Create(config);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        var mockOptionsMonitor = new Mock<Microsoft.Extensions.Options.IOptionsMonitor<OpenSearchConfig>>();
+        mockOptionsMonitor.Setup(m => m.CurrentValue).Returns(config);
         var logger = NullLogger<OpenSearchVectorStore>.Instance;
 
         // Act
-        var store = new OpenSearchVectorStore(mockClient.Object, options, logger);
+        var store = new OpenSearchVectorStore(mockFactory.Object, mockOptionsMonitor.Object, logger);
 
         // Assert
         store.ShouldNotBeNull();
@@ -450,6 +473,8 @@ public sealed class OpenSearchVectorStoreTests
         var mockClient = new Mock<OpenSearch.Client.IOpenSearchClient>();
         var mockLowLevel = new Mock<IOpenSearchLowLevelClient>();
         mockClient.Setup(c => c.LowLevel).Returns(mockLowLevel.Object);
+        var mockFactory = new Mock<IOpenSearchClientFactory>();
+        mockFactory.Setup(f => f.GetClient()).Returns(mockClient.Object);
 
         var response = new StringResponse("{}");
         response.ApiCall = new ApiCallDetails { HttpStatusCode = 200, Success = true };
@@ -462,7 +487,7 @@ public sealed class OpenSearchVectorStoreTests
             .ReturnsAsync(response);
 
         var logger = NullLogger<OpenSearchVectorStore>.Instance;
-        var store = new OpenSearchVectorStore(mockClient.Object, config, logger, retryPipeline: null);
+        var store = new OpenSearchVectorStore(mockFactory.Object, config, logger, retryPipeline: null);
 
         // Act
         await store.IndexAsync("chunk-null", new float[] { 0.1f },

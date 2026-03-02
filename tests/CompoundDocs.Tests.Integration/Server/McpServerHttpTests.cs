@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using OpenSearch.Client;
-
 namespace CompoundDocs.Tests.Integration.Server;
 
 public class McpServerHttpTests
@@ -43,7 +41,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(new Mock<IOpenSearchClientFactory> { DefaultValue = DefaultValue.Mock }.Object);
 
                 });
             });
@@ -83,7 +81,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(new Mock<IOpenSearchClientFactory> { DefaultValue = DefaultValue.Mock }.Object);
 
                 });
             });
@@ -125,7 +123,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -165,7 +163,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -209,7 +207,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -253,7 +251,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -295,7 +293,7 @@ public class McpServerHttpTests
                     services.AddSingleton(new Mock<IVectorStore>().Object);
                     services.AddSingleton(new Mock<IGraphRepository>().Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });

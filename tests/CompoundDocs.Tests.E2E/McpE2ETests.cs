@@ -11,8 +11,6 @@ using ModelContextProtocol;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using Moq;
-using OpenSearch.Client;
-
 namespace CompoundDocs.Tests.E2E;
 
 public class McpE2ETests
@@ -46,7 +44,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(new Mock<IOpenSearchClientFactory> { DefaultValue = DefaultValue.Mock }.Object);
 
                 });
             });
@@ -88,7 +86,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -134,7 +132,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -196,7 +194,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -285,7 +283,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -354,7 +352,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -424,7 +422,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });
@@ -509,7 +507,7 @@ public class McpE2ETests
                     services.AddSingleton(embeddingServiceMock.Object);
                     services.AddSingleton(new Mock<IBedrockLlmService>().Object);
                     services.AddSingleton(neptuneClientMock.Object);
-                    services.AddSingleton(new Mock<IOpenSearchClient>().Object);
+                    services.AddSingleton(Mock.Of<IOpenSearchClientFactory>());
 
                 });
             });

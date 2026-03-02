@@ -71,13 +71,16 @@ neptune:
   endpoint: ""
   port: "8182"
 
-# --- OpenSearch Serverless ---
+# --- OpenSearch (provisioned domain) ---
 # When crossplane.enabled: true, OpenSearch is provisioned via Crossplane workspace.
 # When crossplane.enabled: false, supply endpoint directly.
 opensearch:
   enabled: true
-  collectionName: compound-docs-vectors
+  domainName: compound-docs-vectors
   connectionSecretName: compound-docs-opensearch
+  instanceType: "t3.small.search"
+  engineVersion: "OpenSearch_2.17"
+  ebsVolumeSize: 20
   # Direct connection (used when crossplane.enabled: false)
   endpoint: ""
 

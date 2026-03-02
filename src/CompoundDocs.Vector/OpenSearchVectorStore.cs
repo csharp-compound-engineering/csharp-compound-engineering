@@ -23,18 +23,18 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
         Message = "Searching vectors, topK={TopK}")]
     private partial void LogSearchingVectors(int topK);
 
-    private readonly IOpenSearchClient _client;
-    private readonly OpenSearchConfig _config;
+    private readonly IOpenSearchClientFactory _clientFactory;
+    private readonly Func<OpenSearchConfig> _configAccessor;
     private readonly ILogger<OpenSearchVectorStore> _logger;
     private readonly ResiliencePipeline _retryPipeline;
 
     public OpenSearchVectorStore(
-        IOpenSearchClient client,
-        IOptions<OpenSearchConfig> options,
+        IOpenSearchClientFactory clientFactory,
+        IOptionsMonitor<OpenSearchConfig> options,
         ILogger<OpenSearchVectorStore> logger)
     {
-        _client = client;
-        _config = options.Value;
+        _clientFactory = clientFactory;
+        _configAccessor = () => options.CurrentValue;
         _logger = logger;
 
         _retryPipeline = new ResiliencePipelineBuilder()
@@ -52,13 +52,13 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
     }
 
     internal OpenSearchVectorStore(
-        IOpenSearchClient client,
+        IOpenSearchClientFactory clientFactory,
         OpenSearchConfig config,
         ILogger<OpenSearchVectorStore> logger,
         ResiliencePipeline? retryPipeline = null)
     {
-        _client = client;
-        _config = config;
+        _clientFactory = clientFactory;
+        _configAccessor = () => config;
         _logger = logger;
         _retryPipeline = retryPipeline ?? ResiliencePipeline.Empty;
     }
@@ -80,8 +80,8 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
                 ["metadata"] = metadata
             };
 
-            var response = await _client.LowLevel.IndexAsync<StringResponse>(
-                _config.IndexName, chunkId, PostData.Serializable(document), ctx: token);
+            var response = await _clientFactory.GetClient().LowLevel.IndexAsync<StringResponse>(
+                _configAccessor().IndexName, chunkId, PostData.Serializable(document), ctx: token);
 
             if (!response.Success)
             {
@@ -110,8 +110,8 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
                 }
             };
 
-            var response = await _client.LowLevel.DeleteByQueryAsync<StringResponse>(
-                _config.IndexName, PostData.Serializable(query), ctx: token);
+            var response = await _clientFactory.GetClient().LowLevel.DeleteByQueryAsync<StringResponse>(
+                _configAccessor().IndexName, PostData.Serializable(query), ctx: token);
 
             if (!response.Success)
             {
@@ -156,8 +156,8 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
                 query = new { knn = new { embedding = knnQuery } }
             };
 
-            var response = await _client.LowLevel.SearchAsync<StringResponse>(
-                _config.IndexName, PostData.Serializable(searchBody), ctx: token);
+            var response = await _clientFactory.GetClient().LowLevel.SearchAsync<StringResponse>(
+                _configAccessor().IndexName, PostData.Serializable(searchBody), ctx: token);
 
             if (!response.Success)
             {

@@ -13,12 +13,12 @@ namespace CompoundDocs.Tests.Unit.Graph;
 public sealed class NeptuneClientUnitTests
 {
     [Fact]
-    public void PublicConstructor_WithIAmazonNeptunedata_CreatesClient()
+    public void PublicConstructor_WithINeptunedataClientFactory_CreatesClient()
     {
-        var mockNeptune = new Mock<IAmazonNeptunedata>();
+        var mockFactory = new Mock<INeptunedataClientFactory>();
         var logger = NullLogger<NeptuneClient>.Instance;
 
-        var client = new NeptuneClient(mockNeptune.Object, logger);
+        var client = new NeptuneClient(mockFactory.Object, logger);
 
         client.ShouldNotBeNull();
     }
@@ -26,13 +26,14 @@ public sealed class NeptuneClientUnitTests
     [Fact]
     public void InternalConstructor_WithNullRetryPipeline_UsesEmptyPipeline()
     {
-        var mockNeptune = new Mock<IAmazonNeptunedata>();
+        var mockFactory = new Mock<INeptunedataClientFactory>();
         var logger = NullLogger<NeptuneClient>.Instance;
 
-        var client = new NeptuneClient(mockNeptune.Object, logger, retryPipeline: null);
+        var client = new NeptuneClient(mockFactory.Object, logger, retryPipeline: null);
 
         client.ShouldNotBeNull();
     }
+
     [Fact]
     public void INeptuneClient_ExecuteOpenCypherAsync_CanBeMocked()
     {
