@@ -13,10 +13,9 @@ sed -i "s|<AssemblyVersion>[^<]*</AssemblyVersion>|<AssemblyVersion>${VERSION}.0
 sed -i "s|^version:.*|version: ${VERSION}|" charts/compound-docs/Chart.yaml
 sed -i "s|^appVersion:.*|appVersion: \"${VERSION}\"|" charts/compound-docs/Chart.yaml
 
-# Build first
-dotnet restore csharp-compounding-docs.sln
-bash scripts/coverage-merge.sh
+# Release build
 dotnet build csharp-compounding-docs.sln \
   --configuration Release \
   -p:Version="${VERSION}"
+
 echo "Release v${VERSION} prepared successfully"

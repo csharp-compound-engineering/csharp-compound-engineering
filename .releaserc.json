@@ -70,7 +70,8 @@
     [
       "@semantic-release/exec",
       {
-        "verifyConditionsCmd": "dotnet --version && docker version --format '{{.Server.Version}}' && helm version --short && pnpm --version",
+        "verifyConditionsCmd": "dotnet --version && pnpm --version",
+        "verifyReleaseCmd": "bash scripts/release-verify.sh",
         "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-docs.sh ${nextRelease.version}",
         "publishCmd": "bash scripts/release-helm.sh ${nextRelease.version}",
         "successCmd": "echo 'Release ${nextRelease.version} published successfully'"

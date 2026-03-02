@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="CompoundDocs.Tests.Unit" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>

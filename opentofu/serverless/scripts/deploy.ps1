@@ -33,6 +33,7 @@ Commands:
   apply [phase]     Apply phase (or all phases sequentially)
   destroy [phase]   Destroy phase (or all phases in reverse order)
   output [phase]    Show outputs for a phase
+  validate [phase]  Validate phase (or all phases including prereqs)
 
 Phases: prereqs, network, data, compute, all (default)
 
@@ -125,6 +126,14 @@ function Invoke-Output {
     Invoke-Tofu -Phase $Phase -Arguments @('output')
 }
 
+function Invoke-Validate {
+    param([string]$Phase)
+    Write-LogInfo "[$Phase] Validating..."
+    Invoke-Tofu -Phase $Phase -Arguments @('init', '-backend=false')
+    Invoke-Tofu -Phase $Phase -Arguments @('validate')
+    Write-LogSuccess "[$Phase] Valid."
+}
+
 function Resolve-Phases {
     param(
         [string]$Phase,
@@ -172,6 +181,12 @@ switch ($Command) {
     'output' {
         foreach ($p in (Resolve-Phases -Phase $Phase -Direction forward)) {
             Invoke-Output -Phase $p
+        }
+    }
+    'validate' {
+        $phases = if ($Phase -eq 'all') { @('prereqs') + $PhasesForward } else { @($Phase) }
+        foreach ($p in $phases) {
+            Invoke-Validate -Phase $p
         }
     }
     { $_ -in @('-h', '--help', 'help') } {

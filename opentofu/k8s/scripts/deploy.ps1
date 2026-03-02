@@ -33,6 +33,7 @@ Commands:
   apply [phase]     Apply phase (or all phases sequentially with health checks)
   destroy [phase]   Destroy phase (or all phases in reverse order)
   output [phase]    Show outputs for a phase
+  validate [phase]  Validate phase (or all phases including prereqs)
   scale             Sync application node group scaling config from tfvars
 
 Phases: prereqs, network, cluster, platform, all (default)
@@ -133,6 +134,14 @@ function Invoke-Output {
     param([string]$Phase)
     Write-LogInfo "[$Phase] Outputs:"
     Invoke-Tofu -Phase $Phase -Arguments @('output')
+}
+
+function Invoke-Validate {
+    param([string]$Phase)
+    Write-LogInfo "[$Phase] Validating..."
+    Invoke-Tofu -Phase $Phase -Arguments @('init', '-backend=false')
+    Invoke-Tofu -Phase $Phase -Arguments @('validate')
+    Write-LogSuccess "[$Phase] Valid."
 }
 
 function Get-Region {
@@ -377,6 +386,12 @@ switch ($Command) {
     'output' {
         foreach ($p in (Resolve-Phases -Phase $Phase -Direction forward)) {
             Invoke-Output -Phase $p
+        }
+    }
+    'validate' {
+        $phases = if ($Phase -eq 'all') { @('prereqs') + $PhasesForward } else { @($Phase) }
+        foreach ($p in $phases) {
+            Invoke-Validate -Phase $p
         }
     }
     'scale' {
