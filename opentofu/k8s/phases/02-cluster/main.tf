@@ -94,6 +94,29 @@ module "eks" {
 }
 
 ################################################################################
+# VPN → EKS API Server Access
+#
+# The cluster primary security group only allows traffic from itself and node
+# SGs. VPN clients (172.16.0.0/16) need an explicit ingress rule to reach the
+# private API endpoint on port 443.
+################################################################################
+
+resource "aws_vpc_security_group_ingress_rule" "vpn_to_eks_api" {
+  count = var.vpn_enabled ? 1 : 0
+
+  security_group_id            = module.eks.cluster_primary_security_group_id
+  referenced_security_group_id = data.terraform_remote_state.network.outputs.vpn_security_group_id
+  from_port                    = 443
+  to_port                      = 443
+  ip_protocol                  = "tcp"
+  description                  = "Allow VPN clients to reach EKS API server"
+
+  tags = merge(local.common_tags, {
+    Name = "${var.cluster_name}-vpn-to-eks-api"
+  })
+}
+
+################################################################################
 # Pod Identity Associations
 #
 # These must live in the cluster phase (not prereqs) because they require the

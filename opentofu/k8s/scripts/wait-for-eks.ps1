@@ -91,7 +91,7 @@ while ($true) {
         $httpCode = $response.StatusCode
     }
     catch {
-        if ($_.Exception.Response) {
+        if ($_.Exception.PSObject.Properties['Response'] -and $_.Exception.Response) {
             $httpCode = [int]$_.Exception.Response.StatusCode
         }
         else {

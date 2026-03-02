@@ -65,11 +65,10 @@ variable "argocd_enabled" {
   default     = true
 }
 
-variable "argocd_admin_password_bcrypt" {
-  description = "Bcrypt hash of the ArgoCD admin password. Generate with: htpasswd -nbBC 10 '' 'your-password' | tr -d ':'"
+variable "argocd_admin_password" {
+  description = "Plaintext ArgoCD admin password (hashed to bcrypt at apply-time)"
   type        = string
   default     = ""
-  sensitive   = true
 }
 
 variable "argocd_server_secret_key" {

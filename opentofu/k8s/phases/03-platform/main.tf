@@ -25,6 +25,18 @@ locals {
         }
       }
     } : {},
+    # Crossplane: annotation tracking + exclude noisy ProviderConfigUsage resources
+    var.crossplane_enabled ? {
+      configs = {
+        cm = {
+          "application.resourceTrackingMethod" = "annotation"
+          "resource.exclusions"                = yamlencode([{
+            apiGroups = ["*"]
+            kinds     = ["ProviderConfigUsage"]
+          }])
+        }
+      }
+    } : {},
   ))
 }
 
