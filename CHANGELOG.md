@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v2.1.0...v3.0.0) (2026-03-02)
+
+### ⚠ BREAKING CHANGES
+
+* Neptune configuration changes from serverless NCU settings to instance class.
+GitSync is no longer a background service in the MCP server.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+### Features
+
+* **mcp:** consolidate worker into mcp server as background service ([#48](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/48)) ([0ae18ee](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/0ae18ee2caa4d67a74b7cac381ec9bcf6e678e46))
+* extract interfaces for all concrete-only DI registrations ([fd7dd28](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/fd7dd28c4c700ea9f7d13df4691ba3b5f61b6716))
+* **infra:** restructure OpenTofu into k8s/ subdirectory, add serverless config + image digest pinning ([#54](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/54)) ([4635f89](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/4635f89efa6858801ced48a57b8d2d682ad277ad))
+
+### Documentation
+
+* **community:** add community health files for open source release ([ce1648f](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/ce1648f0f30f25287e7422f99453fdac264e8873))
+* add conventional commits reference and community file links ([34b30c7](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/34b30c79d71e1e1024ad22192745f1a56acdd1e2))
+* **docker:** fix stale docker references, oci label, and port across docs ([#46](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/46)) ([7066051](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/7066051b20c498952a39bdae9c66a987845f90d2))
+* remove non-architecture sections from architecture page ([7bf4ed6](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/7bf4ed6fcbe53591fe278dd8ec66da2c9dbe2ce1))
+* update docs site dependencies to fix security vulnerabilities ([#53](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/53)) ([8d759ad](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/8d759add1f7b30032d7cb085105f519d46604ee5))
+
+### Code Refactoring
+
+* dual-mode MCP server (k8s + lambda), .NET 10, provisioned Neptune, GitSync separation ([6ee131b](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/6ee131b15c5cc6b52e56009e68ca8ecc2a8abb23))
+
 ## [2.1.0](https://github.com/michaelmccord/csharp-compound-engineering/compare/v2.0.0...v2.1.0) (2026-02-15)
 
 ### Features
