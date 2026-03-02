@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.1...v3.0.2) (2026-03-02)
+
+### Bug Fixes
+
+* **infra:** add ArgoCD Crossplane sync fix, VPN-to-EKS access, and password handling improvements ([#57](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/57)) ([df733c4](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/df733c496937e473567e9eed1cb2eed69f582aff))
+
 ## [3.0.1](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.0...v3.0.1) (2026-03-02)
 
 ### Bug Fixes
