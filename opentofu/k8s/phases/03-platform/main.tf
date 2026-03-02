@@ -17,26 +17,25 @@ locals {
         replicas = 1
       }
     },
-    # ESO-managed secrets: disable chart-managed secret creation
-    var.external_secrets_enabled ? {
-      configs = {
-        secret = {
-          createSecret = false
-        }
-      }
-    } : {},
-    # Crossplane: annotation tracking + exclude noisy ProviderConfigUsage resources
-    var.crossplane_enabled ? {
-      configs = {
-        cm = {
-          "application.resourceTrackingMethod" = "annotation"
-          "resource.exclusions"                = yamlencode([{
-            apiGroups = ["*"]
-            kinds     = ["ProviderConfigUsage"]
-          }])
-        }
-      }
-    } : {},
+    # ArgoCD configs — single block to avoid shallow-merge collision between sub-keys
+    {
+      configs = merge(
+        var.external_secrets_enabled ? {
+          secret = {
+            createSecret = false
+          }
+        } : {},
+        var.crossplane_enabled ? {
+          cm = {
+            "application.resourceTrackingMethod" = "annotation"
+            "resource.exclusions"                = yamlencode([{
+              apiGroups = ["*"]
+              kinds     = ["ProviderConfigUsage"]
+            }])
+          }
+        } : {},
+      )
+    },
   ))
 }
 

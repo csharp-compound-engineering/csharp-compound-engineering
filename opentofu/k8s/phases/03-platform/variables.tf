@@ -87,7 +87,7 @@ variable "argocd_enabled" {
 variable "argocd_chart_version" {
   description = "Helm chart version for argo-cd"
   type        = string
-  default     = "7.8.0"
+  default     = "9.4.6"
 }
 
 variable "argocd_dns_name" {
