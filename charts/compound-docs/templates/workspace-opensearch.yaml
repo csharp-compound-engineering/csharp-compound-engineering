@@ -24,8 +24,6 @@ spec:
         value: {{ .Values.vpc.vpcId | quote }}
       - key: private_subnet_ids
         value: {{ .Values.vpc.privateSubnetIds | quote }}
-      - key: security_group_id
-        value: {{ .Values.vpc.opensearchSecurityGroupId | quote }}
       {{- if .Values.externalSecrets.enabled }}
       - key: write_to_secrets_manager
         value: "true"

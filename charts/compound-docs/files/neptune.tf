@@ -21,10 +21,6 @@ variable "private_subnet_ids" {
   type = string
 }
 
-variable "security_group_id" {
-  type = string
-}
-
 variable "create_service_linked_role" {
   type    = bool
   default = true
@@ -38,6 +34,33 @@ variable "write_to_secrets_manager" {
 variable "secrets_manager_prefix" {
   type    = string
   default = ""
+}
+
+data "aws_vpc" "main" {
+  id = var.vpc_id
+}
+
+resource "aws_security_group" "neptune" {
+  name   = "${var.name_prefix}-neptune"
+  vpc_id = var.vpc_id
+
+  ingress {
+    protocol    = "tcp"
+    from_port   = 8182
+    to_port     = 8182
+    cidr_blocks = [data.aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-neptune-sg"
+  }
 }
 
 resource "aws_iam_service_linked_role" "neptune" {
@@ -74,7 +97,7 @@ resource "aws_neptune_cluster" "main" {
   engine_version                       = var.engine_version
   neptune_subnet_group_name            = aws_neptune_subnet_group.main.name
   neptune_cluster_parameter_group_name = aws_neptune_cluster_parameter_group.main.name
-  vpc_security_group_ids               = [var.security_group_id]
+  vpc_security_group_ids               = [aws_security_group.neptune.id]
   storage_encrypted                    = true
   iam_database_authentication_enabled  = true
   skip_final_snapshot                  = true
