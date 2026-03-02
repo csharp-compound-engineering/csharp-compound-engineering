@@ -19,6 +19,7 @@ public sealed class GitSyncServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddGitSync(config);
 
@@ -36,6 +37,7 @@ public sealed class GitSyncServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddGitSync(config);
 

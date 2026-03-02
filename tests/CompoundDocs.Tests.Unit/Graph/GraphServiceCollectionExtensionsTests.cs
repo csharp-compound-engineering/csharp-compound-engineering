@@ -21,6 +21,7 @@ public sealed class GraphServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddNeptuneGraph(config);
 
@@ -39,10 +40,12 @@ public sealed class GraphServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddNeptuneGraph(config);
 
         var descriptors = services.ToList();
+        descriptors.ShouldContain(d => d.ServiceType == typeof(INeptunedataClientFactory));
         descriptors.ShouldContain(d => d.ServiceType == typeof(INeptuneClient));
         descriptors.ShouldContain(d => d.ServiceType == typeof(IGraphRepository));
     }

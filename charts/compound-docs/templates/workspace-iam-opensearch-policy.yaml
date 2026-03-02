@@ -18,6 +18,6 @@ spec:
     vars:
       - key: role_name
         value: {{ include "compound-docs.fullname" . }}-pod-identity
-      - key: collection_name
-        value: {{ .Values.opensearch.collectionName | quote }}
+      - key: domain_name
+        value: {{ .Values.opensearch.domainName | quote }}
 {{- end }}

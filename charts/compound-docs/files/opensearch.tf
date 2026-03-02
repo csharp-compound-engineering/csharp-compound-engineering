@@ -3,9 +3,24 @@ variable "name_prefix" {
   default = "compound-docs"
 }
 
-variable "collection_name" {
+variable "domain_name" {
   type    = string
   default = "compound-docs-vectors"
+}
+
+variable "instance_type" {
+  type    = string
+  default = "t3.small.search"
+}
+
+variable "engine_version" {
+  type    = string
+  default = "OpenSearch_2.17"
+}
+
+variable "ebs_volume_size" {
+  type    = number
+  default = 20
 }
 
 variable "vpc_id" {
@@ -55,85 +70,64 @@ resource "aws_security_group" "opensearch" {
   }
 }
 
-resource "aws_opensearchserverless_vpc_endpoint" "main" {
-  name               = "${var.name_prefix}-vpce"
-  vpc_id             = var.vpc_id
-  subnet_ids         = split(",", var.private_subnet_ids)
-  security_group_ids = [aws_security_group.opensearch.id]
+resource "aws_opensearch_domain" "main" {
+  domain_name    = var.domain_name
+  engine_version = var.engine_version
 
-  timeouts {
-    create = "30m"
-    update = "30m"
-    delete = "30m"
+  cluster_config {
+    instance_type  = var.instance_type
+    instance_count = 1
   }
-}
 
-resource "aws_opensearchserverless_security_policy" "encryption" {
-  name = "${var.name_prefix}-encryption"
-  type = "encryption"
-  policy = jsonencode({
-    Rules = [
-      {
-        ResourceType = "collection"
-        Resource     = ["collection/${var.collection_name}"]
-      }
-    ]
-    AWSOwnedKey = true
-  })
-}
+  ebs_options {
+    ebs_enabled = true
+    volume_type = "gp3"
+    volume_size = var.ebs_volume_size
+  }
 
-resource "aws_opensearchserverless_security_policy" "network" {
-  name = "${var.name_prefix}-network"
-  type = "network"
-  policy = jsonencode([
-    {
-      Rules = [
-        {
-          ResourceType = "collection"
-          Resource     = ["collection/${var.collection_name}"]
-        }
-      ]
-      AllowFromPublic = false
-      SourceVPCEs     = [aws_opensearchserverless_vpc_endpoint.main.id]
-    }
-  ])
-}
+  encrypt_at_rest {
+    enabled = true
+  }
 
-resource "aws_opensearchserverless_access_policy" "data" {
-  name = "${var.name_prefix}-data"
-  type = "data"
-  policy = jsonencode([
-    {
-      Rules = [
-        {
-          ResourceType = "index"
-          Resource     = ["index/${var.collection_name}/*"]
-          Permission   = ["aoss:CreateIndex", "aoss:ReadDocument", "aoss:WriteDocument", "aoss:UpdateIndex", "aoss:DescribeIndex"]
-        },
-        {
-          ResourceType = "collection"
-          Resource     = ["collection/${var.collection_name}"]
-          Permission   = ["aoss:CreateCollectionItems", "aoss:DescribeCollectionItems", "aoss:UpdateCollectionItems"]
-        }
-      ]
-      Principal = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
-    }
-  ])
-}
+  node_to_node_encryption {
+    enabled = true
+  }
 
-resource "aws_opensearchserverless_collection" "main" {
-  name = var.collection_name
-  type = "VECTORSEARCH"
+  domain_endpoint_options {
+    enforce_https       = true
+    tls_security_policy = "Policy-Min-TLS-1-2-PFS-2023-10"
+  }
+
+  advanced_security_options {
+    enabled                        = true
+    anonymous_auth_enabled         = false
+    internal_user_database_enabled = false
+  }
+
+  vpc_options {
+    subnet_ids         = [split(",", var.private_subnet_ids)[0]]
+    security_group_ids = [aws_security_group.opensearch.id]
+  }
 
   tags = {
-    Name = var.collection_name
+    Name = var.domain_name
   }
+}
 
-  depends_on = [
-    aws_opensearchserverless_security_policy.encryption,
-    aws_opensearchserverless_security_policy.network,
-    aws_opensearchserverless_access_policy.data,
-  ]
+resource "aws_opensearch_domain_policy" "main" {
+  domain_name = aws_opensearch_domain.main.domain_name
+
+  access_policies = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "es:*"
+        Resource  = "${aws_opensearch_domain.main.arn}/*"
+      }
+    ]
+  })
 }
 
 resource "aws_secretsmanager_secret" "opensearch" {
@@ -150,15 +144,10 @@ resource "aws_secretsmanager_secret_version" "opensearch" {
   count     = var.write_to_secrets_manager ? 1 : 0
   secret_id = aws_secretsmanager_secret.opensearch[0].id
   secret_string = jsonencode({
-    endpoint      = aws_opensearchserverless_collection.main.collection_endpoint
-    collection_id = aws_opensearchserverless_collection.main.id
+    endpoint = aws_opensearch_domain.main.endpoint
   })
 }
 
 output "endpoint" {
-  value = aws_opensearchserverless_collection.main.collection_endpoint
-}
-
-output "collection_id" {
-  value = aws_opensearchserverless_collection.main.id
+  value = aws_opensearch_domain.main.endpoint
 }

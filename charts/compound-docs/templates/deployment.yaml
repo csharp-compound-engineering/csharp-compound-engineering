@@ -59,28 +59,27 @@ spec:
                   name: {{ .Values.auth.apiKeysSecretName }}
                   key: api-keys
             {{- end }}
-            - name: CompoundDocs__Neptune__Endpoint
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.neptune.connectionSecretName }}
-                  key: endpoint
-            - name: CompoundDocs__OpenSearch__CollectionEndpoint
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.opensearch.connectionSecretName }}
-                  key: endpoint
+            - name: DOTNET_USE_POLLING_FILE_WATCHER
+              value: "true"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 15
             periodSeconds: 20
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /health
               port: http
-            initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 5
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -92,12 +91,28 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            - name: secrets
+              mountPath: /etc/config/secrets
+              readOnly: true
             - name: git-repos
               mountPath: {{ .Values.gitSync.cloneBaseDirectory | default "/data/repos" }}
       volumes:
         - name: config
           configMap:
             name: {{ include "compound-docs.fullname" . }}
+        - name: secrets
+          projected:
+            sources:
+              - secret:
+                  name: {{ .Values.neptune.connectionSecretName }}
+                  items:
+                    - key: endpoint
+                      path: CompoundDocs__Neptune__Endpoint
+              - secret:
+                  name: {{ .Values.opensearch.connectionSecretName }}
+                  items:
+                    - key: endpoint
+                      path: CompoundDocs__OpenSearch__CollectionEndpoint
         - name: tmp
           emptyDir: {}
         - name: git-repos

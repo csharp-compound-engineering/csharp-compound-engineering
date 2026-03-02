@@ -18,6 +18,7 @@ public sealed class CloudConfigExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddCompoundDocsCloudConfig(config);
 
         var provider = services.BuildServiceProvider();
@@ -41,6 +42,7 @@ public sealed class CloudConfigExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddCompoundDocsCloudConfig(config);
 
         var provider = services.BuildServiceProvider();

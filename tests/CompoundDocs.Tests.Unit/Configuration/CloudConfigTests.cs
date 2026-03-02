@@ -55,6 +55,7 @@ public sealed class CloudConfigTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
         services.AddCompoundDocsCloudConfig(configuration);
         var provider = services.BuildServiceProvider();
 

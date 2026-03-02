@@ -23,6 +23,7 @@ public sealed class BedrockServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddBedrockServices(config);
 
@@ -43,6 +44,7 @@ public sealed class BedrockServiceCollectionExtensionsTests
             .Build();
 
         var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(config);
         services.AddLogging();
         services.AddBedrockServices(config);
 
