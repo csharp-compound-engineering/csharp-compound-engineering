@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.3...v3.0.4) (2026-03-02)
+
+### Bug Fixes
+
+* **infra:** create security groups inline in Crossplane workspace modules ([#59](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/59)) ([f9b2042](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/f9b20421cdd7891cae16bbc2100f3cb75cdd128c))
+
 ## [3.0.3](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.2...v3.0.3) (2026-03-02)
 
 ### Bug Fixes
