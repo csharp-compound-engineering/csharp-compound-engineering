@@ -284,6 +284,4 @@ resource "aws_scheduler_schedule" "gitsync" {
       }
     }
   }
-
-  tags = local.common_tags
 }
