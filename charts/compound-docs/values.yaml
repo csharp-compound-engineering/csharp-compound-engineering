@@ -118,6 +118,7 @@ service:
   type: ClusterIP
   port: 80
   targetPort: 8080
+  managementPort: 8081    # health probes only, not exposed via Service
 
 ingress:
   enabled: false

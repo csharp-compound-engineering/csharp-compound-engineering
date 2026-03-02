@@ -49,6 +49,9 @@ spec:
             - name: http
               containerPort: {{ .Values.service.targetPort }}
               protocol: TCP
+            - name: management
+              containerPort: {{ .Values.service.managementPort }}
+              protocol: TCP
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
@@ -64,20 +67,20 @@ spec:
           startupProbe:
             httpGet:
               path: /health
-              port: http
+              port: management
             failureThreshold: 30
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
-              port: http
+              port: management
             periodSeconds: 20
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /health
-              port: http
+              port: management
             periodSeconds: 10
             timeoutSeconds: 5
           {{- with .Values.resources }}

@@ -28,6 +28,7 @@ public class ApiKeyAuthenticationIntegrationTests
             .WithWebHostBuilder(builder =>
             {
                 builder.UseEnvironment("Testing");
+                builder.UseSetting("ManagementPort", "0");
                 builder.ConfigureServices(services =>
                 {
                     services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>

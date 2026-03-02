@@ -63,17 +63,25 @@ try
             .AddCheck<NeptuneHealthCheck>("neptune")
             .AddCheck<OpenSearchHealthCheck>("opensearch")
             .AddCheck<BedrockHealthCheck>("bedrock");
+
+        var managementPort = builder.Configuration.GetValue("ManagementPort", 8081);
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.ListenAnyIP(8080);
+            options.ListenAnyIP(managementPort);
+        });
     }
 
     var app = builder.Build();
 
-    app.UseAuthentication();
-    app.UseAuthorization();
-
     if (!isLambda)
     {
-        app.MapHealthChecks("/health").AllowAnonymous();
+        var managementPort = app.Configuration.GetValue("ManagementPort", 8081);
+        app.UseHealthChecks("/health", managementPort);
     }
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.MapMcp().RequireAuthorization();
 
