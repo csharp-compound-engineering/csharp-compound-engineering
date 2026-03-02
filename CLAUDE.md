@@ -130,6 +130,33 @@ This repository uses [Conventional Commits](https://www.conventionalcommits.org/
 - Breaking changes always trigger a **major** release regardless of type
 - Scopes are optional; common scopes: `mcp`, `tools`, `db`, `docker`, `docs`, `tests`
 
+## Git Workflow
+
+All code changes MUST be made on a feature branch and submitted via pull request. Direct commits to `master` are blocked by rulesets.
+
+**Branch naming:** Use descriptive branch names with a prefix: `feat/`, `fix/`, `ci/`, `docs/`, `refactor/`, `chore/`, `test/`, `build/`.
+Examples: `ci/trufflehog-migration`, `feat/new-tool`, `fix/auth-header-parsing`.
+
+**PR workflow:**
+1. Create a feature branch from `master`
+2. Make changes and commit with conventional commit messages
+3. Push the branch and create a PR via `gh pr create`
+4. PR title MUST follow conventional commit format (validated by CI)
+5. After approval and merge, the head branch is automatically deleted
+
+**Plans MUST include branch creation and PR submission.** Every plan that modifies files MUST specify: the branch name, the commit message(s), and the PR creation step. Plans that omit branch/PR workflow are invalid.
+
+## Commit Message Formatting
+
+Commit messages MUST follow [Conventional Commits](https://www.conventionalcommits.org/). The release rules are configured in `.releaserc.json` under `@semantic-release/commit-analyzer`. Key points:
+
+- **`refactor` triggers a MAJOR release** (not minor) — this is a custom rule in `.releaserc.json`
+- **`perf` triggers a MINOR release** (not patch)
+- Types that trigger NO release: `docs`, `style`, `chore`, `ci`, `test`, `build`
+- Breaking changes (`!` suffix or `BREAKING CHANGE:` footer) always trigger MAJOR regardless of type
+- Subject must start with **lowercase** (enforced by CI via `pr-title.yml`)
+- The `[skip ci]` trailer is used by semantic-release's own commits — do not use it manually
+
 ## CI/CD
 
 Single unified GitHub Actions workflow: `.github/workflows/ci.yml` (named "Release").
