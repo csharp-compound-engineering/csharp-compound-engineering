@@ -93,6 +93,67 @@ resource "aws_route53_zone" "internal" {
 }
 
 # ------------------------------------------------------------------------------
+# ExternalDNS — IAM
+# ------------------------------------------------------------------------------
+
+resource "aws_iam_role" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name = "${var.cluster_name}-external-dns"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = ["sts:AssumeRole", "sts:TagSession"]
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_policy" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  name        = "${var.cluster_name}-external-dns"
+  description = "Allow ExternalDNS to manage Route 53 records in the private hosted zone"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+          "route53:ListTagsForResources",
+        ]
+        Resource = aws_route53_zone.internal.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = "route53:ListHostedZones"
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "external_dns" {
+  count = var.external_dns_enabled ? 1 : 0
+
+  role       = aws_iam_role.external_dns[0].name
+  policy_arn = aws_iam_policy.external_dns[0].arn
+}
+
+# ------------------------------------------------------------------------------
 # AWS Client VPN
 # ------------------------------------------------------------------------------
 
