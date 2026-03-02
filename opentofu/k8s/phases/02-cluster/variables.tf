@@ -72,7 +72,7 @@ variable "vpn_enabled" {
 variable "node_instance_types" {
   description = "EC2 instance types for the application node group"
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["t4g.medium"]
 }
 
 variable "node_min_size" {
