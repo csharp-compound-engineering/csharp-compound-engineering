@@ -2,8 +2,8 @@ apiVersion: v2
 name: compound-docs
 description: GraphRAG MCP server for C#/.NET documentation — Neptune + OpenSearch Serverless + Bedrock
 type: application
-version: 3.0.4
-appVersion: "3.0.4"
+version: 4.0.0
+appVersion: "4.0.0"
 home: https://github.com/csharp-compound-engineering/csharp-compound-engineering
 sources:
   - https://github.com/csharp-compound-engineering/csharp-compound-engineering

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.4...v4.0.0) (2026-03-02)
+
+### ⚠ BREAKING CHANGES
+
+* **infra:** NeptuneClient and OpenSearchVectorStore constructors now
+accept factory interfaces instead of direct client instances.
+
+Co-authored-by: Claude Opus 4.6 <noreply@anthropic.com>
+
+### Features
+
+* **infra:** mount connection secrets as projected volumes and switch to provisioned OpenSearch ([#60](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/60)) ([d345cbb](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/d345cbb5732e88963789fa2674e0cc7007b09e66))
+
 ## [3.0.4](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v3.0.3...v3.0.4) (2026-03-02)
 
 ### Bug Fixes
