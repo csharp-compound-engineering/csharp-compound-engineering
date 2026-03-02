@@ -9,7 +9,7 @@ Deploys the CompoundDocs MCP Server — a GraphRAG knowledge base for C#/.NET do
 - **Mode A/D**: Crossplane with `provider-opentofu` installed in the cluster
 - **Mode A/B**: External Secrets Operator installed in the cluster
 - **Mode A/B**: AWS Secrets Manager with appropriate IAM permissions
-- **All modes**: Pre-existing VPC, subnets, and security groups (when using Crossplane)
+- **All modes**: Pre-existing VPC and subnets (when using Crossplane)
 
 ### Crossplane Provider IAM Permissions
 
@@ -106,8 +106,6 @@ helm install compound-docs charts/compound-docs \
   --set aws.accountId=123456789012 \
   --set vpc.vpcId=vpc-xxx \
   --set vpc.privateSubnetIds="subnet-a,subnet-b" \
-  --set vpc.neptuneSecurityGroupId=sg-xxx \
-  --set vpc.opensearchSecurityGroupId=sg-yyy \
   --set iam.clusterName=my-eks-cluster
 ```
 
@@ -140,8 +138,6 @@ helm install compound-docs charts/compound-docs \
   --set externalSecrets.enabled=false \
   --set vpc.vpcId=vpc-xxx \
   --set vpc.privateSubnetIds="subnet-a,subnet-b" \
-  --set vpc.neptuneSecurityGroupId=sg-xxx \
-  --set vpc.opensearchSecurityGroupId=sg-yyy \
   --set iam.clusterName=my-eks-cluster
 ```
 
@@ -266,6 +262,6 @@ kubectl describe secretstore <release> -n <namespace>
 - **Neptune `InvalidParameterCombination` / service-linked role missing**: Neptune requires the `AWSServiceRoleForNeptune` service-linked role. The chart creates it by default (`neptune.createServiceLinkedRole: true`). If your account already has this role, set `neptune.createServiceLinkedRole: false` to skip creation.
 - **IAM OpenSearch Policy workspace `empty result`**: The OpenSearch Serverless collection doesn't exist yet. Wait for the OpenSearch workspace (wave 2) to reach `READY=True` — the policy workspace will self-heal on its next reconciliation loop.
 - **Crossplane provider pod identity not working after association**: After the IAM workspace creates the `eks:PodIdentityAssociation`, the Crossplane provider pod may need a restart to pick up the new credentials. Delete the provider pod to trigger a restart: `kubectl delete pod -n crossplane-system -l pkg.crossplane.io/revision`.
-- **OpenSearch `ValidationException: Policy json is invalid`**: The network security policy requires either `AllowFromPublic: true` or at least one VPC endpoint. Ensure `vpc.vpcId`, `vpc.privateSubnetIds`, and `vpc.opensearchSecurityGroupId` are set correctly. The chart creates an AOSS VPC endpoint automatically.
-- **Crossplane Workspace stuck**: Check `kubectl describe workspace <name>` for TF apply errors. Common cause: missing VPC/subnet/SG IDs.
+- **OpenSearch `ValidationException: Policy json is invalid`**: The network security policy requires either `AllowFromPublic: true` or at least one VPC endpoint. Ensure `vpc.vpcId` and `vpc.privateSubnetIds` are set correctly. The chart creates security groups and an AOSS VPC endpoint automatically.
+- **Crossplane Workspace stuck**: Check `kubectl describe workspace <name>` for TF apply errors. Common cause: missing VPC/subnet IDs.
 - **`writeConnectionSecretToRef` conflict**: If switching from Mode D to Mode A, delete the existing K8s secrets first — Crossplane and ESO cannot both own the same secret.

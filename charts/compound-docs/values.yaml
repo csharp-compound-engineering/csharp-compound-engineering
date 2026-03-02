@@ -57,8 +57,6 @@ aws:
 vpc:
   vpcId: ""
   privateSubnetIds: ""
-  neptuneSecurityGroupId: ""
-  opensearchSecurityGroupId: ""
 
 # --- Neptune ---
 # When crossplane.enabled: true, Neptune is provisioned via Crossplane workspace.
@@ -216,8 +214,6 @@ gitSync:
 # vpc:
 #   vpcId: vpc-xxx
 #   privateSubnetIds: "subnet-a,subnet-b"
-#   neptuneSecurityGroupId: sg-xxx
-#   opensearchSecurityGroupId: sg-yyy
 # iam:
 #   clusterName: my-eks-cluster
 #

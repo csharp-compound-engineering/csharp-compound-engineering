@@ -16,10 +16,6 @@ variable "private_subnet_ids" {
   type = string
 }
 
-variable "security_group_id" {
-  type = string
-}
-
 variable "write_to_secrets_manager" {
   type    = bool
   default = false
@@ -32,11 +28,38 @@ variable "secrets_manager_prefix" {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_vpc" "main" {
+  id = var.vpc_id
+}
+
+resource "aws_security_group" "opensearch" {
+  name   = "${var.name_prefix}-opensearch"
+  vpc_id = var.vpc_id
+
+  ingress {
+    protocol    = "tcp"
+    from_port   = 443
+    to_port     = 443
+    cidr_blocks = [data.aws_vpc.main.cidr_block]
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.name_prefix}-opensearch-sg"
+  }
+}
+
 resource "aws_opensearchserverless_vpc_endpoint" "main" {
   name               = "${var.name_prefix}-vpce"
   vpc_id             = var.vpc_id
   subnet_ids         = split(",", var.private_subnet_ids)
-  security_group_ids = [var.security_group_id]
+  security_group_ids = [aws_security_group.opensearch.id]
 
   timeouts {
     create = "30m"
