@@ -111,7 +111,7 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Set up OpenTofu
-        uses: opentofu/setup-opentofu@592200f7bff6e4240d26602fd9700d5090aa5b97 # v1
+        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1.0.8
         with:
           tofu_wrapper: false
 
