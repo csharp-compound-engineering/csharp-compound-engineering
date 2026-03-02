@@ -46,7 +46,7 @@ crossplane_replicas      = 1 # Set to 3 for production HA
 cert_manager_enabled = true
 
 # ArgoCD admin credentials (for ESO-managed secrets)
-# Generate bcrypt hash: htpasswd -nbBC 10 '' 'your-password' | tr -d ':\n'
+# Password is hashed to bcrypt automatically at apply-time
 # Generate server key: openssl rand -hex 32
-# argocd_admin_password_bcrypt = "$2a$10$..."
-# argocd_server_secret_key     = "..."
+# argocd_admin_password    = "your-secure-password"
+# argocd_server_secret_key = "..."

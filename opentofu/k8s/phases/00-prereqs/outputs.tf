@@ -24,6 +24,11 @@ output "crossplane_provider_aws_role_arn" {
 # ArgoCD Secrets Manager
 # ------------------------------------------------------------------------------
 
+output "argocd_admin_password" {
+  description = "Plaintext ArgoCD admin password"
+  value       = var.argocd_enabled ? var.argocd_admin_password : null
+}
+
 output "argocd_secret_arn" {
   description = "ARN of the ArgoCD Secrets Manager secret"
   value       = var.argocd_enabled && var.external_secrets_enabled ? aws_secretsmanager_secret.argocd_main[0].arn : null

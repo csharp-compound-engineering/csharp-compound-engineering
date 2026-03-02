@@ -53,6 +53,11 @@ output "external_dns_role_arn" {
 # VPN
 # ------------------------------------------------------------------------------
 
+output "vpn_security_group_id" {
+  description = "ID of the VPN security group (for cross-phase SG rules)"
+  value       = var.vpn_enabled ? aws_security_group.vpn[0].id : null
+}
+
 output "vpn_endpoint_id" {
   description = "ID of the Client VPN endpoint"
   value       = var.vpn_enabled ? aws_ec2_client_vpn_endpoint.this[0].id : null

@@ -292,7 +292,7 @@ resource "aws_secretsmanager_secret_version" "argocd_main" {
   secret_id = aws_secretsmanager_secret.argocd_main[0].id
 
   secret_string = jsonencode({
-    "admin.password"      = var.argocd_admin_password_bcrypt
+    "admin.password"      = bcrypt(var.argocd_admin_password, 10)
     "admin.passwordMtime" = "2026-01-01T00:00:00Z"
     "server.secretkey"    = var.argocd_server_secret_key
   })

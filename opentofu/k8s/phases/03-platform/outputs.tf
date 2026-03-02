@@ -16,6 +16,11 @@ output "argocd_namespace" {
   value       = var.argocd_enabled ? "argocd" : null
 }
 
+output "argocd_admin_password" {
+  description = "Plaintext ArgoCD admin password (use with argocd login)"
+  value       = var.argocd_enabled ? data.terraform_remote_state.prereqs.outputs.argocd_admin_password : null
+}
+
 output "argocd_admin_password_cmd" {
   description = "Command to retrieve the ArgoCD admin password"
   value = var.argocd_enabled ? (
