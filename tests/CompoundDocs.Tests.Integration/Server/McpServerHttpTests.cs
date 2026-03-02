@@ -28,6 +28,7 @@ public class McpServerHttpTests
             .WithWebHostBuilder(builder =>
             {
                 builder.UseEnvironment("Testing");
+                builder.UseSetting("ManagementPort", "0");
                 builder.ConfigureServices(services =>
                 {
                     services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>
@@ -68,6 +69,7 @@ public class McpServerHttpTests
             .WithWebHostBuilder(builder =>
             {
                 builder.UseEnvironment("Testing");
+                builder.UseSetting("ManagementPort", "0");
                 builder.ConfigureServices(services =>
                 {
                     services.PostConfigure<ApiKeyAuthenticationOptions>(opts =>

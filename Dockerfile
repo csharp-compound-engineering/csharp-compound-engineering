@@ -72,6 +72,7 @@ LABEL org.opencontainers.image.title="CompoundDocs MCP Server" \
     org.opencontainers.image.licenses="MIT"
 
 EXPOSE 8080
+EXPOSE 8081
 
 # Entry point
 ENTRYPOINT ["dotnet", "CompoundDocs.McpServer.dll"]
