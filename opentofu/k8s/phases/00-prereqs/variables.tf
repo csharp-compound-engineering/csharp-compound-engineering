@@ -34,26 +34,11 @@ variable "environment" {
 }
 
 # ------------------------------------------------------------------------------
-# DNS
-# ------------------------------------------------------------------------------
-
-variable "internal_dns_zone" {
-  description = "Domain name for the Route 53 private hosted zone (e.g. internal.compound-docs.com)"
-  type        = string
-}
-
-# ------------------------------------------------------------------------------
 # Feature Toggles
 # ------------------------------------------------------------------------------
 
 variable "external_secrets_enabled" {
   description = "Whether to create IAM resources for External Secrets Operator"
-  type        = bool
-  default     = true
-}
-
-variable "external_dns_enabled" {
-  description = "Whether to create IAM resources for ExternalDNS"
   type        = bool
   default     = true
 }

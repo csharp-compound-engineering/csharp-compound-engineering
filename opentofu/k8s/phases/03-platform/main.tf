@@ -58,7 +58,7 @@ resource "helm_release" "external_secrets" {
 # ExternalDNS
 ################################################################################
 
-# IAM resources (role, policy) are in phase 00-prereqs; pod identity association is in phase 02-cluster.
+# IAM resources (role, policy) are in phase 01-network; pod identity association is in phase 02-cluster.
 
 resource "helm_release" "external_dns" {
   count = var.external_dns_enabled ? 1 : 0

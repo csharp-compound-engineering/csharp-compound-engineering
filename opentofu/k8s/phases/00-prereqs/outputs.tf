@@ -12,15 +12,6 @@ output "external_secrets_role_arn" {
 }
 
 # ------------------------------------------------------------------------------
-# ExternalDNS
-# ------------------------------------------------------------------------------
-
-output "external_dns_role_arn" {
-  description = "IAM role ARN for ExternalDNS (Pod Identity)"
-  value       = var.external_dns_enabled ? aws_iam_role.external_dns[0].arn : null
-}
-
-# ------------------------------------------------------------------------------
 # Crossplane
 # ------------------------------------------------------------------------------
 

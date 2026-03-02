@@ -115,7 +115,7 @@ resource "aws_eks_pod_identity_association" "external_dns" {
   cluster_name    = module.eks.cluster_name
   namespace       = "external-dns"
   service_account = "external-dns"
-  role_arn        = data.terraform_remote_state.prereqs.outputs.external_dns_role_arn
+  role_arn        = data.terraform_remote_state.network.outputs.external_dns_role_arn
 }
 
 resource "aws_eks_pod_identity_association" "crossplane_provider_aws" {
