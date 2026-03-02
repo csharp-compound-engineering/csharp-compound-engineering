@@ -132,8 +132,7 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF: refs/heads/${{ github.base_ref }}
-        run: pnpm exec semantic-release --dry-run --no-ci
+        run: GITHUB_REF=refs/heads/${{ github.base_ref }} pnpm exec semantic-release --dry-run --no-ci
 
       # Push: full release with all lifecycle hooks
       - name: Semantic Release
