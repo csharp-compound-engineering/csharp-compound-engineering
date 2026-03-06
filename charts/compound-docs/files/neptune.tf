@@ -5,7 +5,7 @@ variable "name_prefix" {
 
 variable "engine_version" {
   type    = string
-  default = "1.2.0.1"
+  default = "1.4.7.0"
 }
 
 variable "instance_class" {
