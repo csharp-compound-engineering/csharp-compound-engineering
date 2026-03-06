@@ -417,4 +417,68 @@ public sealed class OpenSearchClientFactoryTests
         var results = await Task.WhenAll(tasks);
         results.Distinct().Count().ShouldBe(1);
     }
+
+    [Fact]
+    public void GetClient_NormalizesEndpoint_WhenSchemeIsMissing()
+    {
+        // Arrange — bare domain without https://
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockMonitor = new Mock<IOptionsMonitor<OpenSearchConfig>>();
+        mockMonitor.Setup(m => m.CurrentValue).Returns(config);
+        mockMonitor.Setup(m => m.OnChange(It.IsAny<Action<OpenSearchConfig, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var mockConfig = new Mock<IConfiguration>();
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection.Setup(s => s.Value).Returns("us-east-1");
+        mockConfig.Setup(c => c.GetSection("CompoundDocs:Aws:Region")).Returns(mockSection.Object);
+
+        var sut = new OpenSearchClientFactory(
+            mockMonitor.Object,
+            mockConfig.Object,
+            NullLogger<OpenSearchClientFactory>.Instance);
+
+        // Act — should not throw UriFormatException
+        var client = sut.GetClient();
+
+        // Assert
+        client.ShouldNotBeNull();
+        client.ShouldBeAssignableTo<IOpenSearchClient>();
+    }
+
+    [Fact]
+    public void GetClient_DoesNotDoublePrefix_WhenHttpsSchemePresent()
+    {
+        // Arrange — endpoint already has https://
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "https://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockMonitor = new Mock<IOptionsMonitor<OpenSearchConfig>>();
+        mockMonitor.Setup(m => m.CurrentValue).Returns(config);
+        mockMonitor.Setup(m => m.OnChange(It.IsAny<Action<OpenSearchConfig, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var mockConfig = new Mock<IConfiguration>();
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection.Setup(s => s.Value).Returns("us-east-1");
+        mockConfig.Setup(c => c.GetSection("CompoundDocs:Aws:Region")).Returns(mockSection.Object);
+
+        var sut = new OpenSearchClientFactory(
+            mockMonitor.Object,
+            mockConfig.Object,
+            NullLogger<OpenSearchClientFactory>.Instance);
+
+        // Act
+        var client = sut.GetClient();
+
+        // Assert
+        client.ShouldNotBeNull();
+        client.ShouldBeAssignableTo<IOpenSearchClient>();
+    }
 }

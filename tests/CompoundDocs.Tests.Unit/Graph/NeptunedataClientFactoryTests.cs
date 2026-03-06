@@ -440,4 +440,29 @@ public sealed class NeptunedataClientFactoryTests
         client.Dispose();
         sut.Dispose();
     }
+
+    [Fact]
+    public void GetClient_NormalizesEndpoint_WhenSchemeIsPresent()
+    {
+        // Arrange — endpoint has https:// prefix
+        var config = new NeptuneConfig { Endpoint = "https://neptune.example.com", Port = 8182 };
+        var mockMonitor = new Mock<IOptionsMonitor<NeptuneConfig>>();
+        mockMonitor.Setup(m => m.CurrentValue).Returns(config);
+        mockMonitor.Setup(m => m.OnChange(It.IsAny<Action<NeptuneConfig, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var mockNeptune = new Mock<IAmazonNeptunedata>();
+        var sut = new Mock<NeptunedataClientFactory>(
+            mockMonitor.Object,
+            NullLogger<NeptunedataClientFactory>.Instance) { CallBase = true };
+        sut.Setup(f => f.CreateClient(It.IsAny<string>(), It.IsAny<int>()))
+            .Returns(mockNeptune.Object);
+
+        // Act
+        var client = sut.Object.GetClient();
+
+        // Assert
+        client.ShouldBe(mockNeptune.Object);
+        sut.Verify(f => f.CreateClient("https://neptune.example.com", 8182), Times.Once);
+    }
 }

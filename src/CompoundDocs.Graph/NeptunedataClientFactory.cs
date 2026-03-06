@@ -20,6 +20,10 @@ public partial class NeptunedataClientFactory : INeptunedataClientFactory
         Message = "Creating Neptune client for endpoint {Endpoint}:{Port}")]
     private partial void LogCreatingClient(string endpoint, int port);
 
+    [LoggerMessage(EventId = 3, Level = LogLevel.Error,
+        Message = "Neptune endpoint is not configured")]
+    private partial void LogEndpointNotConfigured();
+
     private readonly IOptionsMonitor<NeptuneConfig> _optionsMonitor;
     private readonly ILogger<NeptunedataClientFactory> _logger;
     private readonly IDisposable? _onChangeSubscription;
@@ -50,6 +54,7 @@ public partial class NeptunedataClientFactory : INeptunedataClientFactory
 
         if (string.IsNullOrWhiteSpace(endpoint))
         {
+            LogEndpointNotConfigured();
             throw new InvalidOperationException(
                 "Neptune endpoint is not configured. Set CompoundDocs:Neptune:Endpoint in configuration.");
         }
@@ -104,9 +109,15 @@ public partial class NeptunedataClientFactory : INeptunedataClientFactory
 
     internal virtual IAmazonNeptunedata CreateClient(string endpoint, int port)
     {
+        if (!endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+            !endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            endpoint = $"https://{endpoint}";
+        }
+
         return new AmazonNeptunedataClient(new AmazonNeptunedataConfig
         {
-            ServiceURL = $"https://{endpoint}:{port}"
+            ServiceURL = $"{endpoint.TrimEnd('/')}:{port}"
         });
     }
 

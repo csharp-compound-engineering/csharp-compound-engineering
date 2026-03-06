@@ -141,11 +141,11 @@ resource "aws_secretsmanager_secret_version" "neptune" {
 }
 
 output "endpoint" {
-  value = aws_neptune_cluster.main.endpoint
+  value = "https://${aws_neptune_cluster.main.endpoint}"
 }
 
 output "reader_endpoint" {
-  value = aws_neptune_cluster.main.reader_endpoint
+  value = "https://${aws_neptune_cluster.main.reader_endpoint}"
 }
 
 output "port" {

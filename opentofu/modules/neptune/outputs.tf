@@ -4,12 +4,12 @@
 
 output "endpoint" {
   description = "Writer endpoint for the Neptune cluster"
-  value       = aws_neptune_cluster.main.endpoint
+  value       = "https://${aws_neptune_cluster.main.endpoint}"
 }
 
 output "reader_endpoint" {
   description = "Reader endpoint for the Neptune cluster"
-  value       = aws_neptune_cluster.main.reader_endpoint
+  value       = "https://${aws_neptune_cluster.main.reader_endpoint}"
 }
 
 output "port" {

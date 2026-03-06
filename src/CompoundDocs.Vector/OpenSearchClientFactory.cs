@@ -23,6 +23,14 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
         Message = "OpenSearch endpoint changed from {OldEndpoint} to {NewEndpoint}, recreating client")]
     private partial void LogEndpointChanged(string oldEndpoint, string newEndpoint);
 
+    [LoggerMessage(EventId = 3, Level = Microsoft.Extensions.Logging.LogLevel.Warning,
+        Message = "OpenSearch endpoint '{Endpoint}' has no URI scheme, prepending https://")]
+    private partial void LogEndpointNormalized(string endpoint);
+
+    [LoggerMessage(EventId = 4, Level = Microsoft.Extensions.Logging.LogLevel.Error,
+        Message = "Failed to create OpenSearch client for endpoint {Endpoint} in region {Region}")]
+    private partial void LogClientCreationFailed(string endpoint, string region, Exception exception);
+
     private readonly object _lock = new();
     private readonly string _region;
     private readonly ILogger<OpenSearchClientFactory> _logger;
@@ -66,6 +74,13 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
                 "OpenSearch endpoint is not configured. Set CompoundDocs:OpenSearch:CollectionEndpoint.");
         }
 
+        if (!endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+            !endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            LogEndpointNormalized(endpoint);
+            endpoint = $"https://{endpoint}";
+        }
+
         if (_client is not null && endpoint == _currentEndpoint)
         {
             return _client;
@@ -80,11 +95,20 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
 
             LogCreatingClient(endpoint);
 
-            var connection = new AwsSigV4HttpConnection(
-                RegionEndpoint.GetBySystemName(_region));
-            var settings = new ConnectionSettings(new Uri(endpoint), connection)
-                .DefaultIndex(config.IndexName);
-            _client = new OpenSearchClient(settings);
+            try
+            {
+                var connection = new AwsSigV4HttpConnection(
+                    RegionEndpoint.GetBySystemName(_region));
+                var settings = new ConnectionSettings(new Uri(endpoint), connection)
+                    .DefaultIndex(config.IndexName);
+                _client = new OpenSearchClient(settings);
+            }
+            catch (Exception ex)
+            {
+                LogClientCreationFailed(endpoint, _region, ex);
+                throw;
+            }
+
             _currentEndpoint = endpoint;
             return _client;
         }

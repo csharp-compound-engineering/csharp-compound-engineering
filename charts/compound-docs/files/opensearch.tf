@@ -165,5 +165,5 @@ resource "aws_secretsmanager_secret_version" "opensearch" {
 }
 
 output "endpoint" {
-  value = aws_opensearch_domain.main.endpoint
+  value = "https://${aws_opensearch_domain.main.endpoint}"
 }
