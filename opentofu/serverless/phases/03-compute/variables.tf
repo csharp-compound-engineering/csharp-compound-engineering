@@ -56,7 +56,7 @@ variable "lambda_timeout" {
 variable "gitsync_image_digest" {
   description = "GitSync container image digest — updated by CI"
   type        = string
-  default     = "sha256:73b897470ee82a38d268d75e20247ca850d4221d2b02601a443d7bdd7050920b"
+  default     = "sha256:a94dc01dc2f75ae926e2d190e38c6e182509a75a10fdaeee91fa3ca5058e8225"
 }
 
 variable "gitsync_schedule" {
