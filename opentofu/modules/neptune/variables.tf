@@ -10,7 +10,7 @@ variable "name_prefix" {
 variable "engine_version" {
   description = "Neptune engine version"
   type        = string
-  default     = "1.4.7.0"
+  default     = "1.4.6.3"
 }
 
 variable "instance_class" {
