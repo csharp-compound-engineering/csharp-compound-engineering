@@ -41,10 +41,20 @@ variable "secrets_manager_prefix" {
   default = ""
 }
 
+variable "create_service_linked_role" {
+  type    = bool
+  default = true
+}
+
 data "aws_caller_identity" "current" {}
 
 data "aws_vpc" "main" {
   id = var.vpc_id
+}
+
+resource "aws_iam_service_linked_role" "opensearch" {
+  count            = var.create_service_linked_role ? 1 : 0
+  aws_service_name = "es.amazonaws.com"
 }
 
 resource "aws_security_group" "opensearch" {
@@ -71,6 +81,8 @@ resource "aws_security_group" "opensearch" {
 }
 
 resource "aws_opensearch_domain" "main" {
+  depends_on = [aws_iam_service_linked_role.opensearch]
+
   domain_name    = var.domain_name
   engine_version = var.engine_version
 
