@@ -78,8 +78,8 @@ resource "aws_neptune_subnet_group" "main" {
 }
 
 resource "aws_neptune_cluster_parameter_group" "main" {
-  family = "neptune1.4"
-  name   = "${var.name_prefix}-neptune-params"
+  family      = "neptune1.4"
+  name_prefix = "${var.name_prefix}-neptune-params-"
 
   parameter {
     name  = "neptune_enable_audit_log"
@@ -88,6 +88,10 @@ resource "aws_neptune_cluster_parameter_group" "main" {
 
   tags = {
     Name = "${var.name_prefix}-neptune-params"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
