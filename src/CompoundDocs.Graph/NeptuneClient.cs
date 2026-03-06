@@ -14,8 +14,12 @@ public sealed partial class NeptuneClient : INeptuneClient
     private partial void LogExecutingQuery(string query);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Warning,
-        Message = "Neptune connection test failed")]
-    private partial void LogConnectionTestFailed(Exception exception);
+        Message = "Neptune connection test failed: {ExceptionType} - {ExceptionMessage}")]
+    private partial void LogConnectionTestFailed(string exceptionType, string exceptionMessage, Exception exception);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Warning,
+        Message = "Neptune retry attempt {AttemptNumber}: {ExceptionType} - {ExceptionMessage}")]
+    private partial void LogRetryAttempt(int attemptNumber, string exceptionType, string exceptionMessage);
 
     private readonly INeptunedataClientFactory _clientFactory;
     private readonly ILogger<NeptuneClient> _logger;
@@ -37,7 +41,13 @@ public sealed partial class NeptuneClient : INeptuneClient
                 ShouldHandle = new PredicateBuilder().Handle<Exception>(ex =>
                     ex is AmazonNeptunedataException ||
                     ex is HttpRequestException ||
-                    ex is TaskCanceledException)
+                    ex is TaskCanceledException),
+                OnRetry = args =>
+                {
+                    LogRetryAttempt(args.AttemptNumber, args.Outcome.Exception?.GetType().Name ?? "unknown",
+                        args.Outcome.Exception?.Message ?? "no message");
+                    return default;
+                }
             })
             .Build();
     }
@@ -87,7 +97,7 @@ public sealed partial class NeptuneClient : INeptuneClient
         }
         catch (Exception ex)
         {
-            LogConnectionTestFailed(ex);
+            LogConnectionTestFailed(ex.GetType().Name, ex.Message, ex);
             return false;
         }
     }

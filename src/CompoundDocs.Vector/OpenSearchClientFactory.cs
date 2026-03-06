@@ -23,6 +23,10 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
         Message = "OpenSearch endpoint changed from {OldEndpoint} to {NewEndpoint}, recreating client")]
     private partial void LogEndpointChanged(string oldEndpoint, string newEndpoint);
 
+    [LoggerMessage(EventId = 3, Level = Microsoft.Extensions.Logging.LogLevel.Warning,
+        Message = "OpenSearch endpoint '{Endpoint}' has no URI scheme, prepending https://")]
+    private partial void LogEndpointNormalized(string endpoint);
+
     private readonly object _lock = new();
     private readonly string _region;
     private readonly ILogger<OpenSearchClientFactory> _logger;
@@ -66,6 +70,13 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
                 "OpenSearch endpoint is not configured. Set CompoundDocs:OpenSearch:CollectionEndpoint.");
         }
 
+        if (!endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+            !endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+        {
+            LogEndpointNormalized(endpoint);
+            endpoint = $"https://{endpoint}";
+        }
+
         if (_client is not null && endpoint == _currentEndpoint)
         {
             return _client;
@@ -85,6 +96,7 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
             var settings = new ConnectionSettings(new Uri(endpoint), connection)
                 .DefaultIndex(config.IndexName);
             _client = new OpenSearchClient(settings);
+
             _currentEndpoint = endpoint;
             return _client;
         }
