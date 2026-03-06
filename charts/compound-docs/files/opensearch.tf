@@ -102,6 +102,10 @@ resource "aws_opensearch_domain" "main" {
     enabled                        = true
     anonymous_auth_enabled         = false
     internal_user_database_enabled = false
+
+    master_user_options {
+      master_user_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.name_prefix}-pod-identity"
+    }
   }
 
   vpc_options {
