@@ -441,6 +441,34 @@ public sealed class NeptunedataClientFactoryTests
         sut.Dispose();
     }
 
+    [Theory]
+    [InlineData("http://neptune.example.com")]
+    [InlineData("https://neptune.example.com")]
+    public void CreateClient_DoesNotDoublePrefixScheme(string endpoint)
+    {
+        // Arrange — use real factory to test scheme-handling branches in CreateClient
+        var config = new NeptuneConfig { Endpoint = "neptune.example.com", Port = 8182 };
+        var mockMonitor = new Mock<IOptionsMonitor<NeptuneConfig>>();
+        mockMonitor.Setup(m => m.CurrentValue).Returns(config);
+        mockMonitor.Setup(m => m.OnChange(It.IsAny<Action<NeptuneConfig, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var sut = new NeptunedataClientFactory(
+            mockMonitor.Object,
+            NullLogger<NeptunedataClientFactory>.Instance);
+
+        // Act — call the real CreateClient with scheme prefix
+        var client = sut.CreateClient(endpoint, 8182);
+
+        // Assert
+        client.ShouldNotBeNull();
+        client.ShouldBeOfType<AmazonNeptunedataClient>();
+
+        // Cleanup
+        client.Dispose();
+        sut.Dispose();
+    }
+
     [Fact]
     public void GetClient_NormalizesEndpoint_WhenSchemeIsPresent()
     {

@@ -27,10 +27,6 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
         Message = "OpenSearch endpoint '{Endpoint}' has no URI scheme, prepending https://")]
     private partial void LogEndpointNormalized(string endpoint);
 
-    [LoggerMessage(EventId = 4, Level = Microsoft.Extensions.Logging.LogLevel.Error,
-        Message = "Failed to create OpenSearch client for endpoint {Endpoint} in region {Region}")]
-    private partial void LogClientCreationFailed(string endpoint, string region, Exception exception);
-
     private readonly object _lock = new();
     private readonly string _region;
     private readonly ILogger<OpenSearchClientFactory> _logger;
@@ -95,19 +91,11 @@ internal sealed partial class OpenSearchClientFactory : IOpenSearchClientFactory
 
             LogCreatingClient(endpoint);
 
-            try
-            {
-                var connection = new AwsSigV4HttpConnection(
-                    RegionEndpoint.GetBySystemName(_region));
-                var settings = new ConnectionSettings(new Uri(endpoint), connection)
-                    .DefaultIndex(config.IndexName);
-                _client = new OpenSearchClient(settings);
-            }
-            catch (Exception ex)
-            {
-                LogClientCreationFailed(endpoint, _region, ex);
-                throw;
-            }
+            var connection = new AwsSigV4HttpConnection(
+                RegionEndpoint.GetBySystemName(_region));
+            var settings = new ConnectionSettings(new Uri(endpoint), connection)
+                .DefaultIndex(config.IndexName);
+            _client = new OpenSearchClient(settings);
 
             _currentEndpoint = endpoint;
             return _client;

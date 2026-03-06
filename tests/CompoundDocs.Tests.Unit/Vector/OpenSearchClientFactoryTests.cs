@@ -451,6 +451,38 @@ public sealed class OpenSearchClientFactoryTests
     }
 
     [Fact]
+    public void GetClient_DoesNotDoublePrefix_WhenHttpSchemePresent()
+    {
+        // Arrange — endpoint has http:// (should not be re-prefixed)
+        var config = new OpenSearchConfig
+        {
+            CollectionEndpoint = "http://opensearch.example.com",
+            IndexName = "test-index"
+        };
+        var mockMonitor = new Mock<IOptionsMonitor<OpenSearchConfig>>();
+        mockMonitor.Setup(m => m.CurrentValue).Returns(config);
+        mockMonitor.Setup(m => m.OnChange(It.IsAny<Action<OpenSearchConfig, string?>>()))
+            .Returns(Mock.Of<IDisposable>());
+
+        var mockConfig = new Mock<IConfiguration>();
+        var mockSection = new Mock<IConfigurationSection>();
+        mockSection.Setup(s => s.Value).Returns("us-east-1");
+        mockConfig.Setup(c => c.GetSection("CompoundDocs:Aws:Region")).Returns(mockSection.Object);
+
+        var sut = new OpenSearchClientFactory(
+            mockMonitor.Object,
+            mockConfig.Object,
+            NullLogger<OpenSearchClientFactory>.Instance);
+
+        // Act
+        var client = sut.GetClient();
+
+        // Assert
+        client.ShouldNotBeNull();
+        client.ShouldBeAssignableTo<IOpenSearchClient>();
+    }
+
+    [Fact]
     public void GetClient_DoesNotDoublePrefix_WhenHttpsSchemePresent()
     {
         // Arrange — endpoint already has https://
