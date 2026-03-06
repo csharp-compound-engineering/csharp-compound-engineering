@@ -76,6 +76,7 @@ neptune:
 # When crossplane.enabled: false, supply endpoint directly.
 opensearch:
   enabled: true
+  createServiceLinkedRole: true
   domainName: compound-docs-vectors
   connectionSecretName: compound-docs-opensearch
   instanceType: "t3.small.search"
