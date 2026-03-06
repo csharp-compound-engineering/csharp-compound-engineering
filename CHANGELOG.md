@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.5](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.4...v4.0.5) (2026-03-06)
+
+### Bug Fixes
+
+* **infra:** upgrade Neptune engine from 1.2.0.1 to 1.4.7.0 ([#66](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/66)) ([de2813f](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/de2813f5d436da9ee12b02ff51d025abb67069fd))
+
 ## [4.0.4](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.3...v4.0.4) (2026-03-06)
 
 ### Bug Fixes
