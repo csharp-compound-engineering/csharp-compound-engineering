@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.6](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.5...v4.0.6) (2026-03-06)
+
+### Bug Fixes
+
+* **infra:** update Helm values and parameter group family for Neptune 1.4.7.0 ([#67](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/67)) ([0886304](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/0886304a450164e96758b302d1612a660ba4f50e)), closes [#66](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/66)
+
 ## [4.0.5](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.4...v4.0.5) (2026-03-06)
 
 ### Bug Fixes
