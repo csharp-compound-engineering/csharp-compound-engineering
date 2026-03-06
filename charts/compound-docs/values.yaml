@@ -64,7 +64,7 @@ vpc:
 neptune:
   enabled: true
   createServiceLinkedRole: true
-  engineVersion: "1.4.7.0"
+  engineVersion: "1.4.6.3"
   instanceClass: "db.t4g.medium"
   connectionSecretName: compound-docs-neptune
   # Direct connection (used when crossplane.enabled: false)
