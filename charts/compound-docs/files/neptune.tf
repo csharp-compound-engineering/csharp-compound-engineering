@@ -78,7 +78,7 @@ resource "aws_neptune_subnet_group" "main" {
 }
 
 resource "aws_neptune_cluster_parameter_group" "main" {
-  family = "neptune1.2"
+  family = "neptune1.4"
   name   = "${var.name_prefix}-neptune-params"
 
   parameter {
