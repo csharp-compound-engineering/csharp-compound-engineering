@@ -3,7 +3,7 @@
 image:
   repository: ghcr.io/csharp-compound-engineering/csharp-compound-engineering/mcp-server
   tag: ""  # Defaults to .Chart.AppVersion
-  digest: "sha256:e6104923c9402318870db768dbdc312b48e2fd22f98829dacc807454379a3128"
+  digest: "sha256:d99a57eb12d3fcbff48e1188633d762ce58112fe8917522e133497768428e1a3"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -194,7 +194,7 @@ gitSync:
     image:
       repository: ghcr.io/csharp-compound-engineering/csharp-compound-engineering/gitsync-job
       tag: ""
-      digest: "sha256:bf2cba688838de33e0a08e09c0971e3933cfb870a27fbc3a6c8130bdecd4f2a7"
+      digest: "sha256:83d0dbeba4c72c2b9efc4f474411a870f72622cce5b0ce9c88c70d7c6f586e05"
     resources:
       requests:
         cpu: 250m
