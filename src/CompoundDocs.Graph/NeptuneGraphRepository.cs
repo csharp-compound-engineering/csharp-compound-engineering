@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Amazon.Runtime.Documents;
 using CompoundDocs.Common.Models;
 using Microsoft.Extensions.Logging;
 
@@ -382,13 +383,14 @@ public sealed partial class NeptuneGraphRepository : IGraphRepository
         var result = await _client.ExecuteOpenCypherAsync(query, parameters, ct);
 
         string? commitHash = null;
-        if (result.ValueKind == JsonValueKind.Array)
+        if (result.IsList())
         {
-            foreach (var item in result.EnumerateArray())
+            foreach (var item in result.AsList())
             {
-                if (item.TryGetProperty("commitHash", out var hashProp))
+                var dict = item.AsDictionary();
+                if (dict.TryGetValue("commitHash", out var hashProp))
                 {
-                    commitHash = hashProp.GetString();
+                    commitHash = hashProp.AsString();
                 }
             }
         }
@@ -417,61 +419,64 @@ public sealed partial class NeptuneGraphRepository : IGraphRepository
         LogSetSyncState(repoName, commitHash);
     }
 
-    private static List<ConceptNode> ParseConceptNodes(JsonElement result)
+    private static List<ConceptNode> ParseConceptNodes(Document result)
     {
         var concepts = new List<ConceptNode>();
-        if (result.ValueKind != JsonValueKind.Array) return concepts;
+        if (!result.IsList()) return concepts;
 
-        foreach (var item in result.EnumerateArray())
+        foreach (var item in result.AsList())
         {
+            var dict = item.AsDictionary();
             concepts.Add(new ConceptNode
             {
-                Id = item.GetProperty("id").GetString()!,
-                Name = item.GetProperty("name").GetString()!,
-                Description = item.TryGetProperty("description", out var desc) ? desc.GetString() : null,
-                Category = item.TryGetProperty("category", out var cat) ? cat.GetString() : null
+                Id = dict["id"].AsString(),
+                Name = dict["name"].AsString(),
+                Description = dict.TryGetValue("description", out var desc) ? desc.AsString() : null,
+                Category = dict.TryGetValue("category", out var cat) ? cat.AsString() : null
             });
         }
 
         return concepts;
     }
 
-    private static List<ChunkNode> ParseChunkNodes(JsonElement result)
+    private static List<ChunkNode> ParseChunkNodes(Document result)
     {
         var chunks = new List<ChunkNode>();
-        if (result.ValueKind != JsonValueKind.Array) return chunks;
+        if (!result.IsList()) return chunks;
 
-        foreach (var item in result.EnumerateArray())
+        foreach (var item in result.AsList())
         {
+            var dict = item.AsDictionary();
             chunks.Add(new ChunkNode
             {
-                Id = item.GetProperty("id").GetString()!,
-                SectionId = item.GetProperty("sectionId").GetString()!,
-                DocumentId = item.GetProperty("documentId").GetString()!,
-                Content = item.GetProperty("content").GetString()!,
-                Order = item.TryGetProperty("order", out var order) ? order.GetInt32() : 0,
-                TokenCount = item.TryGetProperty("tokenCount", out var tc) ? tc.GetInt32() : 0
+                Id = dict["id"].AsString(),
+                SectionId = dict["sectionId"].AsString(),
+                DocumentId = dict["documentId"].AsString(),
+                Content = dict["content"].AsString(),
+                Order = dict.TryGetValue("order", out var order) ? order.AsInt() : 0,
+                TokenCount = dict.TryGetValue("tokenCount", out var tc) ? tc.AsInt() : 0
             });
         }
 
         return chunks;
     }
 
-    private static List<DocumentNode> ParseDocumentNodes(JsonElement result)
+    private static List<DocumentNode> ParseDocumentNodes(Document result)
     {
         var documents = new List<DocumentNode>();
-        if (result.ValueKind != JsonValueKind.Array) return documents;
+        if (!result.IsList()) return documents;
 
-        foreach (var item in result.EnumerateArray())
+        foreach (var item in result.AsList())
         {
+            var dict = item.AsDictionary();
             documents.Add(new DocumentNode
             {
-                Id = item.GetProperty("id").GetString()!,
-                FilePath = item.GetProperty("filePath").GetString()!,
-                Title = item.GetProperty("title").GetString()!,
-                DocType = item.TryGetProperty("docType", out var dt) ? dt.GetString() : null,
-                PromotionLevel = item.TryGetProperty("promotionLevel", out var pl) ? pl.GetString() ?? "draft" : "draft",
-                CommitHash = item.TryGetProperty("commitHash", out var ch) ? ch.GetString() : null
+                Id = dict["id"].AsString(),
+                FilePath = dict["filePath"].AsString(),
+                Title = dict["title"].AsString(),
+                DocType = dict.TryGetValue("docType", out var dt) && !dt.IsNull() ? dt.AsString() : null,
+                PromotionLevel = dict.TryGetValue("promotionLevel", out var pl) && !pl.IsNull() ? pl.AsString() : "draft",
+                CommitHash = dict.TryGetValue("commitHash", out var ch) && !ch.IsNull() ? ch.AsString() : null
             });
         }
 
