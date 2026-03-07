@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.9...v5.0.0) (2026-03-07)
+
+### Code Refactoring
+
+* **vector:** migrate OpenSearchVectorStore from low-level to high-level client DSL ([#71](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/71)) ([2482833](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/24828338b170546a8dd845b31c97528f38e5ce82))
+
 ## [4.0.9](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.8...v4.0.9) (2026-03-07)
 
 ### Bug Fixes
