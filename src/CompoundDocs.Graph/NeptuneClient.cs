@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Amazon.Neptunedata;
 using Amazon.Neptunedata.Model;
+using Amazon.Runtime.Documents;
 using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
@@ -62,7 +62,7 @@ public sealed partial class NeptuneClient : INeptuneClient
         _retryPipeline = retryPipeline ?? ResiliencePipeline.Empty;
     }
 
-    public async Task<JsonElement> ExecuteOpenCypherAsync(
+    public async Task<Document> ExecuteOpenCypherAsync(
         string query,
         Dictionary<string, object>? parameters,
         CancellationToken ct)
@@ -78,13 +78,11 @@ public sealed partial class NeptuneClient : INeptuneClient
 
             if (parameters is { Count: > 0 })
             {
-                request.Parameters = JsonSerializer.Serialize(parameters);
+                request.Parameters = System.Text.Json.JsonSerializer.Serialize(parameters);
             }
 
             var response = await _clientFactory.GetClient().ExecuteOpenCypherQueryAsync(request, token);
-
-            using var doc = JsonDocument.Parse(response.Results.ToString()!);
-            return doc.RootElement.Clone();
+            return response.Results;
         }, ct);
     }
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Amazon.Runtime.Documents;
 using CompoundDocs.Common.Models;
 using CompoundDocs.Graph;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var document = new DocumentNode
         {
@@ -67,7 +68,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var document = new DocumentNode
         {
@@ -108,7 +109,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var section = new SectionNode
         {
@@ -154,7 +155,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var chunk = new ChunkNode
         {
@@ -202,7 +203,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var concept = new ConceptNode
         {
@@ -243,7 +244,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var concept = new ConceptNode
         {
@@ -283,7 +284,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var relationship = new GraphRelationship
         {
@@ -323,7 +324,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         // Act
         await sut.DeleteDocumentCascadeAsync("doc-to-delete");
@@ -351,18 +352,23 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {"id": "c1", "name": "Dependency Injection", "description": "DI pattern", "category": "patterns"}
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c1"),
+                ["name"] = new Document("Dependency Injection"),
+                ["description"] = new Document("DI pattern"),
+                ["category"] = new Document("patterns")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.FindConceptsByNameAsync("Dependency Injection");
@@ -397,7 +403,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("[]").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         // Act
         var result = await sut.FindConceptsByNameAsync("NonExistent");
@@ -418,7 +424,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new Dictionary<string, Document>()));
 
         // Act
         var result = await sut.FindConceptsByNameAsync("Test");
@@ -439,7 +445,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("[]").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         using var cts = new CancellationTokenSource();
         var token = cts.Token;
@@ -466,19 +472,30 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {"id": "c1", "name": "Concept One", "description": "First concept", "category": "arch"},
-                {"id": "c2", "name": "Concept Two", "description": "Second concept", "category": "design"}
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c1"),
+                ["name"] = new Document("Concept One"),
+                ["description"] = new Document("First concept"),
+                ["category"] = new Document("arch")
+            }),
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c2"),
+                ["name"] = new Document("Concept Two"),
+                ["description"] = new Document("Second concept"),
+                ["category"] = new Document("design")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetRelatedConceptsAsync("c0", hops: 3);
@@ -509,7 +526,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new Dictionary<string, Document>()));
 
         // Act
         var result = await sut.GetRelatedConceptsAsync("c0");
@@ -525,16 +542,21 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [{"id": "c1", "name": "Minimal Concept"}]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c1"),
+                ["name"] = new Document("Minimal Concept")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetRelatedConceptsAsync("c0");
@@ -558,25 +580,25 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "chunk-1",
-                    "sectionId": "sec-1",
-                    "documentId": "doc-1",
-                    "content": "Some chunk content",
-                    "order": 2,
-                    "tokenCount": 150
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("chunk-1"),
+                ["sectionId"] = new Document("sec-1"),
+                ["documentId"] = new Document("doc-1"),
+                ["content"] = new Document("Some chunk content"),
+                ["order"] = new Document(2),
+                ["tokenCount"] = new Document(150)
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetChunksByConceptAsync("concept-1");
@@ -603,7 +625,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("\"not an array\"").RootElement.Clone());
+            .ReturnsAsync(new Document("not an array"));
 
         // Act
         var result = await sut.GetChunksByConceptAsync("concept-1");
@@ -619,23 +641,23 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "chunk-1",
-                    "sectionId": "sec-1",
-                    "documentId": "doc-1",
-                    "content": "Content without order or tokenCount"
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("chunk-1"),
+                ["sectionId"] = new Document("sec-1"),
+                ["documentId"] = new Document("doc-1"),
+                ["content"] = new Document("Content without order or tokenCount")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetChunksByConceptAsync("concept-1");
@@ -657,25 +679,25 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "doc-2",
-                    "filePath": "/docs/linked.md",
-                    "title": "Linked Document",
-                    "docType": "reference",
-                    "promotionLevel": "published",
-                    "commitHash": "def456"
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("doc-2"),
+                ["filePath"] = new Document("/docs/linked.md"),
+                ["title"] = new Document("Linked Document"),
+                ["docType"] = new Document("reference"),
+                ["promotionLevel"] = new Document("published"),
+                ["commitHash"] = new Document("def456")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetLinkedDocumentsAsync("doc-1");
@@ -702,7 +724,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("42").RootElement.Clone());
+            .ReturnsAsync(new Document(42));
 
         // Act
         var result = await sut.GetLinkedDocumentsAsync("doc-1");
@@ -718,22 +740,22 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "doc-2",
-                    "filePath": "/docs/minimal.md",
-                    "title": "Minimal Doc"
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("doc-2"),
+                ["filePath"] = new Document("/docs/minimal.md"),
+                ["title"] = new Document("Minimal Doc")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetLinkedDocumentsAsync("doc-1");
@@ -748,29 +770,26 @@ public class NeptuneGraphRepositoryTests
     [Fact]
     public async Task GetLinkedDocumentsAsync_NullPromotionLevel_DefaultsToDraft()
     {
-        // Arrange — promotionLevel property exists but has a null value
+        // Arrange — promotionLevel, docType, and commitHash keys are absent (Document API has no null string representation)
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "doc-3",
-                    "filePath": "/docs/null-promo.md",
-                    "title": "Null Promo",
-                    "docType": null,
-                    "promotionLevel": null,
-                    "commitHash": null
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("doc-3"),
+                ["filePath"] = new Document("/docs/null-promo.md"),
+                ["title"] = new Document("Null Promo")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetLinkedDocumentsAsync("doc-1");
@@ -793,33 +812,34 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {
-                    "id": "chunk-1",
-                    "sectionId": "sec-1",
-                    "documentId": "doc-1",
-                    "content": "First chunk content",
-                    "order": 0,
-                    "tokenCount": 50
-                },
-                {
-                    "id": "chunk-2",
-                    "sectionId": "sec-1",
-                    "documentId": "doc-1",
-                    "content": "Second chunk content",
-                    "order": 1,
-                    "tokenCount": 60
-                }
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("chunk-1"),
+                ["sectionId"] = new Document("sec-1"),
+                ["documentId"] = new Document("doc-1"),
+                ["content"] = new Document("First chunk content"),
+                ["order"] = new Document(0),
+                ["tokenCount"] = new Document(50)
+            }),
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("chunk-2"),
+                ["sectionId"] = new Document("sec-1"),
+                ["documentId"] = new Document("doc-1"),
+                ["content"] = new Document("Second chunk content"),
+                ["order"] = new Document(1),
+                ["tokenCount"] = new Document(60)
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetChunksByIdsAsync(["chunk-1", "chunk-2"]);
@@ -869,19 +889,30 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [
-                {"id": "c1", "name": "Dependency Injection", "description": "DI pattern", "category": "patterns"},
-                {"id": "c2", "name": "GraphRAG", "description": "Graph RAG pipeline", "category": "architecture"}
-            ]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c1"),
+                ["name"] = new Document("Dependency Injection"),
+                ["description"] = new Document("DI pattern"),
+                ["category"] = new Document("patterns")
+            }),
+            new(new Dictionary<string, Document>
+            {
+                ["id"] = new Document("c2"),
+                ["name"] = new Document("GraphRAG"),
+                ["description"] = new Document("Graph RAG pipeline"),
+                ["category"] = new Document("architecture")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetConceptsByChunkIdsAsync(["chunk-1", "chunk-2"]);
@@ -939,7 +970,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var codeExample = new CodeExampleNode
         {
@@ -981,7 +1012,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         var codeExample = new CodeExampleNode
         {
@@ -1016,16 +1047,20 @@ public class NeptuneGraphRepositoryTests
         var mockClient = new Mock<INeptuneClient>();
         var sut = new NeptuneGraphRepository(mockClient.Object, NullLogger<NeptuneGraphRepository>.Instance);
 
-        var json = JsonDocument.Parse("""
-            [{"commitHash": "abc123def456"}]
-            """).RootElement.Clone();
+        var document = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document>
+            {
+                ["commitHash"] = new Document("abc123def456")
+            })
+        });
 
         mockClient
             .Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(json);
+            .ReturnsAsync(document);
 
         // Act
         var result = await sut.GetSyncStateAsync("my-repo");
@@ -1054,7 +1089,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("[]").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         // Act
         var result = await sut.GetSyncStateAsync("my-repo");
@@ -1075,7 +1110,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new Dictionary<string, Document>()));
 
         // Act
         var result = await sut.GetSyncStateAsync("my-repo");
@@ -1100,7 +1135,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         // Act
         await sut.SetSyncStateAsync("my-repo", "abc123");
@@ -1135,7 +1170,7 @@ public class NeptuneGraphRepositoryTests
                 It.IsAny<string>(),
                 It.IsAny<Dictionary<string, object>?>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("{}").RootElement.Clone());
+            .ReturnsAsync(new Document(new List<Document>()));
 
         using var cts = new CancellationTokenSource();
         var token = cts.Token;

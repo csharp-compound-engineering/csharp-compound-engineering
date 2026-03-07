@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Amazon.Neptunedata;
+using Amazon.Runtime.Documents;
 using CompoundDocs.Graph;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -42,7 +42,7 @@ public sealed class NeptuneClientUnitTests
                 "RETURN 1",
                 null,
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(JsonDocument.Parse("1").RootElement.Clone());
+            .ReturnsAsync(new Document(1));
 
         mockClient.Object.ShouldNotBeNull();
     }
@@ -73,7 +73,10 @@ public sealed class NeptuneClientUnitTests
     public async Task INeptuneClient_ExecuteOpenCypherAsync_WithParameters()
     {
         var mockClient = new Mock<INeptuneClient>();
-        var expectedResult = JsonDocument.Parse("[{\"count\": 42}]").RootElement.Clone();
+        var expectedResult = new Document(new List<Document>
+        {
+            new(new Dictionary<string, Document> { ["count"] = new Document(42) })
+        });
 
         mockClient.Setup(c => c.ExecuteOpenCypherAsync(
                 It.IsAny<string>(),
@@ -86,6 +89,6 @@ public sealed class NeptuneClientUnitTests
             new Dictionary<string, object> { ["limit"] = 10 },
             CancellationToken.None);
 
-        result.ValueKind.ShouldBe(JsonValueKind.Array);
+        result.IsList().ShouldBeTrue();
     }
 }
