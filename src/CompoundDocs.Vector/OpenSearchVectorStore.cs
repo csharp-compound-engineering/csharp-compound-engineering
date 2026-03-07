@@ -1,4 +1,3 @@
-using System.Text.Json;
 using CompoundDocs.Common.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -73,21 +72,17 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
         {
             LogIndexingChunk(chunkId);
 
-            var document = new Dictionary<string, object>
+            var document = new OpenSearchChunkDocument
             {
-                ["chunk_id"] = chunkId,
-                ["embedding"] = embedding,
-                ["metadata"] = metadata
+                ChunkId = chunkId, Embedding = embedding, Metadata = metadata
             };
 
-            var response = await _clientFactory.GetClient().LowLevel.IndexAsync<StringResponse>(
-                _configAccessor().IndexName, chunkId, PostData.Serializable(document), ctx: token);
+            var response = await _clientFactory.GetClient().IndexAsync(document, i => i
+                .Index(_configAccessor().IndexName)
+                .Id(chunkId), token);
 
-            if (!response.Success)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to index chunk {chunkId}: {response.Body}");
-            }
+            if (!response.IsValid)
+                throw new InvalidOperationException($"Failed to index chunk {chunkId}: {response.DebugInformation}");
         }, ct);
     }
 
@@ -99,25 +94,13 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
         {
             LogDeletingVectors(documentId);
 
-            var query = new
-            {
-                query = new
-                {
-                    term = new Dictionary<string, object>
-                    {
-                        ["metadata.document_id"] = documentId
-                    }
-                }
-            };
+            var response = await _clientFactory.GetClient().DeleteByQueryAsync<OpenSearchChunkDocument>(d => d
+                .Index(_configAccessor().IndexName)
+                .Query(q => q
+                    .Term(t => t.Field("metadata.document_id").Value(documentId))), token);
 
-            var response = await _clientFactory.GetClient().LowLevel.DeleteByQueryAsync<StringResponse>(
-                _configAccessor().IndexName, PostData.Serializable(query), ctx: token);
-
-            if (!response.Success)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to delete vectors for document {documentId}: {response.Body}");
-            }
+            if (!response.IsValid)
+                throw new InvalidOperationException($"Failed to delete vectors for document {documentId}: {response.DebugInformation}");
         }, ct);
     }
 
@@ -131,69 +114,43 @@ public sealed partial class OpenSearchVectorStore : IVectorStore
         {
             LogSearchingVectors(topK);
 
-            var knnQuery = new Dictionary<string, object>
+            var response = await _clientFactory.GetClient().SearchAsync<OpenSearchChunkDocument>(s =>
             {
-                ["vector"] = queryEmbedding,
-                ["k"] = topK
-            };
+                s.Index(_configAccessor().IndexName)
+                 .Size(topK)
+                 .Query(q => q
+                     .Knn(knn =>
+                     {
+                         knn.Field(f => f.Embedding)
+                            .Vector(queryEmbedding)
+                            .K(topK);
 
-            if (filters is { Count: > 0 })
+                         if (filters is { Count: > 0 })
+                         {
+                             knn.Filter(f => f
+                                 .Bool(b => b
+                                     .Must(filters.Select(filter =>
+                                         (Func<QueryContainerDescriptor<OpenSearchChunkDocument>, QueryContainer>)
+                                         (qc => qc.Term(t => t
+                                             .Field($"metadata.{filter.Key}")
+                                             .Value(filter.Value)))
+                                     ).ToArray())));
+                         }
+
+                         return knn;
+                     }));
+                return s;
+            }, token);
+
+            if (!response.IsValid)
+                throw new InvalidOperationException($"Vector search failed: {response.DebugInformation}");
+
+            return response.Hits.Select(hit => new VectorSearchResult
             {
-                var filterTerms = filters.Select(f => new Dictionary<string, object>
-                {
-                    ["term"] = new Dictionary<string, object>
-                    {
-                        [$"metadata.{f.Key}"] = f.Value
-                    }
-                }).ToList();
-
-                knnQuery["filter"] = new { @bool = new { must = filterTerms } };
-            }
-
-            var searchBody = new
-            {
-                size = topK,
-                query = new { knn = new { embedding = knnQuery } }
-            };
-
-            var response = await _clientFactory.GetClient().LowLevel.SearchAsync<StringResponse>(
-                _configAccessor().IndexName, PostData.Serializable(searchBody), ctx: token);
-
-            if (!response.Success)
-            {
-                throw new InvalidOperationException(
-                    $"Vector search failed: {response.Body}");
-            }
-
-            using var doc = JsonDocument.Parse(response.Body);
-
-            var results = new List<VectorSearchResult>();
-            var hits = doc.RootElement.GetProperty("hits").GetProperty("hits");
-
-            foreach (var hit in hits.EnumerateArray())
-            {
-                var score = hit.GetProperty("_score").GetDouble();
-                var source = hit.GetProperty("_source");
-                var chunkId = source.GetProperty("chunk_id").GetString()!;
-                var metadata = new Dictionary<string, string>();
-
-                if (source.TryGetProperty("metadata", out var metaElement))
-                {
-                    foreach (var prop in metaElement.EnumerateObject())
-                    {
-                        metadata[prop.Name] = prop.Value.GetString() ?? string.Empty;
-                    }
-                }
-
-                results.Add(new VectorSearchResult
-                {
-                    ChunkId = chunkId,
-                    Score = score,
-                    Metadata = metadata
-                });
-            }
-
-            return results;
+                ChunkId = hit.Source.ChunkId,
+                Score = hit.Score ?? 0.0,
+                Metadata = hit.Source.Metadata ?? []
+            }).ToList();
         }, ct);
     }
 
