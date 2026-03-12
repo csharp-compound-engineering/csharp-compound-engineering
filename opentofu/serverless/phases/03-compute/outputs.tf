@@ -16,11 +16,6 @@ output "lambda_function_url" {
   value       = aws_lambda_function_url.mcp_server.function_url
 }
 
-output "lambda_artifacts_bucket" {
-  description = "S3 bucket for Lambda deployment artifacts"
-  value       = aws_s3_bucket.lambda_artifacts.id
-}
-
 # ------------------------------------------------------------------------------
 # ECS / Fargate
 # ------------------------------------------------------------------------------

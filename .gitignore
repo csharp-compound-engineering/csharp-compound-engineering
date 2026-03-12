@@ -429,3 +429,4 @@ generated
 TestResults/
 CoverageResults/
 coverage-report.tar.gz
+lambda-mcp-server-*.zip
