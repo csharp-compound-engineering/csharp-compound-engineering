@@ -72,7 +72,7 @@
       {
         "verifyConditionsCmd": "dotnet --version && pnpm --version",
         "verifyReleaseCmd": "bash scripts/release-verify.sh",
-        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-docs.sh ${nextRelease.version}",
+        "prepareCmd": "bash scripts/release-prepare.sh ${nextRelease.version} && bash scripts/release-lambda.sh ${nextRelease.version} && bash scripts/release-docker.sh ${nextRelease.version} ${nextRelease.channel} && bash scripts/release-docs.sh ${nextRelease.version}",
         "publishCmd": "bash scripts/release-helm.sh ${nextRelease.version}",
         "successCmd": "echo 'Release ${nextRelease.version} published successfully'"
       }
@@ -80,7 +80,7 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml", "charts/compound-docs/values.yaml", "opentofu/serverless/phases/03-compute/variables.tf"],
+        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml", "charts/compound-docs/values.yaml", "opentofu/serverless/phases/03-compute/variables.tf", "opentofu/serverless/terraform.tfvars.example"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
@@ -99,6 +99,7 @@
       {
         "assets": [
           { "path": "compound-docs-*.tgz", "label": "Helm Chart" },
+          { "path": "lambda-mcp-server-*.zip", "label": "Lambda Deployment Package" },
           { "path": "coverage-report.tar.gz", "label": "Code Coverage Report (HTML + Cobertura)" }
         ],
         "successComment": "This ${issue.pull_request ? 'PR is included' : 'issue has been resolved'} in version ${nextRelease.version}",

@@ -13,45 +13,6 @@ locals {
 }
 
 ################################################################################
-# Lambda — S3 Deployment Artifacts
-################################################################################
-
-resource "aws_s3_bucket" "lambda_artifacts" {
-  bucket = "${var.stack_name}-lambda-artifacts-${data.terraform_remote_state.prereqs.outputs.account_id}"
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-lambda-artifacts"
-  })
-}
-
-resource "aws_s3_bucket_versioning" "lambda_artifacts" {
-  bucket = aws_s3_bucket.lambda_artifacts.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "lambda_artifacts" {
-  bucket = aws_s3_bucket.lambda_artifacts.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "lambda_artifacts" {
-  bucket = aws_s3_bucket.lambda_artifacts.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-################################################################################
 # Lambda Function
 ################################################################################
 
@@ -63,8 +24,8 @@ resource "aws_lambda_function" "mcp_server" {
   memory_size   = var.lambda_memory_size
   timeout       = var.lambda_timeout
 
-  s3_bucket = aws_s3_bucket.lambda_artifacts.id
-  s3_key    = "mcp-server/latest.zip"
+  filename         = "${path.module}/../../../../lambda-mcp-server-${var.lambda_zip_version}.zip"
+  source_code_hash = filebase64sha256("${path.module}/../../../../lambda-mcp-server-${var.lambda_zip_version}.zip")
 
   vpc_config {
     subnet_ids         = data.terraform_remote_state.network.outputs.private_subnets
@@ -78,10 +39,6 @@ resource "aws_lambda_function" "mcp_server" {
       CompoundDocs__OpenSearch__CollectionEndpoint = data.terraform_remote_state.data.outputs.opensearch_endpoint
       Authentication__ApiKeys                   = data.aws_secretsmanager_secret_version.api_keys.secret_string
     }
-  }
-
-  lifecycle {
-    ignore_changes = [s3_key, s3_object_version]
   }
 
   tags = merge(local.common_tags, {
