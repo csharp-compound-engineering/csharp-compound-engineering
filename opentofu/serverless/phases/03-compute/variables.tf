@@ -52,7 +52,7 @@ variable "lambda_timeout" {
 variable "lambda_zip_version" {
   description = "Version of the Lambda deployment ZIP (matches GitHub release) — updated by CI"
   type        = string
-  default     = "5.0.0"
+  default     = "5.1.0"
 }
 
 # ------------------------------------------------------------------------------
@@ -62,7 +62,7 @@ variable "lambda_zip_version" {
 variable "gitsync_image_digest" {
   description = "GitSync container image digest — updated by CI"
   type        = string
-  default     = "sha256:b169eeb009c82083ad90692747dd3da58aa0f8ae8facf9db0c6d7f3123403922"
+  default     = "sha256:53ce8be0fcaf4af017811daa748ed3388b7da1ec32a49c82c7b7e64a8d9e67e9"
 }
 
 variable "gitsync_schedule" {

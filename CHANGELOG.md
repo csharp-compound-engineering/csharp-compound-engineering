@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.0.0...v5.1.0) (2026-03-12)
+
+### Features
+
+* **ci:** add lambda zip packaging to semantic-release pipeline ([2898f99](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/2898f99fc752367ac2bd7eb6ffa2f2ac2bc1626a))
+
 ## [5.0.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v4.0.9...v5.0.0) (2026-03-07)
 
 ### Code Refactoring
