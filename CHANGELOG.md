@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.1.0...v5.1.1) (2026-03-15)
+
+### Bug Fixes
+
+* **infra:** resolve serverless deployment blockers for SG replacement, OpenSearch auth, and Lambda ZIP ([#73](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/73)) ([444ab86](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/444ab86e1fd63d180ede23cc23f39e26e26da509))
+
 ## [5.1.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.0.0...v5.1.0) (2026-03-12)
 
 ### Features
