@@ -3,6 +3,13 @@
   <PropertyGroup>
     <AssemblyName>CompoundDocs.McpServer</AssemblyName>
     <RootNamespace>CompoundDocs.McpServer</RootNamespace>
+
+    <!-- Prune published output for Lambda ZIP packaging -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
 
   <ItemGroup>

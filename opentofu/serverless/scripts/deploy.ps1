@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PhasesDir = Resolve-Path (Join-Path $ScriptDir '../phases')
 $TfVarsFile = Join-Path (Resolve-Path (Join-Path $ScriptDir '..')) 'terraform.tfvars'
+$RepoRoot = Resolve-Path (Join-Path $ScriptDir '../../..')
 
 # Phase directory mapping
 $PhaseDirs = @{
@@ -134,6 +135,37 @@ function Invoke-Validate {
     Write-LogSuccess "[$Phase] Valid."
 }
 
+function Get-LambdaZipVersion {
+    # Check tfvars first (uncommented lambda_zip_version line)
+    if (Test-Path $TfVarsFile) {
+        $match = Select-String -Path $TfVarsFile -Pattern '^\s*lambda_zip_version\s*=\s*"([^"]+)"' | Select-Object -First 1
+        if ($match) {
+            return $match.Matches[0].Groups[1].Value
+        }
+    }
+    # Fall back to default in variables.tf
+    $varsFile = Join-Path $PhasesDir '03-compute/variables.tf'
+    $content = Get-Content $varsFile -Raw
+    if ($content -match 'variable\s+"lambda_zip_version"[\s\S]*?default\s*=\s*"([^"]+)"') {
+        return $Matches[1]
+    }
+    throw "Could not determine lambda_zip_version from tfvars or variables.tf"
+}
+
+function Ensure-LambdaZip {
+    $version = Get-LambdaZipVersion
+    $zipFile = Join-Path $RepoRoot "lambda-mcp-server-${version}.zip"
+    if (Test-Path $zipFile) {
+        Write-LogInfo "Lambda ZIP already exists: $zipFile"
+        return
+    }
+
+    Write-LogInfo "Downloading lambda-mcp-server-${version}.zip from GitHub release v${version}..."
+    & gh release download "v${version}" --pattern "lambda-mcp-server-${version}.zip" --dir $RepoRoot
+    if ($LASTEXITCODE -ne 0) { throw "Failed to download Lambda ZIP from release v${version}" }
+    Write-LogSuccess "Lambda ZIP downloaded: $zipFile"
+}
+
 function Resolve-Phases {
     param(
         [string]$Phase,
@@ -170,6 +202,7 @@ switch ($Command) {
     'apply' {
         foreach ($p in (Resolve-Phases -Phase $Phase -Direction forward)) {
             Invoke-Init -Phase $p
+            if ($p -eq 'compute') { Ensure-LambdaZip }
             Invoke-Apply -Phase $p
         }
     }

@@ -51,6 +51,11 @@ variable "security_group_id" {
   type        = string
 }
 
+variable "master_user_arn" {
+  description = "IAM ARN for the OpenSearch fine-grained access control master user"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags to apply to all OpenSearch resources"
   type        = map(string)
