@@ -52,7 +52,7 @@ variable "lambda_timeout" {
 variable "lambda_zip_version" {
   description = "Version of the Lambda deployment ZIP (matches GitHub release) — updated by CI"
   type        = string
-  default     = "5.0.0"
+  default     = "5.1.0"
 }
 
 # ------------------------------------------------------------------------------

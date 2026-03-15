@@ -55,7 +55,7 @@ module "vpc" {
 ################################################################################
 
 resource "aws_security_group" "lambda" {
-  name        = "${var.stack_name}-lambda"
+  name_prefix = "${var.stack_name}-lambda"
   description = "Security group for Lambda functions"
   vpc_id      = module.vpc.vpc_id
 
@@ -70,10 +70,14 @@ resource "aws_security_group" "lambda" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-lambda"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group" "fargate" {
-  name        = "${var.stack_name}-fargate"
+  name_prefix = "${var.stack_name}-fargate"
   description = "Security group for Fargate tasks"
   vpc_id      = module.vpc.vpc_id
 
@@ -88,10 +92,14 @@ resource "aws_security_group" "fargate" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-fargate"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group" "neptune" {
-  name        = "${var.stack_name}-neptune"
+  name_prefix = "${var.stack_name}-neptune"
   description = "Security group for Neptune cluster"
   vpc_id      = module.vpc.vpc_id
 
@@ -114,10 +122,14 @@ resource "aws_security_group" "neptune" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-neptune"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group" "opensearch" {
-  name        = "${var.stack_name}-opensearch"
+  name_prefix = "${var.stack_name}-opensearch"
   description = "Security group for OpenSearch domain"
   vpc_id      = module.vpc.vpc_id
 
@@ -140,10 +152,14 @@ resource "aws_security_group" "opensearch" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-opensearch"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group" "efs" {
-  name        = "${var.stack_name}-efs"
+  name_prefix = "${var.stack_name}-efs"
   description = "Security group for EFS"
   vpc_id      = module.vpc.vpc_id
 
@@ -158,6 +174,10 @@ resource "aws_security_group" "efs" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-efs"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 ################################################################################
@@ -165,7 +185,7 @@ resource "aws_security_group" "efs" {
 ################################################################################
 
 resource "aws_security_group" "vpc_endpoints" {
-  name        = "${var.stack_name}-vpc-endpoints"
+  name_prefix = "${var.stack_name}-vpc-endpoints"
   description = "Security group for VPC interface endpoints"
   vpc_id      = module.vpc.vpc_id
 
@@ -188,6 +208,10 @@ resource "aws_security_group" "vpc_endpoints" {
   tags = merge(local.common_tags, {
     Name = "${var.stack_name}-vpc-endpoints"
   })
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 ################################################################################

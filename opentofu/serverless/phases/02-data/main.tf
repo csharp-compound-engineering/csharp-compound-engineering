@@ -37,6 +37,7 @@ module "opensearch" {
   vpc_id            = data.terraform_remote_state.network.outputs.vpc_id
   subnet_ids        = data.terraform_remote_state.network.outputs.private_subnets
   security_group_id = data.terraform_remote_state.network.outputs.opensearch_security_group_id
+  master_user_arn   = data.terraform_remote_state.prereqs.outputs.lambda_execution_role_arn
 
   tags = local.common_tags
 }
