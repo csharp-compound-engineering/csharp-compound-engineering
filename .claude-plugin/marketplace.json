@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Marketplace for the CompoundDocs GraphRAG knowledge base plugin",
-    "version": "5.1.4"
+    "version": "5.1.5"
   },
   "plugins": [
     {
       "name": "cd",
       "description": "GraphRAG-powered knowledge base for project documentation. Provides intelligent document retrieval via a single rag_query MCP tool backed by Neptune, OpenSearch, and Bedrock.",
-      "version": "5.1.4",
+      "version": "5.1.5",
       "author": {
         "name": "Michael McCord"
       },
