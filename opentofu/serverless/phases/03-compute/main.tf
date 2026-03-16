@@ -64,17 +64,6 @@ resource "aws_lambda_function_url" "mcp_server" {
 }
 
 ################################################################################
-# Lambda — CloudWatch Log Group
-################################################################################
-
-resource "aws_cloudwatch_log_group" "lambda" {
-  name              = "/aws/lambda/${aws_lambda_function.mcp_server.function_name}"
-  retention_in_days = 30
-
-  tags = local.common_tags
-}
-
-################################################################################
 # ECS Cluster (Fargate)
 ################################################################################
 
@@ -83,7 +72,7 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
   }
 
   tags = local.common_tags
@@ -126,15 +115,6 @@ resource "aws_ecs_task_definition" "gitsync" {
           readOnly      = false
         }
       ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.gitsync.name
-          "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "gitsync"
-        }
-      }
     }
   ])
 
@@ -151,13 +131,6 @@ resource "aws_ecs_task_definition" "gitsync" {
       }
     }
   }
-
-  tags = local.common_tags
-}
-
-resource "aws_cloudwatch_log_group" "gitsync" {
-  name              = "/aws/ecs/${var.stack_name}-gitsync"
-  retention_in_days = 30
 
   tags = local.common_tags
 }
@@ -235,9 +208,9 @@ resource "aws_scheduler_schedule" "gitsync" {
       launch_type         = "FARGATE"
 
       network_configuration {
-        subnets          = data.terraform_remote_state.network.outputs.public_subnets
+        subnets          = data.terraform_remote_state.network.outputs.private_subnets
         security_groups  = [data.terraform_remote_state.network.outputs.fargate_security_group_id]
-        assign_public_ip = true
+        assign_public_ip = false
       }
     }
   }

@@ -38,7 +38,7 @@ resource "aws_iam_role" "lambda_execution" {
 
 resource "aws_iam_policy" "lambda_execution" {
   name        = "${var.stack_name}-lambda-execution"
-  description = "Lambda execution policy for MCP server — Neptune, Bedrock, OpenSearch, VPC, CloudWatch"
+  description = "Lambda execution policy for MCP server — Neptune, Bedrock, OpenSearch, VPC"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -88,16 +88,6 @@ resource "aws_iam_policy" "lambda_execution" {
           "ec2:UnassignPrivateIpAddresses",
         ]
         Resource = "*"
-      },
-      {
-        Sid    = "CloudWatchLogs"
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ]
-        Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
       }
     ]
   })
@@ -135,20 +125,11 @@ resource "aws_iam_role" "fargate_task_execution" {
 
 resource "aws_iam_policy" "fargate_task_execution" {
   name        = "${var.stack_name}-fargate-task-execution"
-  description = "Fargate task execution — CloudWatch Logs + Secrets Manager read for env var injection"
+  description = "Fargate task execution — Secrets Manager read for env var injection"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      {
-        Sid    = "CloudWatchLogs"
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-        ]
-        Resource = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
-      },
       {
         Sid    = "SecretsManagerRead"
         Effect = "Allow"
