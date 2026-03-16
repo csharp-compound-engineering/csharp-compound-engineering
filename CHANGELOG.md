@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.1.5...v5.2.0) (2026-03-16)
+
+### Features
+
+* **infra:** generate neptune stop/start script on phase-02 apply ([#78](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/78)) ([48129e1](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/48129e1727f97dd3c34dcb174a0d167aa2b8deb4))
+
 ## [5.1.5](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.1.4...v5.1.5) (2026-03-16)
 
 ### Bug Fixes
