@@ -13,7 +13,7 @@ vpc_cidr = "10.1.0.0/16"
 # Lambda
 lambda_memory_size = 512
 lambda_timeout     = 30
-# lambda_zip_version = "5.1.2"  # Set by CI
+# lambda_zip_version = "5.1.3"  # Set by CI
 
 # GitSync
 # gitsync_image_digest = "sha256:..."  # Set by CI
