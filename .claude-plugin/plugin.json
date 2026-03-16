@@ -1,6 +1,6 @@
 {
   "name": "cd",
-  "version": "1.0.0",
+  "version": "5.1.4",
   "description": "GraphRAG-powered knowledge base for project documentation. Provides intelligent document retrieval via a single rag_query MCP tool backed by Neptune, OpenSearch, and Bedrock.",
   "author": {
     "name": "Michael McCord"
