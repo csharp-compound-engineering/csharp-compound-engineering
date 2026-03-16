@@ -1,5 +1,5 @@
 ################################################################################
-# Phase 1: Network — VPC + Security Groups + VPC Endpoints (Serverless)
+# Phase 1: Network — VPC + Security Groups + NAT Gateway (Serverless)
 ################################################################################
 
 data "aws_availability_zones" "available" {
@@ -10,10 +10,10 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  azs = slice(data.aws_availability_zones.available.names, 0, 3)
+  azs = slice(data.aws_availability_zones.available.names, 0, 2)
 
-  private_subnets = [cidrsubnet(var.vpc_cidr, 8, 1), cidrsubnet(var.vpc_cidr, 8, 2), cidrsubnet(var.vpc_cidr, 8, 3)]
-  public_subnets  = [cidrsubnet(var.vpc_cidr, 8, 101), cidrsubnet(var.vpc_cidr, 8, 102), cidrsubnet(var.vpc_cidr, 8, 103)]
+  private_subnets = [cidrsubnet(var.vpc_cidr, 8, 1), cidrsubnet(var.vpc_cidr, 8, 2)]
+  public_subnets  = [cidrsubnet(var.vpc_cidr, 8, 101), cidrsubnet(var.vpc_cidr, 8, 102)]
 
   common_tags = {
     OpenTofu    = "true"
@@ -37,10 +37,11 @@ module "vpc" {
   private_subnets = local.private_subnets
   public_subnets  = local.public_subnets
 
-  # No NAT gateway — Lambda uses VPC endpoints; Fargate uses public subnets
-  enable_nat_gateway = false
+  # Single NAT gateway — Lambda and Fargate use NAT for AWS API access
+  enable_nat_gateway = true
+  single_nat_gateway = true
 
-  # DNS — required for VPC endpoints
+  # DNS — required for private subnet AWS API access via NAT
   enable_dns_hostnames = true
   enable_dns_support   = true
 
@@ -178,109 +179,4 @@ resource "aws_security_group" "efs" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-################################################################################
-# VPC Endpoints — Shared Security Group
-################################################################################
-
-resource "aws_security_group" "vpc_endpoints" {
-  name_prefix = "${var.stack_name}-vpc-endpoints"
-  description = "Security group for VPC interface endpoints"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description     = "HTTPS from Lambda"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.lambda.id]
-  }
-
-  ingress {
-    description     = "HTTPS from Fargate"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.fargate.id]
-  }
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-vpc-endpoints"
-  })
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-################################################################################
-# VPC Interface Endpoints
-################################################################################
-
-resource "aws_vpc_endpoint" "bedrock_runtime" {
-  vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.${var.region}.bedrock-runtime"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnets
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-bedrock-runtime"
-  })
-}
-
-resource "aws_vpc_endpoint" "logs" {
-  vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.${var.region}.logs"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnets
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-logs"
-  })
-}
-
-resource "aws_vpc_endpoint" "secretsmanager" {
-  vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.${var.region}.secretsmanager"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnets
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-secretsmanager"
-  })
-}
-
-resource "aws_vpc_endpoint" "sts" {
-  vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.${var.region}.sts"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnets
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-sts"
-  })
-}
-
-################################################################################
-# VPC Gateway Endpoint (free)
-################################################################################
-
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id            = module.vpc.vpc_id
-  service_name      = "com.amazonaws.${var.region}.s3"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids   = module.vpc.private_route_table_ids
-
-  tags = merge(local.common_tags, {
-    Name = "${var.stack_name}-s3"
-  })
 }
