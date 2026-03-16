@@ -92,6 +92,19 @@ resource "aws_efs_access_point" "git_repos" {
 }
 
 ################################################################################
+# Generated Scripts
+################################################################################
+
+resource "local_file" "neptune_script" {
+  content = templatefile("${path.module}/templates/neptune.ps1.tftpl", {
+    cluster_id = module.neptune.cluster_identifier
+    region     = var.region
+  })
+  filename        = "${path.module}/../../scripts/neptune.ps1"
+  file_permission = "0755"
+}
+
+################################################################################
 # Secrets Manager — Write Neptune + OpenSearch endpoints
 ################################################################################
 
