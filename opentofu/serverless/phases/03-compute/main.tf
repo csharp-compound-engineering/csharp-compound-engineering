@@ -208,9 +208,9 @@ resource "aws_scheduler_schedule" "gitsync" {
       launch_type         = "FARGATE"
 
       network_configuration {
-        subnets          = data.terraform_remote_state.network.outputs.public_subnets
+        subnets          = data.terraform_remote_state.network.outputs.private_subnets
         security_groups  = [data.terraform_remote_state.network.outputs.fargate_security_group_id]
-        assign_public_ip = true
+        assign_public_ip = false
       }
     }
   }
