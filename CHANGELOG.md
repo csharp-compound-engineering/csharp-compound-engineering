@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.2](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.1.1...v5.1.2) (2026-03-16)
+
+### Bug Fixes
+
+* **infra:** disable Neptune automated backups ([#74](https://github.com/csharp-compound-engineering/csharp-compound-engineering/issues/74)) ([e50e952](https://github.com/csharp-compound-engineering/csharp-compound-engineering/commit/e50e95205baeea9f37bb7824a6c1d7e966f156b8))
+
 ## [5.1.1](https://github.com/csharp-compound-engineering/csharp-compound-engineering/compare/v5.1.0...v5.1.1) (2026-03-15)
 
 ### Bug Fixes
