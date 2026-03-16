@@ -80,7 +80,7 @@
     [
       "@semantic-release/git",
       {
-        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml", "charts/compound-docs/values.yaml", "opentofu/serverless/phases/03-compute/variables.tf", "opentofu/serverless/terraform.tfvars.example"],
+        "assets": ["CHANGELOG.md", "Directory.Build.props", "charts/compound-docs/Chart.yaml", "charts/compound-docs/values.yaml", "opentofu/serverless/phases/03-compute/variables.tf", "opentofu/serverless/terraform.tfvars.example", ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],

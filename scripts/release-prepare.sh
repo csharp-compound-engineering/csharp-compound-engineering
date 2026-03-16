@@ -13,6 +13,10 @@ sed -i "s|<AssemblyVersion>[^<]*</AssemblyVersion>|<AssemblyVersion>${VERSION}.0
 sed -i "s|^version:.*|version: ${VERSION}|" charts/compound-docs/Chart.yaml
 sed -i "s|^appVersion:.*|appVersion: \"${VERSION}\"|" charts/compound-docs/Chart.yaml
 
+# Stamp plugin manifests
+sed -i 's|"version": "[^"]*"|"version": "'"${VERSION}"'"|g' .claude-plugin/plugin.json
+sed -i 's|"version": "[^"]*"|"version": "'"${VERSION}"'"|g' .claude-plugin/marketplace.json
+
 # Release build
 dotnet build csharp-compounding-docs.sln \
   --configuration Release \
